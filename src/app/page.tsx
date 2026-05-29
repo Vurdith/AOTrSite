@@ -17,11 +17,15 @@ const features = [
     title: "Calculator",
     text: "Build both sides of a trade and check the value gap before you accept.",
   },
-  {
-    href: "/updates",
-    title: "Updates",
-    text: "See board imports, item-count changes, and demand updates in one log.",
-  },
+  ...(process.env.NODE_ENV === "development"
+    ? [
+        {
+          href: "/updates",
+          title: "Updates",
+          text: "See board imports, item-count changes, and demand updates in one log.",
+        },
+      ]
+    : []),
 ];
 
 export default function Home() {
@@ -193,9 +197,11 @@ export default function Home() {
             ))}
           </div>
           </div>
-          <a href="/updates" className="royal-button mt-8 inline-flex h-12 items-center px-5 text-sm font-bold uppercase tracking-[0.14em] text-white">
-            <span>Open full updates page</span>
-          </a>
+          {process.env.NODE_ENV === "development" ? (
+            <a href="/updates" className="royal-button mt-8 inline-flex h-12 items-center px-5 text-sm font-bold uppercase tracking-[0.14em] text-white">
+              <span>Open full updates page</span>
+            </a>
+          ) : null}
         </div>
       </section>
 

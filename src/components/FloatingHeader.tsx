@@ -9,8 +9,8 @@ import { cn } from "@/lib/cn";
 const nav = [
   { href: "/values", label: "Values" },
   { href: "/calculator", label: "Calculator" },
-  { href: "/updates", label: "Updates" },
-] as const;
+  ...(process.env.NODE_ENV === "development" ? [{ href: "/updates", label: "Updates" }] : []),
+];
 
 export function FloatingHeader() {
   const pathname = usePathname();
@@ -36,7 +36,7 @@ export function FloatingHeader() {
           </span>
         </Link>
 
-        <div className="grid w-full max-w-[440px] min-w-0 grid-cols-3 gap-1.5">
+        <div className={cn("grid w-full min-w-0 gap-1.5", nav.length === 3 ? "max-w-[440px] grid-cols-3" : "max-w-[300px] grid-cols-2")}>
           {nav.map((item) => {
             const active = pathname === item.href;
             return (
