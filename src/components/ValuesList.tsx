@@ -393,12 +393,16 @@ function ValueRow({
                 {rarityStyles[item.rarity].label}
               </span>
             </p>
+            <div className="row-mobile-trend lg:hidden">
+              <span>Trend</span>
+              <TrendBadge trend={item.trend} />
+            </div>
           </div>
         </div>
       </div>
 
       <RowMetric label="Value" value={formatCurrencyValue(item.value, valueMode)} icon={valueModeIcon[valueMode]} />
-      <div className="flex min-w-0 items-center lg:block">
+      <div className="hidden min-w-0 items-center lg:block">
         <span className="mr-2 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.62)] lg:hidden">Trend</span>
         <TrendBadge trend={item.trend} />
       </div>

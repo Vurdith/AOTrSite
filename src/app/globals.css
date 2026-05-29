@@ -3231,6 +3231,22 @@
     text-align: center;
   }
 
+  .row-mobile-trend {
+    margin-top: 0.55rem;
+    display: grid;
+    width: min(100%, 9.5rem);
+    gap: 0.3rem;
+  }
+
+  .row-mobile-trend > span:first-child {
+    color: rgb(var(--fog) / 0.62);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
   .value-row-data {
     display: inline-flex;
     min-height: 1.8rem;
