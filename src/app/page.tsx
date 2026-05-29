@@ -62,7 +62,7 @@ export default function Home() {
             </h1>
             <div className="home-hero-divider" aria-hidden="true" />
             <p className="home-hero-copy max-w-2xl text-xl leading-8 md:text-2xl">
-              AOTR cosmetic values, demand, gem tax, prestige gates, and trade balance before you send the offer.
+              Find item values, demand, tax, and prestige requirements. Calculate value and demand of your trade before you make it.
             </p>
             <div className="home-hero-actions flex flex-wrap items-center gap-3">
               <a
