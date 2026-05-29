@@ -442,6 +442,7 @@ function TradeCell({
             pattern="[0-9]*"
             type="number"
             value={item.quantity}
+            style={{ width: `${String(item.quantity).length}ch` }}
             onChange={(event) => {
               const nextQuantity = Number.parseInt(event.target.value, 10);
               onQuantity(Number.isFinite(nextQuantity) ? nextQuantity : 1);
