@@ -3230,7 +3230,7 @@
     justify-content: center;
     gap: 0.3rem;
     border: 1px solid rgb(74 222 128 / 0.34);
-    border-radius: 999px;
+    border-radius: 8px 3px 8px 3px;
     background:
       linear-gradient(180deg, rgb(34 197 94 / 0.16), rgb(20 83 45 / 0.2)),
       rgb(0 0 0 / 0.3);
