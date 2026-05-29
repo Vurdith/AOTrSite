@@ -11,7 +11,6 @@ const features = [
     text: "Current item value, demand, tax, trend, and prestige in one scan-friendly board.",
     eyebrow: "Board",
     action: "Open board",
-    stats: ["56 items", "Demand scores"],
   },
   {
     href: "/calculator",
@@ -19,7 +18,6 @@ const features = [
     text: "Build both sides of a trade and check the value gap before you accept.",
     eyebrow: "Offer",
     action: "Calculate trade",
-    stats: ["9 slots", "Quantity support"],
   },
   ...(process.env.NODE_ENV === "development"
     ? [
@@ -29,7 +27,6 @@ const features = [
           text: "See board imports, item-count changes, and demand updates in one log.",
           eyebrow: "Ledger",
           action: "Open updates",
-          stats: ["Board notes", "Change log"],
         },
       ]
     : []),
@@ -106,16 +103,6 @@ export default function Home() {
               <p>Trading tools</p>
               <h2 className="font-display">Choose a focused workflow.</h2>
             </div>
-            <div className="tools-section-copy">
-              <p>
-                Move from market lookup to trade calculation without extra noise. Each tool keeps the decision in front of you: value, demand, tax, and trade balance.
-              </p>
-              <div aria-label="Tool coverage">
-                <span>Values</span>
-                <span>Calculator</span>
-                {process.env.NODE_ENV === "development" ? <span>Updates</span> : null}
-              </div>
-            </div>
           </div>
           <div className="tools-grid">
             {features.map((feature, index) => (
@@ -127,7 +114,6 @@ export default function Home() {
                 <div>
                   <div className="tool-card-topline">
                     <span>{feature.eyebrow}</span>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
                   </div>
                   <div>
                     <h3 className="font-display">{feature.title}</h3>
@@ -135,11 +121,6 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="tool-card-footer">
-                  <div>
-                    {feature.stats.map((stat) => (
-                      <span key={stat}>{stat}</span>
-                    ))}
-                  </div>
                   <strong>{feature.action}</strong>
                 </div>
               </a>

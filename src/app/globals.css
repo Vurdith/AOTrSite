@@ -130,33 +130,6 @@
     line-height: 0.92;
   }
 
-  .tools-section-copy {
-    display: grid;
-    gap: 1rem;
-    color: rgb(var(--fog) / 0.78);
-    font-size: 0.98rem;
-    line-height: 1.75;
-  }
-
-  .tools-section-copy > div {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .tools-section-copy span {
-    border: 1px solid rgb(var(--gold) / 0.15);
-    border-radius: 999px;
-    background: rgb(0 0 0 / 0.18);
-    color: rgb(var(--bright-gold));
-    padding: 0.4rem 0.7rem;
-    font-size: 0.64rem;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    line-height: 1;
-    text-transform: uppercase;
-  }
-
   .tools-grid {
     position: relative;
     z-index: 1;
@@ -173,7 +146,7 @@
 
   @media (min-width: 1180px) {
     .tools-grid {
-      grid-template-columns: minmax(0, 1.08fr) repeat(2, minmax(260px, 0.72fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 
@@ -231,10 +204,6 @@
     z-index: 1;
   }
 
-  .tool-card-primary {
-    min-height: 18.5rem;
-  }
-
   .tool-card-topline,
   .tool-card-footer {
     display: flex;
@@ -244,7 +213,6 @@
   }
 
   .tool-card-topline span,
-  .tool-card-footer span,
   .tool-card-footer strong {
     font-size: 0.62rem;
     font-weight: 900;
@@ -256,10 +224,6 @@
   .tool-card-topline span:first-child,
   .tool-card-footer strong {
     color: rgb(var(--bright-gold));
-  }
-
-  .tool-card-topline span:last-child {
-    color: rgb(var(--fog) / 0.42);
   }
 
   .tool-card h3 {
@@ -279,21 +243,6 @@
 
   .tool-card-footer {
     margin-top: 2.25rem;
-  }
-
-  .tool-card-footer > div {
-    display: flex;
-    min-width: 0;
-    flex-wrap: wrap;
-    gap: 0.45rem;
-  }
-
-  .tool-card-footer span {
-    border: 1px solid rgb(var(--gold) / 0.12);
-    border-radius: 999px;
-    background: rgb(0 0 0 / 0.18);
-    color: rgb(var(--fog) / 0.72);
-    padding: 0.38rem 0.55rem;
   }
 
   .aurora-page {
