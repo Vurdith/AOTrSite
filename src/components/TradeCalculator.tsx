@@ -69,6 +69,7 @@ export function TradeCalculator() {
   const [yours, setYours] = useState<TradeSlot[]>(initialYoursSlots);
   const [theirs, setTheirs] = useState<TradeSlot[]>([{ item: valueItems[1], quantity: 1 }, ...Array<TradeSlot>(8).fill(null)]);
   const [activeSlot, setActiveSlot] = useState<ActiveSlot>({ side: "yours", index: 2 });
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
@@ -119,6 +120,8 @@ export function TradeCalculator() {
 
   function pickSlot(side: Side, index: number) {
     setActiveSlot({ side, index });
+    setQuery("");
+    setPickerOpen(true);
   }
 
   function pickItem(item: ValueItem) {
@@ -130,6 +133,8 @@ export function TradeCalculator() {
           : slot,
       ),
     );
+    setQuery("");
+    setPickerOpen(false);
   }
 
   function setQuantity(side: Side, index: number, quantity: number) {
@@ -147,33 +152,15 @@ export function TradeCalculator() {
     <section className="px-4 py-7 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="market-vellum p-4 md:p-5">
-          <div className="market-board-head">
+          <div className="market-board-head calculator-display-head">
             <div className="title-lockup">
               <div>
                 <h2 className="font-display text-3xl leading-none md:text-4xl">Calculator Items</h2>
-                <p className="mt-2 text-sm text-[rgb(var(--fog)/.8)]">Search, filter, and choose how trade values are shown.</p>
+                <p className="mt-2 text-sm text-[rgb(var(--fog)/.8)]">Choose how trade values are shown.</p>
               </div>
             </div>
 
             <div className="market-actions">
-              <div className="search-control">
-                <span>Find item</span>
-                <label className="search-channel" title="Search applies within the selected category.">
-                  <span className="sr-only">Search calculator items</span>
-                  <Search className="ml-3 size-4 shrink-0 text-[rgb(var(--fog)/.66)]" aria-hidden="true" />
-                  <input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Name, rarity, prestige"
-                    className="h-10 w-full min-w-0 bg-transparent px-3 text-sm text-white outline-none placeholder:text-[rgb(var(--fog)/.48)]"
-                  />
-                  {query ? (
-                    <button type="button" className="search-clear" onClick={() => setQuery("")} aria-label="Clear search">
-                      x
-                    </button>
-                  ) : null}
-                </label>
-              </div>
               <div className="currency-control">
                 <span>Display value as</span>
                 <div className="currency-tabs" aria-label="Display value as">
@@ -191,47 +178,6 @@ export function TradeCalculator() {
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="category-tabs" aria-label="Item categories">
-            {visibleCategories.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setCategory(item.id)}
-                aria-pressed={category === item.id}
-                className={cn("category-tab", category === item.id && "category-tab-active")}
-              >
-                {item.label}
-                <span>{item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="calculator-item-picker-panel">
-            <div className="calculator-picker-head">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Item picker</p>
-                <h2 className="font-display mt-1 text-2xl">{targetLabel}</h2>
-              </div>
-            </div>
-
-            <div className="calculator-picker-list mt-4">
-              {filteredItems.map((item) => (
-                <button key={item.id} className="calculator-picker-row" onClick={() => pickItem(item)} type="button">
-                  <ItemThumb item={item} />
-                  <div className="min-w-0">
-                    <div className="truncate font-display text-base leading-5 text-white">{item.name}</div>
-                  </div>
-                  <span className="calculator-picker-target">Pick</span>
-                </button>
-              ))}
-              {!filteredItems.length ? (
-                <div className="rounded-[14px_5px_14px_5px] border border-[rgb(var(--gold)/.1)] p-5 text-center text-sm text-[rgb(var(--fog)/.78)]">
-                  No matching item.
-                </div>
-              ) : null}
             </div>
           </div>
         </div>
@@ -294,8 +240,118 @@ export function TradeCalculator() {
       {detailItem ? (
         <ItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} valueMode={valueMode} />
       ) : null}
+      {pickerOpen ? (
+        <ItemPickerModal
+          category={category}
+          filteredItems={filteredItems}
+          onCategory={setCategory}
+          onClose={() => setPickerOpen(false)}
+          onPick={pickItem}
+          onQuery={setQuery}
+          query={query}
+          targetLabel={targetLabel}
+          visibleCategories={visibleCategories}
+        />
+      ) : null}
       </div>
     </section>
+  );
+}
+
+function ItemPickerModal({
+  category,
+  filteredItems,
+  onCategory,
+  onClose,
+  onPick,
+  onQuery,
+  query,
+  targetLabel,
+  visibleCategories,
+}: {
+  category: "all" | ItemCategory;
+  filteredItems: ValueItem[];
+  onCategory: (category: "all" | ItemCategory) => void;
+  onClose: () => void;
+  onPick: (item: ValueItem) => void;
+  onQuery: (query: string) => void;
+  query: string;
+  targetLabel: string;
+  visibleCategories: typeof categories;
+}) {
+  return (
+    <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <div
+        className="calculator-modal calculator-picker-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Pick item for ${targetLabel}`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button type="button" className="calculator-modal-close" onClick={onClose} aria-label="Close item picker">
+          <X size={16} strokeWidth={2.4} />
+        </button>
+        <div className="calculator-picker-modal-head">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Item picker</p>
+            <h2 className="font-display mt-1 text-3xl leading-none">{targetLabel}</h2>
+          </div>
+        </div>
+
+        <div className="calculator-picker-modal-toolbar">
+          <div className="search-control">
+            <span>Find item</span>
+            <label className="search-channel" title="Search applies within the selected category.">
+              <span className="sr-only">Search calculator items</span>
+              <Search className="ml-3 size-4 shrink-0 text-[rgb(var(--fog)/.66)]" aria-hidden="true" />
+              <input
+                value={query}
+                onChange={(event) => onQuery(event.target.value)}
+                placeholder="Name, rarity, prestige"
+                className="h-10 w-full min-w-0 bg-transparent px-3 text-sm text-white outline-none placeholder:text-[rgb(var(--fog)/.48)]"
+              />
+              {query ? (
+                <button type="button" className="search-clear" onClick={() => onQuery("")} aria-label="Clear search">
+                  x
+                </button>
+              ) : null}
+            </label>
+          </div>
+
+          <div className="category-tabs calculator-picker-categories" aria-label="Item categories">
+            {visibleCategories.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onCategory(item.id)}
+                aria-pressed={category === item.id}
+                className={cn("category-tab", category === item.id && "category-tab-active")}
+              >
+                {item.label}
+                <span>{item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="calculator-picker-list calculator-picker-modal-list mt-4">
+          {filteredItems.map((item) => (
+            <button key={item.id} className="calculator-picker-row" onClick={() => onPick(item)} type="button">
+              <ItemThumb item={item} />
+              <div className="min-w-0">
+                <div className="truncate font-display text-base leading-5 text-white">{item.name}</div>
+              </div>
+              <span className="calculator-picker-target">Pick</span>
+            </button>
+          ))}
+          {!filteredItems.length ? (
+            <div className="rounded-[14px_5px_14px_5px] border border-[rgb(var(--gold)/.1)] p-5 text-center text-sm text-[rgb(var(--fog)/.78)]">
+              No matching item.
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
 
