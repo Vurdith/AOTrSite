@@ -406,19 +406,17 @@ function ValueRow({
       <RowMetric label="Demand Score" value={<DemandScore value={item.demand} />} icon="demand" />
       <RowMetric label="Prestige" value={`P${item.prestige}`} icon="prestige" title={prestigeLabels[item.prestige]} />
       <div className="value-row-action">
-        {selected ? (
-          <button
-            type="button"
-            className="value-row-data"
-            onClick={(event) => {
-              event.stopPropagation();
-              onView();
-            }}
-          >
-            <Info size={11} strokeWidth={2.4} />
-            Data
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="value-row-data"
+          onClick={(event) => {
+            event.stopPropagation();
+            onView();
+          }}
+        >
+          <Info size={11} strokeWidth={2.4} />
+          Expand
+        </button>
       </div>
     </article>
   );
