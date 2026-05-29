@@ -370,10 +370,6 @@ function ValueRow({
                 {rarityStyles[item.rarity].label}
               </span>
             </p>
-            <div className="row-mobile-trend lg:hidden">
-              <span>Trend</span>
-              <TrendBadge trend={item.trend} />
-            </div>
           </div>
         </div>
       </div>
@@ -386,6 +382,10 @@ function ValueRow({
       <RowMetric label="Tax" value={<GemValue value={item.taxGems} />} />
       <RowMetric label="Demand Score" value={<DemandScore value={item.demand} />} icon="demand" />
       <RowMetric label="Prestige" value={`P${item.prestige}`} icon="prestige" title={prestigeLabels[item.prestige]} />
+      <div className="row-mobile-trend lg:hidden">
+        <span>Trend</span>
+        <TrendBadge trend={item.trend} />
+      </div>
       <div className="value-row-action">
         <button
           type="button"
