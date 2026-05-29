@@ -2964,7 +2964,7 @@
   }
 
   .ledger-columns {
-    grid-template-columns: minmax(230px, 1.15fr) 140px 104px 108px 132px 104px;
+    grid-template-columns: minmax(196px, 1.15fr) 124px 94px 100px 120px 80px 96px;
     min-height: 3.1rem;
     align-items: stretch;
   }
@@ -3066,7 +3066,7 @@
   @media (min-width: 1024px) {
     .market-row {
       min-height: 74px;
-      grid-template-columns: minmax(230px, 1.15fr) 140px 104px 108px 132px 104px;
+      grid-template-columns: minmax(196px, 1.15fr) 124px 94px 100px 120px 80px 96px;
       padding: 0.75rem 1rem;
     }
 
@@ -3101,6 +3101,23 @@
     background: rgb(var(--bright-gold) / 0.055);
     box-shadow:
       inset 4px 0 0 rgb(var(--bright-gold) / 0.58);
+  }
+
+  .value-row-action {
+    position: absolute;
+    right: 0.875rem;
+    bottom: 0.875rem;
+    z-index: 2;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  @media (min-width: 1024px) {
+    .value-row-action {
+      position: static;
+      justify-self: end;
+      width: 100%;
+    }
   }
 
   .ledger-pagination {
@@ -3214,7 +3231,7 @@
 
   .value-row-data {
     display: inline-flex;
-    min-height: 1.28rem;
+    min-height: 1.48rem;
     align-items: center;
     justify-content: center;
     gap: 0.2rem;
@@ -3224,7 +3241,7 @@
       linear-gradient(180deg, rgb(var(--bright-gold) / 0.11), transparent),
       rgb(0 0 0 / 0.2);
     color: rgb(var(--ink));
-    padding: 0 0.42rem;
+    padding: 0 0.5rem;
     font-size: 0.5rem;
     font-weight: 800;
     letter-spacing: 0.08em;

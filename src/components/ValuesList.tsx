@@ -215,6 +215,7 @@ export function ValuesList() {
                 setSortKey(nextSort);
                 setPage(1);
               }} />
+              <span aria-hidden="true" />
             </div>
 
             <div className="space-y-2 p-2 md:p-3">
@@ -391,17 +392,6 @@ function ValueRow({
               <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]", rarityStyles[item.rarity].badge)}>
                 {rarityStyles[item.rarity].label}
               </span>
-              <button
-                type="button"
-                className="value-row-data"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onView();
-                }}
-              >
-                <Info size={11} strokeWidth={2.4} />
-                Data
-              </button>
             </p>
           </div>
         </div>
@@ -415,6 +405,21 @@ function ValueRow({
       <RowMetric label="Tax" value={<GemValue value={item.taxGems} />} />
       <RowMetric label="Demand Score" value={<DemandScore value={item.demand} />} icon="demand" />
       <RowMetric label="Prestige" value={`P${item.prestige}`} icon="prestige" title={prestigeLabels[item.prestige]} />
+      <div className="value-row-action">
+        {selected ? (
+          <button
+            type="button"
+            className="value-row-data"
+            onClick={(event) => {
+              event.stopPropagation();
+              onView();
+            }}
+          >
+            <Info size={11} strokeWidth={2.4} />
+            Data
+          </button>
+        ) : null}
+      </div>
     </article>
   );
 }
