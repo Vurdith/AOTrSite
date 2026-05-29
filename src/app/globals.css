@@ -1381,8 +1381,16 @@
 
   @media (min-width: 720px) {
     .calculator-tax-summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      max-width: 38rem;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      max-width: none;
+    }
+
+    .calculator-tax-summary .calculator-stat-chip {
+      width: min(100%, 18.25rem);
+    }
+
+    .calculator-tax-summary .calculator-stat-chip:nth-child(2) {
+      justify-self: end;
     }
   }
 

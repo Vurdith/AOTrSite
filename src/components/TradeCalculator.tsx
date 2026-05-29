@@ -76,7 +76,7 @@ export function TradeCalculator() {
   const yourCount = yours.filter(Boolean).length;
   const theirCount = theirs.filter(Boolean).length;
   const diff = theirTotal - yourTotal;
-  const favor = diff >= 0 ? "Favors you" : "Overpay";
+  const favor = diff >= 0 ? "Fair trade" : "Overpay";
   const targetLabel = `${activeSlot.side === "yours" ? "Your" : "Their"} slot ${activeSlot.index + 1}`;
   const visibleCategories = categories.filter((item) => item.id === "all" || valueItems.some((value) => value.category === item.id));
   const filteredItems = useMemo(() => {
