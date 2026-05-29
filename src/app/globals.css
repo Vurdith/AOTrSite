@@ -3105,20 +3105,20 @@
 
   .value-row-action {
     position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
+    right: 0.8rem;
+    bottom: 0.8rem;
     z-index: 2;
     display: flex;
-    align-items: stretch;
+    align-items: center;
     justify-content: flex-end;
   }
 
   @media (min-width: 1024px) {
     .value-row-action {
       position: static;
-      justify-self: end;
+      justify-self: center;
       width: 100%;
+      justify-content: center;
     }
   }
 
@@ -3233,45 +3233,54 @@
 
   .value-row-data {
     display: inline-flex;
-    min-height: 100%;
-    width: 1.62rem;
+    min-height: 1.8rem;
     align-items: center;
     justify-content: center;
-    gap: 0.18rem;
-    border: 0;
-    border-left: 1px solid rgb(110 231 183 / 0.24);
-    border-radius: 0 5px 14px 0;
+    gap: 0.3rem;
+    border: 1px solid rgb(74 222 128 / 0.34);
+    border-radius: 999px;
     background:
-      linear-gradient(90deg, transparent, rgb(16 185 129 / 0.14)),
-      radial-gradient(42px 120px at 100% 50%, rgb(110 231 183 / 0.2), transparent 72%);
-    color: rgb(187 247 208);
-    padding: 0;
-    font-size: 0.5rem;
-    font-weight: 800;
+      linear-gradient(180deg, rgb(34 197 94 / 0.16), rgb(20 83 45 / 0.2)),
+      rgb(0 0 0 / 0.3);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 0 0 1px rgb(0 0 0 / 0.22);
+    color: rgb(220 252 231);
+    padding: 0 0.68rem;
+    font-size: 0.61rem;
+    font-weight: 900;
     letter-spacing: 0.08em;
     line-height: 1;
     text-transform: uppercase;
-    writing-mode: vertical-rl;
+    white-space: nowrap;
     transition:
+      transform 160ms ease,
       border-color 160ms ease,
       background 160ms ease,
-      color 160ms ease;
-  }
-
-  .value-row-data svg {
-    transform: rotate(90deg);
+      color 160ms ease,
+      box-shadow 160ms ease;
   }
 
   .value-row-data:hover {
+    border-color: rgb(134 239 172 / 0.56);
     background:
-      linear-gradient(90deg, transparent, rgb(16 185 129 / 0.28)),
-      radial-gradient(42px 120px at 100% 50%, rgb(110 231 183 / 0.34), transparent 74%);
+      linear-gradient(180deg, rgb(34 197 94 / 0.26), rgb(20 83 45 / 0.28)),
+      rgb(0 0 0 / 0.26);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 0 18px rgb(34 197 94 / 0.14);
     color: white;
+    transform: translateY(-1px);
+  }
+
+  .value-row-data svg {
+    color: rgb(134 239 172);
   }
 
   @media (max-width: 1023px) {
     .market-row {
-      padding-right: 2.35rem;
+      padding-bottom: 3.15rem;
+      padding-right: 0.875rem;
     }
   }
 

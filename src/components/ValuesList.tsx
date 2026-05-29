@@ -215,7 +215,7 @@ export function ValuesList() {
                 setSortKey(nextSort);
                 setPage(1);
               }} />
-              <span aria-hidden="true" />
+              <span>Details</span>
             </div>
 
             <div className="space-y-2 p-2 md:p-3">
@@ -414,8 +414,8 @@ function ValueRow({
             onView();
           }}
         >
-          <Info size={11} strokeWidth={2.4} />
-          Expand
+          <Info size={12} strokeWidth={2.4} />
+          View
         </button>
       </div>
     </article>
