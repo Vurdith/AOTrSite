@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { Info, X } from "lucide-react";
 
 import { categories, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
@@ -79,6 +80,7 @@ export function ValuesList() {
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [sortKey, setSortKey] = useState<SortKey>("value");
   const [page, setPage] = useState(1);
+  const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
   const [iconOverrides] = useState<Record<string, string>>({});
 
   const filtered = useMemo(() => {
@@ -224,6 +226,10 @@ export function ValuesList() {
                   selected={selected.id === item.id}
                   valueMode={valueMode}
                   onSelect={() => setSelectedId(item.id)}
+                  onView={() => {
+                    setSelectedId(item.id);
+                    setDetailItem(item);
+                  }}
                 />
               ))}
             </div>
@@ -274,6 +280,14 @@ export function ValuesList() {
             </Link>
           </aside>
         </div>
+        {detailItem ? (
+          <ValueDetailModal
+            iconUrl={iconOverrides[detailItem.id] ?? detailItem.iconUrl ?? ""}
+            item={detailItem}
+            onClose={() => setDetailItem(null)}
+            valueMode={valueMode}
+          />
+        ) : null}
       </div>
     </section>
   );
@@ -333,23 +347,32 @@ function ValueRow({
   selected,
   valueMode,
   onSelect,
+  onView,
 }: {
   item: ValueItem;
   iconUrl: string;
   selected: boolean;
   valueMode: ValueMode;
   onSelect: () => void;
+  onView: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <article
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
       aria-pressed={selected}
       aria-label={`${item.name}, ${formatCurrencyValue(item.value, valueMode)}, ${trendMeta[item.trend].label}, ${formatNumber(item.taxGems)} gems tax, demand ${item.demand} out of 100, prestige P${item.prestige}`}
       className={cn(
         "market-row group w-full text-left",
         selected && "market-row-selected",
       )}
+      role="button"
+      tabIndex={0}
     >
       <div className="col-span-2 grid min-w-0 grid-cols-[48px_minmax(0,1fr)] items-center gap-3 lg:contents">
         <div className="lg:hidden">
@@ -368,6 +391,17 @@ function ValueRow({
               <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]", rarityStyles[item.rarity].badge)}>
                 {rarityStyles[item.rarity].label}
               </span>
+              <button
+                type="button"
+                className="value-row-data"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onView();
+                }}
+              >
+                <Info size={11} strokeWidth={2.4} />
+                Data
+              </button>
             </p>
           </div>
         </div>
@@ -381,7 +415,79 @@ function ValueRow({
       <RowMetric label="Tax" value={<GemValue value={item.taxGems} />} />
       <RowMetric label="Demand Score" value={<DemandScore value={item.demand} />} icon="demand" />
       <RowMetric label="Prestige" value={`P${item.prestige}`} icon="prestige" title={prestigeLabels[item.prestige]} />
-    </button>
+    </article>
+  );
+}
+
+function ValueDetailModal({
+  iconUrl,
+  item,
+  onClose,
+  valueMode,
+}: {
+  iconUrl: string;
+  item: ValueItem;
+  onClose: () => void;
+  valueMode: ValueMode;
+}) {
+  return (
+    <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <div
+        className="calculator-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${item.name} value data`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <button type="button" className="calculator-modal-close" onClick={onClose} aria-label="Close value data">
+          <X size={16} strokeWidth={2.4} />
+        </button>
+        <div className="calculator-modal-head">
+          <ItemIcon name={item.name} iconUrl={iconUrl} rarity={item.rarity} />
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Value data</p>
+            <h2 className="font-display mt-1 text-3xl leading-8">{item.name}</h2>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.7)]">
+              <span className={rarityStyles[item.rarity].text}>{rarityStyles[item.rarity].label}</span> / {item.category}
+            </p>
+          </div>
+        </div>
+
+        <div className="calculator-modal-values">
+          {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
+            <div key={mode} className={cn("calculator-modal-value", valueMode === mode && "calculator-modal-value-active")}>
+              <GemIcon type={valueModeIcon[mode]} className={cn("calculator-modal-value-icon", `trade-icon-${valueModeIcon[mode]}`)} />
+              <span>{valueModes[mode].label}</span>
+              <strong>{formatCurrencyValue(item.value, mode)}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div className="calculator-modal-lines">
+          <ValueDetailLine icon="gem" label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
+          <ValueDetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
+          <ValueDetailLine icon="prestige" label="Prestige" value={`P${item.prestige} / ${prestigeLabels[item.prestige]}`} />
+          <ValueDetailLine icon="trend" label="Trend" value={trendMeta[item.trend].label} />
+        </div>
+
+        <div className="calculator-modal-note">
+          <span>Trade read</span>
+          <p>{getTradeGuidance(item)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ValueDetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "trend"; label: string; value: string }) {
+  return (
+    <div className="calculator-detail-line">
+      <span className={cn("calculator-detail-icon-slot", `calculator-detail-icon-slot-${icon}`)} aria-hidden="true">
+        <span className={cn("calculator-detail-glyph", `calculator-detail-glyph-${icon}`)} />
+      </span>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 

@@ -3021,7 +3021,8 @@
   .category-tab:focus-visible,
   .sort-header:focus-visible,
   .market-row:focus-visible,
-  .search-clear:focus-visible {
+  .search-clear:focus-visible,
+  .value-row-data:focus-visible {
     outline: 2px solid rgb(var(--bright-gold) / 0.9);
     outline-offset: 3px;
   }
@@ -3053,6 +3054,7 @@
     border: 1px solid rgb(var(--gold) / 0.055);
     border-radius: 14px 5px 14px 5px;
     background: rgb(0 0 0 / 0.2);
+    cursor: pointer;
     padding: 0.875rem;
     transition:
       transform 180ms ease,
@@ -3208,6 +3210,36 @@
     width: 5.35rem;
     justify-content: center;
     text-align: center;
+  }
+
+  .value-row-data {
+    display: inline-flex;
+    min-height: 1.28rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    border: 1px solid rgb(var(--bright-gold) / 0.2);
+    border-radius: 8px 3px 8px 3px;
+    background:
+      linear-gradient(180deg, rgb(var(--bright-gold) / 0.11), transparent),
+      rgb(0 0 0 / 0.2);
+    color: rgb(var(--ink));
+    padding: 0 0.42rem;
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      color 160ms ease;
+  }
+
+  .value-row-data:hover {
+    border-color: rgb(var(--bright-gold) / 0.36);
+    background: rgb(var(--gold) / 0.12);
+    color: white;
   }
 
   .row-item-note > span:last-child {
