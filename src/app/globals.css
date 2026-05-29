@@ -1454,26 +1454,26 @@
 
   .calculator-quantity-control {
     display: inline-flex;
-    min-width: 4.1rem;
-    height: 1.45rem;
+    min-width: 3.8rem;
+    height: 1.42rem;
     align-items: center;
     justify-content: space-between;
     overflow: hidden;
-    border: 1px solid rgb(var(--gold) / 0.18);
-    border-radius: 999px;
-    background: rgb(0 0 0 / 0.32);
-    color: rgb(var(--ink));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+    border: 1px solid rgb(var(--gold) / 0.14);
+    border-radius: 8px 3px 8px 3px;
+    background: rgb(0 0 0 / 0.2);
+    color: rgb(var(--fog));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
   }
 
   .calculator-quantity-control button {
     display: grid;
-    width: 1.25rem;
+    width: 1.05rem;
     height: 100%;
     place-items: center;
     border: 0;
     color: rgb(var(--bright-gold));
-    font-size: 0.82rem;
+    font-size: 0.7rem;
     font-weight: 900;
     line-height: 1;
     transition:
@@ -1493,9 +1493,9 @@
   }
 
   .calculator-quantity-control span {
-    min-width: 1.4rem;
+    min-width: 1.28rem;
     text-align: center;
-    font-size: 0.58rem;
+    font-size: 0.5rem;
     font-weight: 900;
     letter-spacing: 0.04em;
   }
@@ -1517,8 +1517,15 @@
     text-overflow: ellipsis;
   }
 
-  .calculator-slot-view {
+  .calculator-slot-footer {
     margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+  }
+
+  .calculator-slot-view {
     display: inline-flex;
     min-height: 1.42rem;
     align-items: center;

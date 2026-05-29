@@ -403,44 +403,46 @@ function TradeCell({
       </button>
       <div className="calculator-slot-top">
         <ItemThumb item={itemData} compact />
-        <div className="calculator-quantity-control" aria-label={`${itemData.name} quantity`}>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onQuantity(item.quantity - 1);
-            }}
-            disabled={item.quantity <= 1}
-            aria-label={`Decrease ${itemData.name} quantity`}
-          >
-            -
-          </button>
-          <span>x{item.quantity}</span>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onQuantity(item.quantity + 1);
-            }}
-            aria-label={`Increase ${itemData.name} quantity`}
-          >
-            +
-          </button>
-        </div>
       </div>
       <div className="min-w-0">
         <div className="calculator-slot-name">{itemData.name}</div>
-        <button
-          type="button"
-          className="calculator-slot-view"
-          onClick={(event) => {
-            event.stopPropagation();
-            onView(itemData);
-          }}
-        >
-          <Info size={11} strokeWidth={2.4} />
-          Data
-        </button>
+        <div className="calculator-slot-footer">
+          <button
+            type="button"
+            className="calculator-slot-view"
+            onClick={(event) => {
+              event.stopPropagation();
+              onView(itemData);
+            }}
+          >
+            <Info size={11} strokeWidth={2.4} />
+            Data
+          </button>
+          <div className="calculator-quantity-control" aria-label={`${itemData.name} quantity`}>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onQuantity(item.quantity - 1);
+              }}
+              disabled={item.quantity <= 1}
+              aria-label={`Decrease ${itemData.name} quantity`}
+            >
+              -
+            </button>
+            <span>x{item.quantity}</span>
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onQuantity(item.quantity + 1);
+              }}
+              aria-label={`Increase ${itemData.name} quantity`}
+            >
+              +
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
