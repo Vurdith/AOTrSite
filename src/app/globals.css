@@ -3119,6 +3119,11 @@
       justify-self: center;
       width: 100%;
     }
+
+    .market-row > div:nth-child(3) {
+      display: flex;
+      justify-content: center;
+    }
   }
 
   .market-row::before {
@@ -3311,11 +3316,6 @@
     .row-metric-value {
       justify-content: center;
       text-align: center;
-    }
-
-    .market-row > div:nth-last-child(1) .row-metric-value {
-      justify-content: flex-end;
-      padding-right: 0.25rem;
     }
   }
 
