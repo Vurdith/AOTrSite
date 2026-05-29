@@ -64,6 +64,10 @@ function getTradeGuidance(item: ValueItem) {
   return "Stable market; use recent comparable trades.";
 }
 
+function getValueRank(item: ValueItem) {
+  return valueItems.filter((value) => value.value > item.value).length + 1;
+}
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -101,8 +105,6 @@ export function ValuesList() {
   }, [category, query, sortKey]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? valueItems[0];
-  const selectedIcon = iconOverrides[selected.id] ?? selected.iconUrl ?? "";
-  const selectedRank = valueItems.filter((item) => item.value > selected.value).length + 1;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const firstItemIndex = (currentPage - 1) * pageSize;
@@ -194,28 +196,28 @@ export function ValuesList() {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="mt-5">
           <div className="market-ledger">
             <div className="ledger-columns mx-3 hidden gap-3 border-b border-[rgb(var(--gold)/.12)] px-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[rgb(var(--fog)/.72)] lg:grid">
-              <span>Item</span>
-              <SortHeader label="Value" sortKey="value" activeSort={sortKey} onSort={(nextSort) => {
+              <span>ITEM</span>
+              <SortHeader label="VALUE" sortKey="value" activeSort={sortKey} onSort={(nextSort) => {
                 setSortKey(nextSort);
                 setPage(1);
               }} />
-              <span>Trend</span>
-              <SortHeader label="Gem Tax" sortKey="tax" activeSort={sortKey} onSort={(nextSort) => {
+              <span>TREND</span>
+              <SortHeader label="GEM TAX" sortKey="tax" activeSort={sortKey} onSort={(nextSort) => {
                 setSortKey(nextSort);
                 setPage(1);
               }} />
-              <SortHeader label="Demand" sortKey="demand" activeSort={sortKey} onSort={(nextSort) => {
+              <SortHeader label="DEMAND" sortKey="demand" activeSort={sortKey} onSort={(nextSort) => {
                 setSortKey(nextSort);
                 setPage(1);
               }} />
-              <SortHeader label="Prestige" sortKey="prestige" activeSort={sortKey} onSort={(nextSort) => {
+              <SortHeader label="PRESTIGE" sortKey="prestige" activeSort={sortKey} onSort={(nextSort) => {
                 setSortKey(nextSort);
                 setPage(1);
               }} />
-              <span>Details</span>
+              <span>DETAILS</span>
             </div>
 
             <div className="space-y-2 p-2 md:p-3">
@@ -254,38 +256,13 @@ export function ValuesList() {
             )}
           </div>
 
-          <aside className="detail-slate xl:sticky xl:top-24 xl:self-start">
-            <div className="grid grid-cols-[58px_1fr] gap-3">
-              <ItemIcon name={selected.name} iconUrl={selectedIcon} rarity={selected.rarity} />
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Selected insight</p>
-                <h2 className="font-display mt-1 text-2xl leading-7">{selected.name}</h2>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-[rgb(var(--fog)/.72)]">
-                  <span className={rarityStyles[selected.rarity].text}>{rarityStyles[selected.rarity].label}</span> / {selected.category}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-2 text-sm">
-              <InsightLine label="Value Rank" value={`#${selectedRank} by value`} />
-              <InsightLine label="Prestige" value={`P${selected.prestige}`} />
-            </div>
-
-            <div className="mt-4 rounded-[18px_6px_18px_6px] bg-black/18 p-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[rgb(var(--fog))]">Trade read</p>
-              <p className="mt-2 text-sm leading-6 text-zinc-400">{getTradeGuidance(selected)}</p>
-            </div>
-
-            <Link href="/calculator" className="royal-button primary-market-cta mt-5 inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em] text-white">
-              <span>Add to calculator</span>
-            </Link>
-          </aside>
         </div>
         {detailItem ? (
           <ValueDetailModal
             iconUrl={iconOverrides[detailItem.id] ?? detailItem.iconUrl ?? ""}
             item={detailItem}
             onClose={() => setDetailItem(null)}
+            valueRank={getValueRank(detailItem)}
             valueMode={valueMode}
           />
         ) : null}
@@ -430,11 +407,13 @@ function ValueDetailModal({
   iconUrl,
   item,
   onClose,
+  valueRank,
   valueMode,
 }: {
   iconUrl: string;
   item: ValueItem;
   onClose: () => void;
+  valueRank: number;
   valueMode: ValueMode;
 }) {
   return (
@@ -471,6 +450,7 @@ function ValueDetailModal({
         </div>
 
         <div className="calculator-modal-lines">
+          <ValueDetailLine icon="rank" label="Value Rank" value={`#${valueRank} by value`} />
           <ValueDetailLine icon="gem" label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
           <ValueDetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
           <ValueDetailLine icon="prestige" label="Prestige" value={`P${item.prestige} / ${prestigeLabels[item.prestige]}`} />
@@ -481,12 +461,19 @@ function ValueDetailModal({
           <span>Trade read</span>
           <p>{getTradeGuidance(item)}</p>
         </div>
+
+        <Link
+          href={`/calculator?item=${item.id}`}
+          className="royal-button primary-market-cta mt-4 inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em] text-white"
+        >
+          <span>Add to calculator</span>
+        </Link>
       </div>
     </div>
   );
 }
 
-function ValueDetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "trend"; label: string; value: string }) {
+function ValueDetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "rank" | "trend"; label: string; value: string }) {
   return (
     <div className="calculator-detail-line">
       <span className={cn("calculator-detail-icon-slot", `calculator-detail-icon-slot-${icon}`)} aria-hidden="true">
@@ -546,15 +533,6 @@ function DemandScore({ value }: { value: number }) {
         <span style={{ width: `${value}%` }} />
       </span>
     </span>
-  );
-}
-
-function InsightLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="insight-line">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
   );
 }
 

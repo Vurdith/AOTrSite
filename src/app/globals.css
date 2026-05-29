@@ -1995,6 +1995,41 @@
     padding-right: 0.25rem;
   }
 
+  .calculator-item-picker-panel {
+    margin-top: 1rem;
+    border-top: 1px solid rgb(var(--gold) / 0.1);
+    padding-top: 1rem;
+  }
+
+  .calculator-item-picker-panel .calculator-picker-head {
+    align-items: start;
+  }
+
+  .calculator-item-picker-panel .calculator-picker-list {
+    display: grid;
+    max-height: 24rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+  }
+
+  .calculator-item-picker-panel .calculator-picker-list > * + * {
+    margin-top: 0;
+  }
+
+  @media (min-width: 760px) {
+    .calculator-item-picker-panel .calculator-picker-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1180px) {
+    .calculator-item-picker-panel .calculator-picker-list {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
   .calculator-picker-list > * + * {
     margin-top: 0.5rem;
   }
@@ -2402,6 +2437,18 @@
     transform: translateX(-50%) rotate(45deg);
   }
 
+  .calculator-detail-glyph-rank {
+    border: 1px solid rgb(var(--bright-gold) / 0.82);
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 50% 42%, rgb(var(--bright-gold) / 0.95) 0 2px, transparent 2.4px),
+      linear-gradient(180deg, rgb(var(--bright-gold) / 0.22), rgb(var(--deep-gold) / 0.72));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 0 8px rgb(var(--gold) / 0.2);
+    transform: scale(0.82);
+  }
+
   .calculator-detail-glyph-trend::before,
   .calculator-detail-glyph-trend::after {
     content: "";
@@ -2675,10 +2722,10 @@
   }
 
   .rarity-crest-event {
-    border-color: rgb(253 224 71 / 0.32);
-    background: linear-gradient(180deg, #070502 0%, #8f6b12 100%);
-    color: rgb(254 249 195);
-    box-shadow: inset 0 0 0 5px rgb(0 0 0 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0 16px rgb(234 179 8 / 0.14);
+    border-color: rgb(255 255 255 / 0.28);
+    background: linear-gradient(180deg, #2a2a2d 0%, #050505 100%);
+    color: rgb(255 255 255);
+    box-shadow: inset 0 0 0 5px rgb(0 0 0 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0 16px rgb(255 255 255 / 0.1);
   }
 
   .market-board-head {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, Info, Plus, Search, X } from "lucide-react";
 
 import { categories, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
@@ -61,8 +61,12 @@ function formatModeValue(value: number, mode: ValueMode) {
   return `${formatted} ${valueModes[mode].unit}`;
 }
 
+function initialYoursSlots() {
+  return [{ item: valueItems[2], quantity: 1 }, { item: valueItems[5], quantity: 1 }, ...Array<TradeSlot>(7).fill(null)];
+}
+
 export function TradeCalculator() {
-  const [yours, setYours] = useState<TradeSlot[]>([{ item: valueItems[2], quantity: 1 }, { item: valueItems[5], quantity: 1 }, ...Array<TradeSlot>(7).fill(null)]);
+  const [yours, setYours] = useState<TradeSlot[]>(initialYoursSlots);
   const [theirs, setTheirs] = useState<TradeSlot[]>([{ item: valueItems[1], quantity: 1 }, ...Array<TradeSlot>(8).fill(null)]);
   const [activeSlot, setActiveSlot] = useState<ActiveSlot>({ side: "yours", index: 2 });
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
@@ -89,6 +93,25 @@ export function TradeCalculator() {
     });
   }, [category, query]);
 
+  useEffect(() => {
+    const itemId = new URLSearchParams(window.location.search).get("item");
+    const item = valueItems.find((value) => value.id === itemId);
+
+    if (!item) return;
+
+    const timer = window.setTimeout(() => {
+      setYours((current) => {
+        const emptyIndex = current.findIndex((slot) => !slot);
+        const targetIndex = emptyIndex === -1 ? 0 : emptyIndex;
+        setActiveSlot({ side: "yours", index: targetIndex });
+        return current.map((slot, slotIndex) => (slotIndex === targetIndex ? { item, quantity: 1 } : slot));
+      });
+      window.history.replaceState(null, "", window.location.pathname);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
   function setSlot(side: Side, index: number, item: TradeSlot) {
     const setter = side === "yours" ? setYours : setTheirs;
     setter((current) => current.map((slot, slotIndex) => (slotIndex === index ? item : slot)));
@@ -114,7 +137,7 @@ export function TradeCalculator() {
     setter((current) =>
       current.map((slot, slotIndex) =>
         slot && slotIndex === index
-          ? { ...slot, quantity: Math.min(99, Math.max(1, quantity)) }
+          ? { ...slot, quantity: Math.min(100, Math.max(1, quantity)) }
           : slot,
       ),
     );
@@ -185,9 +208,35 @@ export function TradeCalculator() {
               </button>
             ))}
           </div>
+
+          <div className="calculator-item-picker-panel">
+            <div className="calculator-picker-head">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Item picker</p>
+                <h2 className="font-display mt-1 text-2xl">{targetLabel}</h2>
+              </div>
+            </div>
+
+            <div className="calculator-picker-list mt-4">
+              {filteredItems.map((item) => (
+                <button key={item.id} className="calculator-picker-row" onClick={() => pickItem(item)} type="button">
+                  <ItemThumb item={item} />
+                  <div className="min-w-0">
+                    <div className="truncate font-display text-base leading-5 text-white">{item.name}</div>
+                  </div>
+                  <span className="calculator-picker-target">Pick</span>
+                </button>
+              ))}
+              {!filteredItems.length ? (
+                <div className="rounded-[14px_5px_14px_5px] border border-[rgb(var(--gold)/.1)] p-5 text-center text-sm text-[rgb(var(--fog)/.78)]">
+                  No matching item.
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_390px]">
+      <div className="mt-5">
         <div className="market-vellum self-start p-4 md:p-5">
           <div className="calculator-board-head">
             <div>
@@ -241,31 +290,6 @@ export function TradeCalculator() {
           </div>
         </div>
 
-        <aside className="detail-slate lg:sticky lg:top-24 lg:self-start">
-          <div className="calculator-picker-head">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Item picker</p>
-              <h2 className="font-display mt-1 text-2xl">{targetLabel}</h2>
-            </div>
-          </div>
-
-          <div className="calculator-picker-list mt-4">
-            {filteredItems.map((item) => (
-              <button key={item.id} className="calculator-picker-row" onClick={() => pickItem(item)} type="button">
-                <ItemThumb item={item} />
-                <div className="min-w-0">
-                  <div className="truncate font-display text-base leading-5 text-white">{item.name}</div>
-                </div>
-                <span className="calculator-picker-target">Pick</span>
-              </button>
-            ))}
-            {!filteredItems.length ? (
-              <div className="rounded-[14px_5px_14px_5px] border border-[rgb(var(--gold)/.1)] p-5 text-center text-sm text-[rgb(var(--fog)/.78)]">
-                No matching item.
-              </div>
-            ) : null}
-          </div>
-        </aside>
       </div>
       {detailItem ? (
         <ItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} valueMode={valueMode} />
@@ -438,7 +462,7 @@ function TradeCell({
             aria-label={`${itemData.name} quantity amount`}
             inputMode="numeric"
             min={1}
-            max={99}
+            max={100}
             pattern="[0-9]*"
             type="number"
             value={item.quantity}
@@ -458,6 +482,7 @@ function TradeCell({
             event.stopPropagation();
             onQuantity(item.quantity + 1);
           }}
+          disabled={item.quantity >= 100}
           aria-label={`Increase ${itemData.name} quantity`}
         >
           +
