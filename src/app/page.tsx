@@ -9,11 +9,17 @@ const features = [
     href: "/values",
     title: "Values",
     text: "Current item value, demand, tax, trend, and prestige in one scan-friendly board.",
+    eyebrow: "Board",
+    action: "Open board",
+    stats: ["56 items", "Demand scores"],
   },
   {
     href: "/calculator",
     title: "Calculator",
     text: "Build both sides of a trade and check the value gap before you accept.",
+    eyebrow: "Offer",
+    action: "Calculate trade",
+    stats: ["9 slots", "Quantity support"],
   },
   ...(process.env.NODE_ENV === "development"
     ? [
@@ -21,6 +27,9 @@ const features = [
           href: "/updates",
           title: "Updates",
           text: "See board imports, item-count changes, and demand updates in one log.",
+          eyebrow: "Ledger",
+          action: "Open updates",
+          stats: ["Board notes", "Change log"],
         },
       ]
     : []),
@@ -90,51 +99,49 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section-band px-4 py-16 sm:px-6 lg:px-8">
+      <section className="section-band tools-section px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,480px)_minmax(0,1fr)] lg:items-end">
+          <div className="tools-section-head">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Trading tools</p>
-              <h2 className="font-display mt-3 text-3xl md:text-5xl">Choose a focused workflow.</h2>
+              <p>Trading tools</p>
+              <h2 className="font-display">Choose a focused workflow.</h2>
             </div>
-            <p className="max-w-2xl text-base leading-7 text-zinc-400 lg:justify-self-end">
-              Move from market lookup to trade calculation without extra noise. Values stay scan-friendly, and the calculator keeps both sides of an offer easy to compare.
-            </p>
-          </div>
-          <div className="mt-10 grid gap-4 lg:grid-cols-2">
-            <a
-              href={features[0].href}
-              className="relic-frame group grid min-h-64 content-between overflow-hidden p-6 transition hover:-translate-y-1"
-            >
-              <div className="grid gap-6 md:grid-cols-[96px_1fr] md:items-start">
-                <div className="text-xs font-bold uppercase tracking-[0.16em] text-[rgb(var(--bright-gold))]">Board</div>
-                <div>
-                  <h3 className="font-display text-4xl">{features[0].title}</h3>
-                  <p className="mt-4 max-w-xl text-base leading-7 text-zinc-400">{features[0].text}</p>
-                </div>
+            <div className="tools-section-copy">
+              <p>
+                Move from market lookup to trade calculation without extra noise. Each tool keeps the decision in front of you: value, demand, tax, and trade balance.
+              </p>
+              <div aria-label="Tool coverage">
+                <span>Values</span>
+                <span>Calculator</span>
+                {process.env.NODE_ENV === "development" ? <span>Updates</span> : null}
               </div>
-              <span className="mt-8 text-sm font-bold uppercase tracking-[0.14em] text-[rgb(var(--bright-gold))] transition group-hover:translate-x-1 group-hover:text-white">
-                Open board
-              </span>
-            </a>
-            {features.slice(1).map((feature) => (
+            </div>
+          </div>
+          <div className="tools-grid">
+            {features.map((feature, index) => (
               <a
                 key={feature.href}
                 href={feature.href}
-                className="sigil-card group grid min-h-64 content-between p-6 transition hover:-translate-y-1"
+                className={`tool-card group ${index === 0 ? "tool-card-primary" : ""}`}
               >
-                <div className="grid gap-6 md:grid-cols-[96px_1fr] md:items-start">
-                  <div className="text-xs font-bold uppercase tracking-[0.16em] text-[rgb(var(--bright-gold))]">
-                    {feature.href === "/calculator" ? "Offer" : "Ledger"}
+                <div>
+                  <div className="tool-card-topline">
+                    <span>{feature.eyebrow}</span>
+                    <span>{String(index + 1).padStart(2, "0")}</span>
                   </div>
                   <div>
-                    <h3 className="font-display text-4xl">{feature.title}</h3>
-                    <p className="mt-4 max-w-xl text-base leading-7 text-zinc-400">{feature.text}</p>
+                    <h3 className="font-display">{feature.title}</h3>
+                    <p>{feature.text}</p>
                   </div>
                 </div>
-                <span className="mt-8 text-sm font-bold uppercase tracking-[0.14em] text-[rgb(var(--bright-gold))] transition group-hover:translate-x-1 group-hover:text-white">
-                  Open section
-                </span>
+                <div className="tool-card-footer">
+                  <div>
+                    {feature.stats.map((stat) => (
+                      <span key={stat}>{stat}</span>
+                    ))}
+                  </div>
+                  <strong>{feature.action}</strong>
+                </div>
               </a>
             ))}
           </div>

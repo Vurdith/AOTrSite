@@ -84,6 +84,218 @@
       linear-gradient(180deg, rgb(20 10 4 / 0.62), rgb(10 5 2 / 0.92));
   }
 
+  .tools-section {
+    overflow: hidden;
+  }
+
+  .tools-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent 0 12%, rgb(var(--gold) / 0.055) 12% 12.08%, transparent 12.08% 88%, rgb(var(--gold) / 0.04) 88% 88.08%, transparent 88.08%),
+      radial-gradient(760px 260px at 70% 15%, rgb(var(--ruby) / 0.1), transparent 68%);
+    opacity: 0.8;
+  }
+
+  .tools-section-head {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .tools-section-head {
+      grid-template-columns: minmax(0, 0.8fr) minmax(420px, 0.9fr);
+      align-items: end;
+    }
+  }
+
+  .tools-section-head p:first-child {
+    color: rgb(var(--bright-gold));
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .tools-section-head h2 {
+    margin-top: 0.85rem;
+    max-width: 34rem;
+    color: rgb(var(--ink));
+    font-size: clamp(2rem, 4vw, 4.4rem);
+    line-height: 0.92;
+  }
+
+  .tools-section-copy {
+    display: grid;
+    gap: 1rem;
+    color: rgb(var(--fog) / 0.78);
+    font-size: 0.98rem;
+    line-height: 1.75;
+  }
+
+  .tools-section-copy > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .tools-section-copy span {
+    border: 1px solid rgb(var(--gold) / 0.15);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.18);
+    color: rgb(var(--bright-gold));
+    padding: 0.4rem 0.7rem;
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .tools-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 0.9rem;
+    margin-top: 2rem;
+  }
+
+  @media (min-width: 900px) {
+    .tools-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1180px) {
+    .tools-grid {
+      grid-template-columns: minmax(0, 1.08fr) repeat(2, minmax(260px, 0.72fr));
+    }
+  }
+
+  .tool-card {
+    position: relative;
+    display: grid;
+    min-height: 17.5rem;
+    align-content: space-between;
+    overflow: hidden;
+    border: 1px solid rgb(var(--gold) / 0.13);
+    border-radius: 18px 6px 18px 6px;
+    background:
+      linear-gradient(145deg, rgb(34 16 7 / 0.78), rgb(7 4 2 / 0.9)),
+      rgb(0 0 0 / 0.2);
+    padding: 1.15rem;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.045),
+      0 14px 38px rgb(0 0 0 / 0.22);
+    transition:
+      transform 180ms ease,
+      border-color 180ms ease,
+      background 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .tool-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, rgb(var(--bright-gold) / 0.08), transparent 28%),
+      radial-gradient(220px 160px at 100% 0%, rgb(var(--gold) / 0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .tool-card:hover {
+    transform: translateY(-2px);
+    border-color: rgb(var(--bright-gold) / 0.36);
+    background:
+      linear-gradient(145deg, rgb(42 20 8 / 0.86), rgb(9 5 2 / 0.92)),
+      rgb(0 0 0 / 0.2);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 18px 46px rgb(0 0 0 / 0.28);
+  }
+
+  .tool-card:hover::before {
+    opacity: 1;
+  }
+
+  .tool-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .tool-card-primary {
+    min-height: 18.5rem;
+  }
+
+  .tool-card-topline,
+  .tool-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .tool-card-topline span,
+  .tool-card-footer span,
+  .tool-card-footer strong {
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .tool-card-topline span:first-child,
+  .tool-card-footer strong {
+    color: rgb(var(--bright-gold));
+  }
+
+  .tool-card-topline span:last-child {
+    color: rgb(var(--fog) / 0.42);
+  }
+
+  .tool-card h3 {
+    margin-top: 2.2rem;
+    color: white;
+    font-size: clamp(2rem, 2.6vw, 3.3rem);
+    line-height: 0.95;
+  }
+
+  .tool-card p {
+    margin-top: 1rem;
+    max-width: 26rem;
+    color: rgb(var(--fog) / 0.76);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .tool-card-footer {
+    margin-top: 2.25rem;
+  }
+
+  .tool-card-footer > div {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .tool-card-footer span {
+    border: 1px solid rgb(var(--gold) / 0.12);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.18);
+    color: rgb(var(--fog) / 0.72);
+    padding: 0.38rem 0.55rem;
+  }
+
   .aurora-page {
     position: relative;
   }
@@ -2795,7 +3007,7 @@
   }
 
   .ledger-columns {
-    grid-template-columns: minmax(270px, 1.25fr) 156px 108px 118px 110px 88px;
+    grid-template-columns: minmax(230px, 1.15fr) 140px 104px 108px 132px 104px;
     min-height: 3.1rem;
     align-items: stretch;
   }
@@ -2895,7 +3107,7 @@
   @media (min-width: 1024px) {
     .market-row {
       min-height: 74px;
-      grid-template-columns: minmax(270px, 1.25fr) 156px 108px 118px 110px 88px;
+      grid-template-columns: minmax(230px, 1.15fr) 140px 104px 108px 132px 104px;
       padding: 0.75rem 1rem;
     }
 
@@ -3100,6 +3312,11 @@
       justify-content: center;
       text-align: center;
     }
+
+    .market-row > div:nth-last-child(1) .row-metric-value {
+      justify-content: flex-end;
+      padding-right: 0.25rem;
+    }
   }
 
   .row-metric-value > span:last-child {
@@ -3122,7 +3339,7 @@
     position: relative;
     display: inline-flex;
     min-width: 0;
-    width: 4.35rem;
+    width: 4.7rem;
     min-height: 1.5rem;
     align-items: center;
     justify-content: flex-start;
@@ -3135,7 +3352,7 @@
     left: 0;
     top: calc(50% + 0.43rem);
     display: block;
-    width: 4.05rem;
+    width: 4.35rem;
     height: 3px;
     overflow: hidden;
     border-radius: 999px;
