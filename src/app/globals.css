@@ -1533,9 +1533,14 @@
     cursor: not-allowed;
   }
 
-  .calculator-quantity-control span {
+  .calculator-quantity-entry {
+    display: inline-flex;
     min-width: 0;
     flex: 1;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.08rem;
     text-align: center;
     font-size: 0.58rem;
     font-weight: 900;
@@ -1543,6 +1548,35 @@
     line-height: 1;
     text-shadow: 0 1px 2px rgb(0 0 0 / 0.72);
     text-transform: uppercase;
+  }
+
+  .calculator-quantity-entry input {
+    width: 2.05rem;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    line-height: 1;
+    outline: none;
+    text-align: left;
+    text-shadow: inherit;
+  }
+
+  .calculator-quantity-entry input::-webkit-outer-spin-button,
+  .calculator-quantity-entry input::-webkit-inner-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+
+  .calculator-quantity-entry input[type="number"] {
+    appearance: textfield;
+  }
+
+  .calculator-quantity-entry:focus-within {
+    background: rgb(var(--gold) / 0.12);
+    color: white;
   }
 
   .calculator-slot-name {

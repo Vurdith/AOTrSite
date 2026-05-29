@@ -432,7 +432,25 @@ function TradeCell({
         >
           -
         </button>
-        <span>x{item.quantity}</span>
+        <label className="calculator-quantity-entry" onClick={(event) => event.stopPropagation()}>
+          <span aria-hidden="true">x</span>
+          <input
+            aria-label={`${itemData.name} quantity amount`}
+            inputMode="numeric"
+            min={1}
+            max={99}
+            pattern="[0-9]*"
+            type="number"
+            value={item.quantity}
+            onChange={(event) => {
+              const nextQuantity = Number.parseInt(event.target.value, 10);
+              onQuantity(Number.isFinite(nextQuantity) ? nextQuantity : 1);
+            }}
+            onFocus={(event) => event.currentTarget.select()}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          />
+        </label>
         <button
           type="button"
           onClick={(event) => {
