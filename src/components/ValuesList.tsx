@@ -262,7 +262,6 @@ export function ValuesList() {
             <div className="mt-5 grid gap-2 text-sm">
               <InsightLine label="Value Rank" value={`#${selectedRank} by value`} />
               <InsightLine label="Prestige" value={`P${selected.prestige}`} />
-              <InsightLine label="Demand" value={`${selected.demand}/100`} />
             </div>
 
             <div className="mt-4 rounded-[18px_6px_18px_6px] bg-black/18 p-4">
