@@ -388,7 +388,8 @@ function TradeCell({
   const itemData = item.item;
 
   return (
-    <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active")} onClick={onPick} role="button" tabIndex={0} onKeyDown={(event) => {
+    <div className={cn("calculator-slot-wrap", active && "calculator-slot-wrap-active")}>
+      <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active")} onClick={onPick} role="button" tabIndex={0} onKeyDown={(event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         onPick();
@@ -406,43 +407,42 @@ function TradeCell({
       </div>
       <div className="min-w-0">
         <div className="calculator-slot-name">{itemData.name}</div>
-        <div className="calculator-slot-footer">
-          <button
-            type="button"
-            className="calculator-slot-view"
-            onClick={(event) => {
-              event.stopPropagation();
-              onView(itemData);
-            }}
-          >
-            <Info size={11} strokeWidth={2.4} />
-            Data
-          </button>
-          <div className="calculator-quantity-control" aria-label={`${itemData.name} quantity`}>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onQuantity(item.quantity - 1);
-              }}
-              disabled={item.quantity <= 1}
-              aria-label={`Decrease ${itemData.name} quantity`}
-            >
-              -
-            </button>
-            <span>x{item.quantity}</span>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onQuantity(item.quantity + 1);
-              }}
-              aria-label={`Increase ${itemData.name} quantity`}
-            >
-              +
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          className="calculator-slot-view"
+          onClick={(event) => {
+            event.stopPropagation();
+            onView(itemData);
+          }}
+        >
+          <Info size={11} strokeWidth={2.4} />
+          Data
+        </button>
+      </div>
+      </div>
+      <div className="calculator-quantity-control" aria-label={`${itemData.name} quantity`}>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onQuantity(item.quantity - 1);
+          }}
+          disabled={item.quantity <= 1}
+          aria-label={`Decrease ${itemData.name} quantity`}
+        >
+          -
+        </button>
+        <span>x{item.quantity}</span>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onQuantity(item.quantity + 1);
+          }}
+          aria-label={`Increase ${itemData.name} quantity`}
+        >
+          +
+        </button>
       </div>
     </div>
   );
