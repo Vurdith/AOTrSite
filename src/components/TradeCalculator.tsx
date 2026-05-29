@@ -415,8 +415,8 @@ function TradeCell({
             onView(itemData);
           }}
         >
-          <Info size={11} strokeWidth={2.4} />
-          Data
+          <Info size={12} strokeWidth={2.4} />
+          View
         </button>
       </div>
       </div>

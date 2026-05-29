@@ -1766,32 +1766,6 @@
 
   .calculator-slot-view {
     margin-top: auto;
-    display: inline-flex;
-    min-height: 1.42rem;
-    align-items: center;
-    justify-content: center;
-    gap: 0.2rem;
-    border: 1px solid rgb(var(--bright-gold) / 0.2);
-    border-radius: 8px 3px 8px 3px;
-    background:
-      linear-gradient(180deg, rgb(var(--bright-gold) / 0.12), transparent),
-      rgb(0 0 0 / 0.18);
-    color: rgb(var(--ink));
-    padding: 0 0.42rem;
-    font-size: 0.5rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    transition:
-      border-color 160ms ease,
-      background 160ms ease,
-      color 160ms ease;
-  }
-
-  .calculator-slot-view:hover {
-    border-color: rgb(var(--bright-gold) / 0.36);
-    background: rgb(var(--gold) / 0.12);
-    color: white;
   }
 
   .calculator-offer-row,
@@ -3022,7 +2996,8 @@
   .sort-header:focus-visible,
   .market-row:focus-visible,
   .search-clear:focus-visible,
-  .value-row-data:focus-visible {
+  .value-row-data:focus-visible,
+  .calculator-slot-view:focus-visible {
     outline: 2px solid rgb(var(--bright-gold) / 0.9);
     outline-offset: 3px;
   }
@@ -3247,7 +3222,8 @@
     text-transform: uppercase;
   }
 
-  .value-row-data {
+  .value-row-data,
+  .calculator-slot-view {
     display: inline-flex;
     min-height: 1.8rem;
     align-items: center;
@@ -3277,7 +3253,8 @@
       box-shadow 160ms ease;
   }
 
-  .value-row-data:hover {
+  .value-row-data:hover,
+  .calculator-slot-view:hover {
     border-color: rgb(134 239 172 / 0.56);
     background:
       linear-gradient(180deg, rgb(34 197 94 / 0.26), rgb(20 83 45 / 0.28)),
@@ -3289,7 +3266,8 @@
     transform: translateY(-1px);
   }
 
-  .value-row-data svg {
+  .value-row-data svg,
+  .calculator-slot-view svg {
     color: rgb(134 239 172);
   }
 
