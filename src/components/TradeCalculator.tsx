@@ -8,7 +8,8 @@ import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
 
 type Side = "yours" | "theirs";
-type TradeSlot = ValueItem | null;
+type FilledTradeSlot = { item: ValueItem; quantity: number };
+type TradeSlot = FilledTradeSlot | null;
 type ActiveSlot = { side: Side; index: number };
 type ValueMode = "keys" | "masks" | "scrolls";
 
@@ -61,17 +62,17 @@ function formatModeValue(value: number, mode: ValueMode) {
 }
 
 export function TradeCalculator() {
-  const [yours, setYours] = useState<TradeSlot[]>([valueItems[2], valueItems[5], ...Array<TradeSlot>(7).fill(null)]);
-  const [theirs, setTheirs] = useState<TradeSlot[]>([valueItems[1], ...Array<TradeSlot>(8).fill(null)]);
+  const [yours, setYours] = useState<TradeSlot[]>([{ item: valueItems[2], quantity: 1 }, { item: valueItems[5], quantity: 1 }, ...Array<TradeSlot>(7).fill(null)]);
+  const [theirs, setTheirs] = useState<TradeSlot[]>([{ item: valueItems[1], quantity: 1 }, ...Array<TradeSlot>(8).fill(null)]);
   const [activeSlot, setActiveSlot] = useState<ActiveSlot>({ side: "yours", index: 2 });
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
   const [query, setQuery] = useState("");
 
-  const yourTotal = yours.reduce((sum, item) => sum + (item?.value ?? 0), 0);
-  const theirTotal = theirs.reduce((sum, item) => sum + (item?.value ?? 0), 0);
-  const receiveGemTaxTotal = theirs.reduce((sum, item) => sum + (item?.taxGems ?? 0), 0);
+  const yourTotal = yours.reduce((sum, slot) => sum + (slot ? slot.item.value * slot.quantity : 0), 0);
+  const theirTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.value * slot.quantity : 0), 0);
+  const receiveGemTaxTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.taxGems * slot.quantity : 0), 0);
   const yourCount = yours.filter(Boolean).length;
   const theirCount = theirs.filter(Boolean).length;
   const diff = theirTotal - yourTotal;
@@ -98,7 +99,25 @@ export function TradeCalculator() {
   }
 
   function pickItem(item: ValueItem) {
-    setSlot(activeSlot.side, activeSlot.index, item);
+    const setter = activeSlot.side === "yours" ? setYours : setTheirs;
+    setter((current) =>
+      current.map((slot, slotIndex) =>
+        slotIndex === activeSlot.index
+          ? { item, quantity: slot?.quantity ?? 1 }
+          : slot,
+      ),
+    );
+  }
+
+  function setQuantity(side: Side, index: number, quantity: number) {
+    const setter = side === "yours" ? setYours : setTheirs;
+    setter((current) =>
+      current.map((slot, slotIndex) =>
+        slot && slotIndex === index
+          ? { ...slot, quantity: Math.min(99, Math.max(1, quantity)) }
+          : slot,
+      ),
+    );
   }
 
   return (
@@ -195,6 +214,7 @@ export function TradeCalculator() {
               count={yourCount}
               items={yours}
               onPickSlot={pickSlot}
+              onQuantity={(index, quantity) => setQuantity("yours", index, quantity)}
               onRemove={(index) => setSlot("yours", index, null)}
               onView={setDetailItem}
               side="yours"
@@ -210,6 +230,7 @@ export function TradeCalculator() {
               count={theirCount}
               items={theirs}
               onPickSlot={pickSlot}
+              onQuantity={(index, quantity) => setQuantity("theirs", index, quantity)}
               onRemove={(index) => setSlot("theirs", index, null)}
               onView={setDetailItem}
               side="theirs"
@@ -286,6 +307,7 @@ function Offer({
   count,
   items,
   onPickSlot,
+  onQuantity,
   onRemove,
   onView,
   side,
@@ -297,6 +319,7 @@ function Offer({
   count: number;
   items: TradeSlot[];
   onPickSlot: (side: Side, index: number) => void;
+  onQuantity: (index: number, quantity: number) => void;
   onRemove: (index: number) => void;
   onView: (item: ValueItem) => void;
   side: Side;
@@ -323,6 +346,7 @@ function Offer({
             item={item}
             key={`${side}-${index}`}
             onPick={() => onPickSlot(side, index)}
+            onQuantity={(quantity) => onQuantity(index, quantity)}
             onRemove={() => onRemove(index)}
             onView={onView}
             slotNumber={index + 1}
@@ -337,6 +361,7 @@ function TradeCell({
   active,
   item,
   onPick,
+  onQuantity,
   onRemove,
   onView,
   slotNumber,
@@ -344,6 +369,7 @@ function TradeCell({
   active: boolean;
   item: TradeSlot;
   onPick: () => void;
+  onQuantity: (quantity: number) => void;
   onRemove: () => void;
   onView: (item: ValueItem) => void;
   slotNumber: number;
@@ -359,6 +385,8 @@ function TradeCell({
     );
   }
 
+  const itemData = item.item;
+
   return (
     <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active")} onClick={onPick} role="button" tabIndex={0} onKeyDown={(event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -369,21 +397,45 @@ function TradeCell({
       <button type="button" onClick={(event) => {
         event.stopPropagation();
         onRemove();
-      }} aria-label={`Remove ${item.name}`} title={`Remove ${item.name}`} className="calculator-remove">
+      }} aria-label={`Remove ${itemData.name}`} title={`Remove ${itemData.name}`} className="calculator-remove">
         <span className="calculator-remove-curve" aria-hidden="true" />
         <span className="calculator-remove-mark" aria-hidden="true" />
       </button>
       <div className="calculator-slot-top">
-        <ItemThumb item={item} compact />
+        <ItemThumb item={itemData} compact />
+        <div className="calculator-quantity-control" aria-label={`${itemData.name} quantity`}>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onQuantity(item.quantity - 1);
+            }}
+            disabled={item.quantity <= 1}
+            aria-label={`Decrease ${itemData.name} quantity`}
+          >
+            -
+          </button>
+          <span>x{item.quantity}</span>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onQuantity(item.quantity + 1);
+            }}
+            aria-label={`Increase ${itemData.name} quantity`}
+          >
+            +
+          </button>
+        </div>
       </div>
       <div className="min-w-0">
-        <div className="calculator-slot-name">{item.name}</div>
+        <div className="calculator-slot-name">{itemData.name}</div>
         <button
           type="button"
           className="calculator-slot-view"
           onClick={(event) => {
             event.stopPropagation();
-            onView(item);
+            onView(itemData);
           }}
         >
           <Info size={11} strokeWidth={2.4} />

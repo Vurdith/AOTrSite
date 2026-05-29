@@ -8,7 +8,7 @@ export default function ValuesPage() {
       <FloatingHeader />
       <PageHero
         kicker="Value board"
-        title="AOTR item values."
+        title="AoT:R Item Values"
         description="Check current cosmetic values, demand, gem tax, prestige gates, and trend before you trade."
       />
       <ValuesList />

@@ -8,7 +8,7 @@ export default function CalculatorPage() {
       <FloatingHeader />
       <PageHero
         kicker="Trade calculator"
-        title="Build a 9-slot trade."
+        title="Calculate Your Trade"
         description="Pick items, compare values, and check demand before you accept."
       />
       <TradeCalculator />

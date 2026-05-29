@@ -38,6 +38,7 @@ const trendMeta: Record<ItemTrend, { label: string; className: string }> = {
 };
 
 const prestigeLabels = ["Open trade", "Low gate", "Mid gate", "High gate"];
+const pageSize = 8;
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
@@ -52,13 +53,6 @@ function formatCurrencyValue(value: number, mode: ValueMode) {
         ? formatNumber(Math.round(amount))
         : amount.toFixed(1);
   return `${formatted} ${valueModes[mode].unit}`;
-}
-
-function getConfidenceLabel(item: ValueItem, rank: number) {
-  const score = Math.round(item.demand * 0.72 + (100 - rank * 4) * 0.18 + item.prestige * 4);
-  if (score >= 86) return "High Trust";
-  if (score >= 70) return "Moderate Trust";
-  return "Low Trust";
 }
 
 function getTradeGuidance(item: ValueItem) {
@@ -84,6 +78,7 @@ export function ValuesList() {
   const [selectedId, setSelectedId] = useState(valueItems[0]?.id ?? "");
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [sortKey, setSortKey] = useState<SortKey>("value");
+  const [page, setPage] = useState(1);
   const [iconOverrides] = useState<Record<string, string>>({});
 
   const filtered = useMemo(() => {
@@ -106,7 +101,10 @@ export function ValuesList() {
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? valueItems[0];
   const selectedIcon = iconOverrides[selected.id] ?? selected.iconUrl ?? "";
   const selectedRank = valueItems.filter((item) => item.value > selected.value).length + 1;
-  const confidenceLabel = getConfidenceLabel(selected, selectedRank);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const firstItemIndex = (currentPage - 1) * pageSize;
+  const pagedItems = filtered.slice(firstItemIndex, firstItemIndex + pageSize);
   const visibleCategories = categories.filter((item) => item.id === "all" || valueItems.some((value) => value.category === item.id));
 
   return (
@@ -128,12 +126,18 @@ export function ValuesList() {
                   <span className="sr-only">Search values</span>
                   <input
                     value={query}
-                    onChange={(event) => setQuery(event.target.value)}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setPage(1);
+                    }}
                     placeholder="Name, rarity, prestige"
                     className="h-10 w-full min-w-0 bg-transparent px-4 text-sm text-white outline-none placeholder:text-[rgb(var(--fog)/.48)]"
                   />
                   {query ? (
-                    <button type="button" className="search-clear" onClick={() => setQuery("")} aria-label="Clear search">
+                    <button type="button" className="search-clear" onClick={() => {
+                      setQuery("");
+                      setPage(1);
+                    }} aria-label="Clear search">
                       x
                     </button>
                   ) : null}
@@ -171,7 +175,10 @@ export function ValuesList() {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setCategory(item.id)}
+                onClick={() => {
+                  setCategory(item.id);
+                  setPage(1);
+                }}
                 aria-pressed={category === item.id}
                 className={cn(
                   "category-tab",
@@ -189,15 +196,27 @@ export function ValuesList() {
           <div className="market-ledger">
             <div className="ledger-columns mx-3 hidden gap-3 border-b border-[rgb(var(--gold)/.12)] px-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[rgb(var(--fog)/.72)] lg:grid">
               <span>Item</span>
-              <SortHeader label="Value" sortKey="value" activeSort={sortKey} onSort={setSortKey} />
+              <SortHeader label="Value" sortKey="value" activeSort={sortKey} onSort={(nextSort) => {
+                setSortKey(nextSort);
+                setPage(1);
+              }} />
               <span>Trend</span>
-              <SortHeader label="Gem Tax" sortKey="tax" activeSort={sortKey} onSort={setSortKey} />
-              <SortHeader label="Demand" sortKey="demand" activeSort={sortKey} onSort={setSortKey} />
-              <SortHeader label="Prestige" sortKey="prestige" activeSort={sortKey} onSort={setSortKey} />
+              <SortHeader label="Gem Tax" sortKey="tax" activeSort={sortKey} onSort={(nextSort) => {
+                setSortKey(nextSort);
+                setPage(1);
+              }} />
+              <SortHeader label="Demand" sortKey="demand" activeSort={sortKey} onSort={(nextSort) => {
+                setSortKey(nextSort);
+                setPage(1);
+              }} />
+              <SortHeader label="Prestige" sortKey="prestige" activeSort={sortKey} onSort={(nextSort) => {
+                setSortKey(nextSort);
+                setPage(1);
+              }} />
             </div>
 
             <div className="space-y-2 p-2 md:p-3">
-              {filtered.map((item) => (
+              {pagedItems.map((item) => (
                 <ValueRow
                   key={item.id}
                   item={item}
@@ -208,6 +227,17 @@ export function ValuesList() {
                 />
               ))}
             </div>
+
+            {filtered.length > pageSize ? (
+              <Pagination
+                currentPage={currentPage}
+                firstItemIndex={firstItemIndex}
+                itemCount={filtered.length}
+                onPageChange={setPage}
+                pageSize={pageSize}
+                totalPages={totalPages}
+              />
+            ) : null}
 
             {!filtered.length && (
               <div className="p-8 text-center">
@@ -232,7 +262,7 @@ export function ValuesList() {
             <div className="mt-5 grid gap-2 text-sm">
               <InsightLine label="Value Rank" value={`#${selectedRank} by value`} />
               <InsightLine label="Prestige" value={`P${selected.prestige}`} />
-              <InsightLine label="Confidence" value={confidenceLabel} />
+              <InsightLine label="Demand" value={`${selected.demand}/100`} />
             </div>
 
             <div className="mt-4 rounded-[18px_6px_18px_6px] bg-black/18 p-4">
@@ -247,6 +277,44 @@ export function ValuesList() {
         </div>
       </div>
     </section>
+  );
+}
+
+function Pagination({
+  currentPage,
+  firstItemIndex,
+  itemCount,
+  onPageChange,
+  pageSize,
+  totalPages,
+}: {
+  currentPage: number;
+  firstItemIndex: number;
+  itemCount: number;
+  onPageChange: (page: number) => void;
+  pageSize: number;
+  totalPages: number;
+}) {
+  const firstVisible = firstItemIndex + 1;
+  const lastVisible = Math.min(firstItemIndex + pageSize, itemCount);
+
+  return (
+    <div className="ledger-pagination">
+      <span>
+        Showing {firstVisible}-{lastVisible} of {itemCount}
+      </span>
+      <div>
+        <button type="button" onClick={() => onPageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
+          Previous
+        </button>
+        <strong>
+          {currentPage} / {totalPages}
+        </strong>
+        <button type="button" onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>
+          Next
+        </button>
+      </div>
+    </div>
   );
 }
 
