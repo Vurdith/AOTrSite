@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowLeftRight, Info, Plus, Search, X } from "lucide-react";
 
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
@@ -663,6 +664,13 @@ function ItemDetailModal({ item, onClose, valueMode }: { item: ValueItem; onClos
           <span>Trade read</span>
           <p>{item.note}</p>
         </div>
+
+        <Link
+          href={`/items/${item.id}`}
+          className="item-modal-page-link mt-4 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
+        >
+          View trade graph
+        </Link>
       </div>
     </div>
   );
