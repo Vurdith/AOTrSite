@@ -3,13 +3,18 @@ import Link from "next/link";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { UpdatesList } from "@/components/UpdatesList";
+import { getValueItems } from "@/lib/firestoreItems";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
-export default function UpdatesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function UpdatesPage() {
   if (!isDevelopment) {
     return <UpdatesUnderConstruction />;
   }
+
+  const items = await getValueItems();
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
@@ -20,7 +25,7 @@ export default function UpdatesPage() {
         description="Track imports, item-count changes, and demand updates that affect the current AOTR value board."
         action={{ href: "/values", label: "Open values" }}
       />
-      <UpdatesList />
+      <UpdatesList items={items} />
     </main>
   );
 }

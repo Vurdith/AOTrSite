@@ -118,8 +118,8 @@ function getTradeGuidance(item: ValueItem) {
   return "Stable market; use recent comparable trades.";
 }
 
-function getValueRank(item: ValueItem) {
-  return valueItems.filter((value) => value.value > item.value).length + 1;
+function getValueRank(item: ValueItem, items: ValueItem[]) {
+  return items.filter((value) => value.value > item.value).length + 1;
 }
 
 function matchesDemandFilter(item: ValueItem, filter: DemandFilter) {
@@ -171,7 +171,7 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function ValuesList() {
+export function ValuesList({ items = valueItems }: { items?: ValueItem[] }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
   const [sortOption, setSortOption] = useState<SortOption>("value-desc");
@@ -182,7 +182,7 @@ export function ValuesList() {
   const isCompactFilterLayout = useSyncExternalStore(subscribeFilterBreakpoint, getFilterBreakpointSnapshot, getFilterBreakpointServerSnapshot);
   const [manualFiltersExpanded, setManualFiltersExpanded] = useState<boolean | null>(null);
   const filtersExpanded = manualFiltersExpanded ?? !isCompactFilterLayout;
-  const [selectedId, setSelectedId] = useState(valueItems[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState(items[0]?.id ?? "");
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [page, setPage] = useState(1);
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
@@ -190,7 +190,7 @@ export function ValuesList() {
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const matches = valueItems
+    const matches = items
       .filter((item) => {
         const matchesCategory = category === "all" || item.category === category;
         const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
@@ -200,15 +200,15 @@ export function ValuesList() {
       })
 
     return sortItems(matches, sortOption);
-  }, [category, demandFilter, query, sortOption, sourceFilter, trendFilter, valueFilter]);
+  }, [category, demandFilter, items, query, sortOption, sourceFilter, trendFilter, valueFilter]);
 
-  const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? valueItems[0];
+  const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? items[0];
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const firstItemIndex = (currentPage - 1) * pageSize;
   const pagedItems = filtered.slice(firstItemIndex, firstItemIndex + pageSize);
-  const visibleCategories = categories.filter((item) => item.id === "all" || valueItems.some((value) => value.category === item.id));
-  const sourceOptions = useMemo(() => ["all", ...Array.from(new Set(valueItems.map(getItemSource))).sort()] as SourceFilter[], []);
+  const visibleCategories = categories.filter((item) => item.id === "all" || items.some((value) => value.category === item.id));
+  const sourceOptions = useMemo(() => ["all", ...Array.from(new Set(items.map(getItemSource))).sort()] as SourceFilter[], [items]);
   const activeFilterCount = [category !== "all", sortOption !== "value-desc", trendFilter !== "all", demandFilter !== "all", sourceFilter !== "all", valueFilter !== "all"].filter(Boolean).length;
 
   function resetPage() {
@@ -327,7 +327,7 @@ export function ValuesList() {
                 }}
                 options={visibleCategories.map((item) => ({
                   value: item.id,
-                  label: `${item.label} (${item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length})`,
+                  label: `${item.label} (${item.id === "all" ? items.length : items.filter((value) => value.category === item.id).length})`,
                 }))}
               />
               <FilterSelect
@@ -435,7 +435,7 @@ export function ValuesList() {
             iconUrl={iconOverrides[detailItem.id] ?? detailItem.iconUrl ?? ""}
             item={detailItem}
             onClose={() => setDetailItem(null)}
-            valueRank={getValueRank(detailItem)}
+            valueRank={getValueRank(detailItem, items)}
             valueMode={valueMode}
           />
         ) : null}

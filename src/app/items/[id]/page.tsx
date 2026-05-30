@@ -3,19 +3,23 @@ import { notFound } from "next/navigation";
 
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { ItemValuePage } from "@/components/ItemValuePage";
-import { valueItems } from "@/content/items";
+import { getValueItem, getValueItems } from "@/lib/firestoreItems";
 
 type ItemPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export function generateStaticParams() {
-  return valueItems.map((item) => ({ id: item.id }));
+export const dynamic = "force-dynamic";
+
+export async function generateStaticParams() {
+  const items = await getValueItems();
+
+  return items.map((item) => ({ id: item.id }));
 }
 
 export async function generateMetadata({ params }: ItemPageProps): Promise<Metadata> {
   const { id } = await params;
-  const item = valueItems.find((value) => value.id === id);
+  const item = await getValueItem(id);
 
   if (!item) {
     return {
@@ -31,7 +35,7 @@ export async function generateMetadata({ params }: ItemPageProps): Promise<Metad
 
 export default async function ItemPage({ params }: ItemPageProps) {
   const { id } = await params;
-  const item = valueItems.find((value) => value.id === id);
+  const item = await getValueItem(id);
 
   if (!item) notFound();
 

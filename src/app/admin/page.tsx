@@ -1,22 +1,22 @@
+import { AdminPanel } from "@/components/AdminPanel";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
-import { TradeCalculator } from "@/components/TradeCalculator";
 import { getValueItems } from "@/lib/firestoreItems";
 
 export const dynamic = "force-dynamic";
 
-export default async function CalculatorPage() {
+export default async function AdminPage() {
   const items = await getValueItems();
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
       <FloatingHeader />
       <PageHero
-        kicker="Trade calculator"
-        title="Calculate Your Trade"
-        description="Pick items, compare values, and check demand before you accept."
+        kicker="Admin panel"
+        title="Manage Value Data"
+        description="Edit every item field, seed Firestore, and prepare records for future icon uploads."
       />
-      <TradeCalculator items={items} />
+      <AdminPanel initialItems={items} />
     </main>
   );
 }

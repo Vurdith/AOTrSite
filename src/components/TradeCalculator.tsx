@@ -98,8 +98,12 @@ function formatModeValue(value: number, mode: ValueMode) {
   return `${formatted} ${valueModes[mode].unit}`;
 }
 
-function initialYoursSlots() {
-  return [{ item: valueItems[2], quantity: 1 }, { item: valueItems[5], quantity: 1 }, ...Array<TradeSlot>(7).fill(null)];
+function initialYoursSlots(items: ValueItem[]) {
+  return [items[2] ? { item: items[2], quantity: 1 } : null, items[5] ? { item: items[5], quantity: 1 } : null, ...Array<TradeSlot>(7).fill(null)];
+}
+
+function initialTheirsSlots(items: ValueItem[]) {
+  return [items[1] ? { item: items[1], quantity: 1 } : null, ...Array<TradeSlot>(8).fill(null)];
 }
 
 function getNextSlotIndex(slots: TradeSlot[], currentIndex: number) {
@@ -166,9 +170,9 @@ function sortPickerItems(items: ValueItem[], sortOption: PickerSortOption) {
   });
 }
 
-export function TradeCalculator() {
-  const [yours, setYours] = useState<TradeSlot[]>(initialYoursSlots);
-  const [theirs, setTheirs] = useState<TradeSlot[]>([{ item: valueItems[1], quantity: 1 }, ...Array<TradeSlot>(8).fill(null)]);
+export function TradeCalculator({ items = valueItems }: { items?: ValueItem[] }) {
+  const [yours, setYours] = useState<TradeSlot[]>(() => initialYoursSlots(items));
+  const [theirs, setTheirs] = useState<TradeSlot[]>(() => initialTheirsSlots(items));
   const [activeSlot, setActiveSlot] = useState<ActiveSlot>({ side: "yours", index: 2 });
   const [pickerOpen, setPickerOpen] = useState(false);
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
@@ -198,11 +202,11 @@ export function TradeCalculator() {
   const diff = theirTotal - yourTotal;
   const favor = diff >= 0 ? "Fair trade" : "Overpay";
   const targetLabel = `${activeSlot.side === "yours" ? "Your" : "Their"} slot ${activeSlot.index + 1}`;
-  const visibleCategories = categories.filter((item) => item.id === "all" || valueItems.some((value) => value.category === item.id));
-  const pickerSourceOptions = useMemo(() => ["all", ...Array.from(new Set(valueItems.map(getItemSource))).sort()] as PickerSourceFilter[], []);
+  const visibleCategories = categories.filter((item) => item.id === "all" || items.some((value) => value.category === item.id));
+  const pickerSourceOptions = useMemo(() => ["all", ...Array.from(new Set(items.map(getItemSource))).sort()] as PickerSourceFilter[], [items]);
   const filteredItems = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const matches = valueItems.filter((item) => {
+    const matches = items.filter((item) => {
       const matchesCategory = category === "all" || item.category === category;
       const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
       const matchesTrend = pickerTrendFilter === "all" || item.trend === pickerTrendFilter;
@@ -210,7 +214,7 @@ export function TradeCalculator() {
       return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesPickerDemand(item, pickerDemandFilter) && matchesPickerValue(item, pickerValueFilter);
     });
     return sortPickerItems(matches, pickerSortOption);
-  }, [category, pickerDemandFilter, pickerSortOption, pickerSourceFilter, pickerTrendFilter, pickerValueFilter, query]);
+  }, [category, items, pickerDemandFilter, pickerSortOption, pickerSourceFilter, pickerTrendFilter, pickerValueFilter, query]);
   const pickerActiveFilterCount = [category !== "all", pickerSortOption !== "value-desc", pickerDemandFilter !== "all", pickerTrendFilter !== "all", pickerValueFilter !== "all", pickerSourceFilter !== "all"].filter(Boolean).length;
 
   function clearPickerFilters() {
@@ -240,7 +244,7 @@ export function TradeCalculator() {
 
   useEffect(() => {
     const itemId = new URLSearchParams(window.location.search).get("item");
-    const item = valueItems.find((value) => value.id === itemId);
+    const item = items.find((value) => value.id === itemId);
 
     if (!item) return;
 
@@ -258,7 +262,7 @@ export function TradeCalculator() {
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [items]);
 
   function setSlot(side: Side, index: number, item: TradeSlot) {
     const setter = side === "yours" ? setYours : setTheirs;
@@ -443,6 +447,7 @@ export function TradeCalculator() {
           targetLabel={targetLabel}
           trendFilter={pickerTrendFilter}
           valueFilter={pickerValueFilter}
+          allItems={items}
           visibleCategories={visibleCategories}
         />
       ) : null}
@@ -475,6 +480,7 @@ function ItemPickerModal({
   targetLabel,
   trendFilter,
   valueFilter,
+  allItems,
   visibleCategories,
 }: {
   activeFilterCount: number;
@@ -500,6 +506,7 @@ function ItemPickerModal({
   targetLabel: string;
   trendFilter: PickerTrendFilter;
   valueFilter: PickerValueFilter;
+  allItems: ValueItem[];
   visibleCategories: typeof categories;
 }) {
   return (
@@ -573,7 +580,7 @@ function ItemPickerModal({
                 onChange={(value) => onCategory(value as "all" | ItemCategory)}
                 options={visibleCategories.map((item) => ({
                   value: item.id,
-                  label: `${item.label} (${item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length})`,
+                  label: `${item.label} (${item.id === "all" ? allItems.length : allItems.filter((value) => value.category === item.id).length})`,
                 }))}
               />
               <PickerFilterSelect

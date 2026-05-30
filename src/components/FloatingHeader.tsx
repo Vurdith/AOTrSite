@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 const nav = [
   { href: "/values", label: "Values" },
   { href: "/calculator", label: "Calculator" },
+  ...(process.env.NODE_ENV === "development" ? [{ href: "/admin", label: "Admin" }] : []),
   ...(process.env.NODE_ENV === "development" ? [{ href: "/updates", label: "Updates" }] : []),
 ];
 
@@ -70,7 +71,7 @@ export function FloatingHeader() {
             </span>
           </Link>
 
-          <div className={cn("desktop-nav-grid grid w-full min-w-0 gap-1.5", nav.length === 3 ? "max-w-[440px] grid-cols-3" : "max-w-[300px] grid-cols-2")}>
+          <div className={cn("desktop-nav-grid grid w-full min-w-0 gap-1.5", nav.length === 4 ? "max-w-[560px] grid-cols-4" : nav.length === 3 ? "max-w-[440px] grid-cols-3" : "max-w-[300px] grid-cols-2")}>
             {nav.map((item) => {
               const active = pathname === item.href;
               return (

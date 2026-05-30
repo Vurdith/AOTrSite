@@ -30,8 +30,8 @@ function getUpdateRead(item: ValueItem) {
   return "Imported into the current board with no visible movement flags.";
 }
 
-function getUpdatedItems() {
-  return [...valueItems]
+function getUpdatedItems(items: ValueItem[]) {
+  return [...items]
     .sort((a, b) => {
       const trendWeight = Number(b.trend !== "stable") - Number(a.trend !== "stable");
       return trendWeight || b.demand - a.demand || b.value - a.value;
@@ -39,13 +39,13 @@ function getUpdatedItems() {
     .slice(0, 14);
 }
 
-function getCategoryLeaders() {
+function getCategoryLeaders(items: ValueItem[]) {
   return categories
     .filter((category) => category.id !== "all")
     .map((category) => {
-      const items = valueItems.filter((item) => item.category === category.id);
-      const leader = [...items].sort((a, b) => b.demand - a.demand || b.value - a.value)[0];
-      return leader ? { category: category.label, item: leader, count: items.length } : null;
+      const categoryItems = items.filter((item) => item.category === category.id);
+      const leader = [...categoryItems].sort((a, b) => b.demand - a.demand || b.value - a.value)[0];
+      return leader ? { category: category.label, item: leader, count: categoryItems.length } : null;
     })
     .filter(Boolean) as { category: string; item: ValueItem; count: number }[];
 }
@@ -59,11 +59,11 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function UpdatesList() {
-  const updatedItems = getUpdatedItems();
-  const leaders = getCategoryLeaders();
-  const changedTrendCount = valueItems.filter((item) => item.trend !== "stable").length;
-  const dominantItem = [...valueItems].sort((a, b) => b.demand - a.demand || b.value - a.value)[0];
+export function UpdatesList({ items = valueItems }: { items?: ValueItem[] }) {
+  const updatedItems = getUpdatedItems(items);
+  const leaders = getCategoryLeaders(items);
+  const changedTrendCount = items.filter((item) => item.trend !== "stable").length;
+  const dominantItem = [...items].sort((a, b) => b.demand - a.demand || b.value - a.value)[0];
 
   return (
     <section className="px-4 py-7 sm:px-6 lg:px-8">
