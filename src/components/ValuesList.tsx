@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, Info, X } from "lucide-react";
 
@@ -44,6 +44,23 @@ const trendMeta: Record<ItemTrend, { label: string; className: string }> = {
 
 const prestigeLabels = ["Open trade", "Low gate", "Mid gate", "High gate"];
 const pageSize = 8;
+
+const filterBreakpoint = "(max-width: 767px)";
+
+function subscribeFilterBreakpoint(onStoreChange: () => void) {
+  const query = window.matchMedia(filterBreakpoint);
+  query.addEventListener("change", onStoreChange);
+
+  return () => query.removeEventListener("change", onStoreChange);
+}
+
+function getFilterBreakpointSnapshot() {
+  return typeof window !== "undefined" && window.matchMedia(filterBreakpoint).matches;
+}
+
+function getFilterBreakpointServerSnapshot() {
+  return false;
+}
 
 const sortOptions: { id: SortOption; label: string }[] = [
   { id: "value-desc", label: "Value high-low" },
@@ -162,7 +179,9 @@ export function ValuesList() {
   const [demandFilter, setDemandFilter] = useState<DemandFilter>("all");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [valueFilter, setValueFilter] = useState<ValueFilter>("all");
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const isCompactFilterLayout = useSyncExternalStore(subscribeFilterBreakpoint, getFilterBreakpointSnapshot, getFilterBreakpointServerSnapshot);
+  const [manualFiltersExpanded, setManualFiltersExpanded] = useState<boolean | null>(null);
+  const filtersExpanded = manualFiltersExpanded ?? !isCompactFilterLayout;
   const [selectedId, setSelectedId] = useState(valueItems[0]?.id ?? "");
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [page, setPage] = useState(1);
@@ -277,7 +296,7 @@ export function ValuesList() {
                   className="advanced-filter-toggle"
                   aria-expanded={filtersExpanded}
                   aria-controls="advanced-filter-controls"
-                  onClick={() => setFiltersExpanded((expanded) => !expanded)}
+                  onClick={() => setManualFiltersExpanded(!filtersExpanded)}
                 >
                   <span>Advanced filters</span>
                   <ChevronDown size={15} strokeWidth={2.5} />

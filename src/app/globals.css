@@ -3930,9 +3930,13 @@
   }
 
   .advanced-filter-grid {
-    display: grid;
+    display: none;
     grid-template-columns: minmax(0, 1fr);
     gap: 0.7rem;
+  }
+
+  .advanced-filter-grid-open {
+    display: grid;
   }
 
   @media (min-width: 640px) {
@@ -3948,11 +3952,6 @@
   }
 
   @media (max-width: 767px) {
-    .advanced-filter-head {
-      border-bottom: 0;
-      padding-bottom: 0;
-    }
-
     .advanced-filter-toggle[aria-expanded="false"] {
       color: rgb(var(--fog) / 0.56);
     }
@@ -3961,24 +3960,19 @@
       color: rgb(var(--fog) / 0.56);
     }
 
-    .advanced-filter-grid {
-      display: none;
-      border-top: 1px solid rgb(var(--gold) / 0.09);
-      padding-top: 0.8rem;
-    }
-
-    .advanced-filter-grid-open {
-      display: grid;
+    .advanced-filter-head:has(.advanced-filter-toggle[aria-expanded="false"]) {
+      border-bottom: 0;
+      padding-bottom: 0;
     }
   }
 
   @media (min-width: 768px) {
-    .advanced-filter-toggle {
-      pointer-events: none;
+    .advanced-filter-toggle[aria-expanded="false"] {
+      color: rgb(var(--fog) / 0.64);
     }
 
-    .advanced-filter-grid {
-      display: grid;
+    .advanced-filter-toggle[aria-expanded="false"] span {
+      color: rgb(var(--fog) / 0.64);
     }
   }
 
