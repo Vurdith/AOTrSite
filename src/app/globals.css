@@ -3926,10 +3926,6 @@
     .advanced-filter-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
-
-    .advanced-filter-field-wide {
-      grid-column: span 2;
-    }
   }
 
   .advanced-filter-field {

@@ -314,7 +314,6 @@ export function ValuesList() {
               <FilterSelect
                 label="Sort"
                 value={sortOption}
-                wide
                 onChange={(value) => {
                   setSortOption(value as SortOption);
                   resetPage();
@@ -381,7 +380,6 @@ export function ValuesList() {
               <FilterSelect
                 label="Source"
                 value={sourceFilter}
-                wide
                 onChange={(value) => {
                   setSourceFilter(value);
                   resetPage();
