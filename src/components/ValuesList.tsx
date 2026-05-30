@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Info, X } from "lucide-react";
+import { ChevronDown, Info, X } from "lucide-react";
 
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
@@ -11,10 +11,8 @@ import { rarityStyles } from "@/lib/rarityStyles";
 type ValueMode = "keys" | "masks" | "scrolls";
 type SortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
 type DemandFilter = "all" | "high" | "medium" | "low";
-type TaxFilter = "all" | "none" | "low" | "medium" | "high";
 type ValueFilter = "all" | "top" | "mid" | "low";
 type SourceFilter = "all" | string;
-type PrestigeFilter = "all" | 0 | 1 | 2 | 3;
 type TrendFilter = "all" | ItemTrend;
 
 const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number }> = {
@@ -73,27 +71,11 @@ const demandOptions: { id: DemandFilter; label: string }[] = [
   { id: "low", label: "Low <35" },
 ];
 
-const taxOptions: { id: TaxFilter; label: string }[] = [
-  { id: "all", label: "Any tax" },
-  { id: "none", label: "No tax" },
-  { id: "low", label: "Low <=300" },
-  { id: "medium", label: "Mid <=1.5k" },
-  { id: "high", label: "High 1.5k+" },
-];
-
 const valueRangeOptions: { id: ValueFilter; label: string }[] = [
   { id: "all", label: "Any value" },
   { id: "top", label: "Top 10k+" },
   { id: "mid", label: "Mid 1k-9.9k" },
   { id: "low", label: "Low <1k" },
-];
-
-const prestigeOptions: { id: PrestigeFilter; label: string }[] = [
-  { id: "all", label: "Any prestige" },
-  { id: 0, label: "P0" },
-  { id: 1, label: "P1" },
-  { id: 2, label: "P2" },
-  { id: 3, label: "P3" },
 ];
 
 function formatNumber(value: number) {
@@ -128,14 +110,6 @@ function matchesDemandFilter(item: ValueItem, filter: DemandFilter) {
   if (filter === "high") return item.demand >= 70;
   if (filter === "medium") return item.demand >= 35 && item.demand < 70;
   return item.demand < 35;
-}
-
-function matchesTaxFilter(item: ValueItem, filter: TaxFilter) {
-  if (filter === "all") return true;
-  if (filter === "none") return item.taxGems === 0;
-  if (filter === "low") return item.taxGems > 0 && item.taxGems <= 300;
-  if (filter === "medium") return item.taxGems > 300 && item.taxGems <= 1500;
-  return item.taxGems > 1500;
 }
 
 function matchesValueFilter(item: ValueItem, filter: ValueFilter) {
@@ -186,10 +160,9 @@ export function ValuesList() {
   const [sortOption, setSortOption] = useState<SortOption>("value-desc");
   const [trendFilter, setTrendFilter] = useState<TrendFilter>("all");
   const [demandFilter, setDemandFilter] = useState<DemandFilter>("all");
-  const [taxFilter, setTaxFilter] = useState<TaxFilter>("all");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
-  const [prestigeFilter, setPrestigeFilter] = useState<PrestigeFilter>("all");
   const [valueFilter, setValueFilter] = useState<ValueFilter>("all");
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [selectedId, setSelectedId] = useState(valueItems[0]?.id ?? "");
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [page, setPage] = useState(1);
@@ -204,12 +177,11 @@ export function ValuesList() {
         const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
         const matchesTrend = trendFilter === "all" || item.trend === trendFilter;
         const matchesSource = sourceFilter === "all" || getItemSource(item) === sourceFilter;
-        const matchesPrestige = prestigeFilter === "all" || item.prestige === prestigeFilter;
-        return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesPrestige && matchesDemandFilter(item, demandFilter) && matchesTaxFilter(item, taxFilter) && matchesValueFilter(item, valueFilter);
+        return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesDemandFilter(item, demandFilter) && matchesValueFilter(item, valueFilter);
       })
 
     return sortItems(matches, sortOption);
-  }, [category, demandFilter, prestigeFilter, query, sortOption, sourceFilter, taxFilter, trendFilter, valueFilter]);
+  }, [category, demandFilter, query, sortOption, sourceFilter, trendFilter, valueFilter]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? valueItems[0];
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -218,7 +190,7 @@ export function ValuesList() {
   const pagedItems = filtered.slice(firstItemIndex, firstItemIndex + pageSize);
   const visibleCategories = categories.filter((item) => item.id === "all" || valueItems.some((value) => value.category === item.id));
   const sourceOptions = useMemo(() => ["all", ...Array.from(new Set(valueItems.map(getItemSource))).sort()] as SourceFilter[], []);
-  const activeFilterCount = [category !== "all", sortOption !== "value-desc", trendFilter !== "all", demandFilter !== "all", taxFilter !== "all", sourceFilter !== "all", prestigeFilter !== "all", valueFilter !== "all"].filter(Boolean).length;
+  const activeFilterCount = [category !== "all", sortOption !== "value-desc", trendFilter !== "all", demandFilter !== "all", sourceFilter !== "all", valueFilter !== "all"].filter(Boolean).length;
 
   function resetPage() {
     setPage(1);
@@ -229,9 +201,7 @@ export function ValuesList() {
     setSortOption("value-desc");
     setTrendFilter("all");
     setDemandFilter("all");
-    setTaxFilter("all");
     setSourceFilter("all");
-    setPrestigeFilter("all");
     setValueFilter("all");
     setPage(1);
   }
@@ -302,15 +272,24 @@ export function ValuesList() {
           <div className="advanced-filter-panel" aria-label="Advanced value filters">
             <div className="advanced-filter-head">
               <div>
-                <span>Advanced filters</span>
+                <button
+                  type="button"
+                  className="advanced-filter-toggle"
+                  aria-expanded={filtersExpanded}
+                  aria-controls="advanced-filter-controls"
+                  onClick={() => setFiltersExpanded((expanded) => !expanded)}
+                >
+                  <span>Advanced filters</span>
+                  <ChevronDown size={15} strokeWidth={2.5} />
+                </button>
                 <strong>{filtered.length} items</strong>
               </div>
-              <button type="button" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear advanced filters">
+              <button type="button" className="advanced-filter-clear" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear advanced filters">
                 Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
               </button>
             </div>
 
-            <div className="advanced-filter-grid">
+            <div id="advanced-filter-controls" className={cn("advanced-filter-grid", filtersExpanded && "advanced-filter-grid-open")}>
               <FilterSelect
                 label="Sort"
                 value={sortOption}
@@ -351,15 +330,6 @@ export function ValuesList() {
                 options={trendOptions.map((option) => ({ value: option.id, label: option.label }))}
               />
               <FilterSelect
-                label="Gem tax"
-                value={taxFilter}
-                onChange={(value) => {
-                  setTaxFilter(value as TaxFilter);
-                  resetPage();
-                }}
-                options={taxOptions.map((option) => ({ value: option.id, label: option.label }))}
-              />
-              <FilterSelect
                 label="Value"
                 value={valueFilter}
                 onChange={(value) => {
@@ -367,15 +337,6 @@ export function ValuesList() {
                   resetPage();
                 }}
                 options={valueRangeOptions.map((option) => ({ value: option.id, label: option.label }))}
-              />
-              <FilterSelect
-                label="Prestige"
-                value={`${prestigeFilter}`}
-                onChange={(value) => {
-                  setPrestigeFilter(value === "all" ? "all" : Number(value) as PrestigeFilter);
-                  resetPage();
-                }}
-                options={prestigeOptions.map((option) => ({ value: `${option.id}`, label: option.label }))}
               />
               <FilterSelect
                 label="Source"

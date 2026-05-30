@@ -3868,7 +3868,7 @@
     gap: 0.15rem;
   }
 
-  .advanced-filter-head span,
+  .advanced-filter-toggle span,
   .advanced-filter-field > span {
     color: rgb(var(--bright-gold));
     font-size: 0.64rem;
@@ -3877,12 +3877,31 @@
     text-transform: uppercase;
   }
 
+  .advanced-filter-toggle {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    background: transparent;
+    color: rgb(var(--bright-gold));
+    padding: 0;
+  }
+
+  .advanced-filter-toggle svg {
+    transition: transform 180ms ease;
+  }
+
+  .advanced-filter-toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+  }
+
   .advanced-filter-head strong {
     color: rgb(var(--ink));
     font-size: 1rem;
   }
 
-  .advanced-filter-head button {
+  .advanced-filter-clear {
     min-height: 2rem;
     border: 1px solid rgb(var(--gold) / 0.14);
     border-radius: 999px;
@@ -3899,13 +3918,13 @@
       color 160ms ease;
   }
 
-  .advanced-filter-head button:hover:not(:disabled) {
+  .advanced-filter-clear:hover:not(:disabled) {
     border-color: rgb(var(--bright-gold) / 0.42);
     background: rgb(var(--gold) / 0.1);
     color: white;
   }
 
-  .advanced-filter-head button:disabled {
+  .advanced-filter-clear:disabled {
     opacity: 0.42;
     cursor: not-allowed;
   }
@@ -3924,7 +3943,42 @@
 
   @media (min-width: 980px) {
     .advanced-filter-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 767px) {
+    .advanced-filter-head {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .advanced-filter-toggle[aria-expanded="false"] {
+      color: rgb(var(--fog) / 0.56);
+    }
+
+    .advanced-filter-toggle[aria-expanded="false"] span {
+      color: rgb(var(--fog) / 0.56);
+    }
+
+    .advanced-filter-grid {
+      display: none;
+      border-top: 1px solid rgb(var(--gold) / 0.09);
+      padding-top: 0.8rem;
+    }
+
+    .advanced-filter-grid-open {
+      display: grid;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .advanced-filter-toggle {
+      pointer-events: none;
+    }
+
+    .advanced-filter-grid {
+      display: grid;
     }
   }
 
@@ -4025,7 +4079,8 @@
   .currency-tab:focus-visible,
   .category-tab:focus-visible,
   .advanced-filter-field select:focus-visible,
-  .advanced-filter-head button:focus-visible,
+  .advanced-filter-toggle:focus-visible,
+  .advanced-filter-clear:focus-visible,
   .market-row:focus-visible,
   .search-clear:focus-visible,
   .value-row-data:focus-visible,
