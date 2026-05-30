@@ -2631,15 +2631,19 @@
     z-index: 70;
     display: grid;
     place-items: center;
+    overflow-y: auto;
     background: rgb(0 0 0 / 0.68);
     padding: 1rem;
     backdrop-filter: blur(8px);
+    overscroll-behavior: contain;
   }
 
   .calculator-modal {
     position: relative;
     width: min(100%, 34rem);
-    overflow: hidden;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     border: 1px solid rgb(var(--gold) / 0.16);
     border-radius: 22px 8px 22px 8px;
     background:
@@ -2653,7 +2657,7 @@
   .calculator-picker-modal {
     display: grid;
     width: min(100%, 62rem);
-    max-height: min(86vh, 48rem);
+    max-height: min(calc(100dvh - 2rem), 48rem);
     grid-template-rows: auto auto minmax(0, 1fr);
   }
 
@@ -2661,6 +2665,7 @@
     position: absolute;
     right: 0.9rem;
     top: 0.9rem;
+    z-index: 2;
     display: grid;
     width: 2rem;
     height: 2rem;
@@ -2712,6 +2717,27 @@
     gap: 0.5rem;
     overflow-y: auto;
     padding-right: 0.25rem;
+  }
+
+  @media (max-width: 640px) {
+    .calculator-modal-backdrop {
+      align-items: start;
+      padding: 0.7rem;
+    }
+
+    .calculator-modal {
+      max-height: calc(100dvh - 1.4rem);
+      padding: 1rem;
+    }
+
+    .calculator-picker-modal {
+      max-height: calc(100dvh - 1.4rem);
+    }
+
+    .calculator-modal-head,
+    .calculator-picker-modal-head {
+      padding-right: 2.25rem;
+    }
   }
 
   .calculator-picker-modal-list > * + * {
