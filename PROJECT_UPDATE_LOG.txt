@@ -1,0 +1,652 @@
+AOTR VALUE CENTRAL - PROJECT UPDATE / ADDITION / FEATURE / SYSTEM LOG
+Generated: May 30, 2026
+Repository: AOTrSite
+
+This document compiles the known work completed on the AOTR Value Central site across the project conversation, implementation passes, and Git commit history.
+
+The purpose of this document is to give a clear record of the features, systems, design work, backend work, UI improvements, mobile fixes, and future-ready foundations that have gone into the site so far.
+
+This is not a basic static website. It is a custom trading web application with a themed frontend, database-backed item data, an admin panel, trade calculator logic, value history graphs, item pages, filtering systems, responsive layouts, and ongoing infrastructure for future expansion.
+
+
+============================================================
+1. CORE PROJECT FOUNDATION
+============================================================
+
+- Created the Next.js application structure.
+- Set up TypeScript, ESLint, Tailwind, PostCSS, and Next configuration.
+- Added the main app layout and global style system.
+- Added reusable component structure under src/components.
+- Added shared utility helpers such as class name merging.
+- Added rarity style mapping for consistent rarity colors and badges.
+- Added static assets, including:
+  - AOTR logo.
+  - Hero/background artwork.
+  - Item icons.
+  - Trade/currency/system icons.
+  - Intro loader video.
+  - Noise/texture asset.
+- Built the site around a custom visual identity instead of a default template.
+- Created the initial data model for value items.
+- Added item categories, item rarity types, item trend types, and value history point types.
+- Added local fallback item data so the site remains usable if Firestore is unavailable.
+
+
+============================================================
+2. MAIN SITE / HERO PAGE
+============================================================
+
+- Built the homepage / hero page.
+- Added cinematic AOTR-themed visual presentation.
+- Added hero background visuals.
+- Added primary call-to-action buttons for values and calculator workflows.
+- Updated homepage copy based on requested wording changes.
+- Changed "Choose a focused workflow." to "Trading Tools".
+- Removed unnecessary small labels such as "Board" and "Offer" from tool cards.
+- Reworked tool cards to be simpler and more equal in sizing.
+- Improved the tools section layout.
+- Improved visual hierarchy in the hero and tools area.
+- Added responsive behavior for desktop and mobile.
+- Added route links for Values, Calculator, Updates, and later Admin in development.
+
+
+============================================================
+3. FLOATING NAVIGATION / MOBILE SIDEBAR
+============================================================
+
+- Built the floating desktop navigation header.
+- Added AOTR logo button linking back to the homepage.
+- Added desktop nav selected states.
+- Added mobile pop-out sidebar navigation.
+- Moved the mobile menu button to the right side based on feedback.
+- Added the same logo button style across desktop navigation and mobile sidebar.
+- Removed decorative diamond markers from mobile buttons and logo buttons.
+- Added selected/active animation treatment to sidebar nav buttons.
+- Added close button and backdrop for mobile sidebar.
+- Added Escape key handling for closing mobile navigation.
+- Prevented background page scroll while mobile sidebar is open.
+- Added Admin link to development navigation once the admin panel was created.
+
+
+============================================================
+4. VALUE LIST / MARKET VALUES PAGE
+============================================================
+
+- Built the main Values page.
+- Added market value ledger/table.
+- Added item rows with icon, name, rarity, value, trend, gem tax, demand, prestige, and detail action.
+- Added responsive desktop row layout.
+- Added mobile card layout for value rows.
+- Added pagination for the value list.
+- Added empty state when no item matches filters/search.
+- Added item selected state.
+- Made selected rows visually useful with a selected curve/marker.
+- Fixed selected curve/marker visibility when a selected row is hovered.
+- Added behavior where clicking an already selected row opens the item modal.
+- Added double-click/double-press behavior to open item modal from a value row.
+- Added View button to open item data modal.
+- Added item detail modal from the value list.
+- Added modal content showing:
+  - Item value.
+  - Demand.
+  - Trend.
+  - Gem tax.
+  - Prestige.
+  - Source.
+  - Notes.
+  - Item icon and rarity.
+- Added source information to item data modals.
+- Added item page link from item detail modals.
+- Removed the selected-item tray idea after it was determined to be redundant.
+- Removed the "scan-friendly" description from the value list copy.
+- Fixed value row column alignment with headers.
+- Removed clickable text filters from section headers to improve alignment.
+- Improved text alignment across value columns.
+- Refined mobile value row spacing repeatedly based on visual feedback.
+- Moved mobile trend metric into a better position.
+- Lowered mobile value card content where needed.
+- Improved row details action styling.
+- Restored the angled/curved visual treatment on row action buttons.
+
+
+============================================================
+5. VALUE LIST SEARCH / FILTERING / SORTING
+============================================================
+
+- Changed search bars to search item names only.
+- Added advanced filter system to the value list.
+- Replaced simple clickable text filters with structured dropdown filters.
+- Added sort options:
+  - Value high to low.
+  - Value low to high.
+  - Demand high to low.
+  - Demand low to high.
+  - Gem tax high to low.
+  - Gem tax low to high.
+  - Prestige high to low.
+  - Prestige low to high.
+  - Name A-Z.
+- Added category filter.
+- Added demand filter.
+- Added trend filter.
+- Added value range filter.
+- Added source filter.
+- Removed gem tax and prestige as standalone filters after feedback, while keeping them as sort options.
+- Added active filter count.
+- Added clear filters button.
+- Redesigned the advanced filter area with cleaner dropdown layout.
+- Balanced the filter grid to reduce blank space.
+- Added expandable/collapsible filter panel.
+- Added mobile collapsed default for filter panel.
+- Added desktop collapse/expand support as well.
+- Made the expanded state use brighter color and collapsed state feel more muted.
+- Matched the advanced filter pattern across the value list and calculator item picker.
+
+
+============================================================
+6. TRADE CALCULATOR PAGE
+============================================================
+
+- Built the Trade Calculator page.
+- Added two trade sides:
+  - You give.
+  - You get.
+- Added 9 trade slots per side.
+- Added item picking workflow for trade slots.
+- Added calculator item selection modal.
+- Added item search in calculator picker.
+- Added item category filtering in calculator picker.
+- Added calculator picker advanced filters matching the value list:
+  - Sort.
+  - Category.
+  - Demand.
+  - Trend.
+  - Value.
+  - Source.
+- Added collapse/expand logic to calculator picker filters matching the value list.
+- Changed calculator picker label to "Advanced filters".
+- Added auto-advance to next slot after adding an item.
+- Added animation/pulse to show the user jumped to the next slot.
+- Changed behavior so the picker closes during the pulse and reopens after the pulse.
+- Added quantity controls for trade slots.
+- Moved quantity controls below trade slots for cleaner layout.
+- Improved quantity control styling and alignment.
+- Allowed typed trade slot quantities.
+- Centered quantity input text and quantity prefix.
+- Added minus button behavior where pressing minus at quantity 1 removes the item from the slot.
+- Added remove button styling on filled slots.
+- Increased remove mark contrast.
+- Added View button on calculator slot items.
+- Matched calculator slot data button style with value row action style.
+- Added item detail modal from calculator.
+- Added source field to calculator item detail modal.
+- Added "Add to calculator" item page integration.
+- Added calculator query parameter support so item pages can add an item to the calculator.
+
+
+============================================================
+7. CALCULATOR LOGIC / TAX / DEMAND
+============================================================
+
+- Added value comparison between both trade sides.
+- Added trade verdict display.
+- Removed unnecessary verdict subtext such as "Receiving more than you give".
+- Changed tax wording to simple labels:
+  - Gem Tax.
+  - Gold Tax.
+- Removed unnecessary "to receive" wording from tax labels.
+- Added Gem Tax calculation update:
+  - Opposing gem tax values offset each other.
+  - Example: if one side has 5,000 gems tax and the other side has 1,000 gems tax, only 4,000 gems net tax remains.
+- Added Gold Tax display placeholder.
+- Added median demand calculation for each side of the trade.
+- Added "Your Median Demand" and "Their Median Demand".
+- Added demand display into calculator stat chips.
+- Changed "Masks" display mode label to "Vizards".
+- Added value display modes:
+  - Keys.
+  - Vizards.
+  - Scrolls.
+- Added consistent display icons for calculator value mode controls.
+
+
+============================================================
+8. ICON SYSTEM / VISUAL ASSETS
+============================================================
+
+- Reworked trade/system icons to consistent PNG assets.
+- Implemented new provided icon files:
+  - gem.png.
+  - trend.png.
+  - demand.png.
+  - rank.png.
+  - gold.png.
+  - scroll.png.
+  - prestige.png.
+  - mask.png.
+  - key.png.
+  - source.png.
+- Updated icon sizing rules for consistency.
+- Added styling classes for trade icons.
+- Added consistent icon presentation inside:
+  - Value rows.
+  - Calculator controls.
+  - Detail modals.
+  - Stat chips.
+  - Item pages.
+- Fixed disproportionate icon presentation problems.
+- Kept support for future icon URL editing through admin panel.
+- Prepared for future R2 bucket image/icon upload workflow.
+
+
+============================================================
+9. ITEM DETAIL PAGES
+============================================================
+
+- Added individual item pages under /items/[id].
+- Added item page routing and metadata.
+- Added dynamic item lookup.
+- Added fallback/not found handling.
+- Added item page hero with rarity, name, note, and icon.
+- Added "Go back" button.
+- Added "Value list" link.
+- Added item stat panel showing:
+  - Demand.
+  - Trend.
+  - Gem Tax.
+  - Prestige.
+  - Source.
+- Added "Add to calculator" action.
+- Connected item pages to the calculator through query parameters.
+- Converted item pages to use Firestore-backed item data.
+- Kept local data fallback for reliability.
+
+
+============================================================
+10. TRADE GRAPH / VALUE HISTORY SYSTEM
+============================================================
+
+- Added value history graph section to item pages.
+- Added no-history state when real history is missing.
+- Removed mock graph data requirement and changed graph to require real value history.
+- Added Firestore-backed valueHistory support.
+- Added automatic value history tracking through admin saves.
+- Added baseline history backfill for all current Firestore items.
+- Updated history logic after feedback:
+  - Initially same-day values overwrote the same date point.
+  - Changed behavior so value changes append unique timestamped history snapshots.
+  - Preserved the value history array instead of replacing it.
+- Added timestamp-aware date labels.
+- Added range filters to item graphs:
+  - 1D.
+  - 1W.
+  - 1M.
+  - 3M.
+  - 1Y.
+  - All.
+- Added period change display based on selected range.
+- Added graph change badge showing Up/Down for the selected range.
+- Improved graph styling:
+  - Better chart panel.
+  - Cleaner grid.
+  - Better line glow.
+  - Better area gradient.
+  - Better range tabs.
+  - Better dot styling.
+- Improved graph mobile layout.
+- Fixed mobile graph readability:
+  - First scaled chart to fit mobile.
+  - Then corrected because the graph became too small.
+  - Final behavior keeps a readable chart width inside an internal horizontal scroll viewport.
+  - Page itself has no horizontal overflow.
+  - Chart scrolls horizontally inside the graph card only.
+
+
+============================================================
+11. FIRESTORE DATABASE / BACKEND SYSTEM
+============================================================
+
+- Added Firebase Admin SDK dependency.
+- Added server-only Firebase Admin initialization.
+- Added Firestore database access layer.
+- Added service account environment support through .env.local:
+  - FIREBASE_PROJECT_ID.
+  - FIREBASE_CLIENT_EMAIL.
+  - FIREBASE_PRIVATE_KEY.
+- Confirmed .env.local is ignored by Git.
+- Added Firestore item repository:
+  - Get all Firestore value items.
+  - Get a single item.
+  - Save an item.
+  - Delete an item.
+  - Seed Firestore from local item data.
+- Added local fallback if Firestore cannot load or is empty.
+- Added item sorting by value/name in repository layer.
+- Added Firestore serialization to omit undefined optional fields.
+- Added value history recording on save.
+- Added baseline history recording.
+- Added timestamped history snapshots when value changes.
+- Connected public pages to Firestore-backed data:
+  - /values.
+  - /calculator.
+  - /updates.
+  - /items/[id].
+- Converted those routes to dynamic where needed so they can read live database data.
+- Seeded Firestore with the initial 56 item records.
+- Backfilled value history baseline points for all 56 records.
+
+
+============================================================
+12. ADMIN PANEL
+============================================================
+
+- Added /admin page.
+- Added Admin link in development navigation.
+- Built full admin item editor.
+- Added Firestore item list in admin sidebar.
+- Added admin search.
+- Added selected item editor.
+- Added create new item action.
+- Added save item action.
+- Added delete item action.
+- Added reset action.
+- Added seed Firestore action.
+- Added admin status messaging.
+- Added full edit support for current item fields:
+  - ID.
+  - Name.
+  - Category.
+  - Rarity.
+  - Value.
+  - Demand.
+  - Trend.
+  - Gem Tax.
+  - Prestige.
+  - Owners / label.
+  - Source.
+  - Icon URL.
+  - Note.
+  - Value History JSON.
+- Added slug generation for item IDs.
+- Added editable value history JSON for imports and corrections.
+- Added note explaining that history is automatically tracked when changed values are saved.
+- Added admin styling consistent with the rest of the site.
+- Added responsive admin layout.
+- Added backend API routes for admin:
+  - GET /api/admin/items.
+  - POST /api/admin/items.
+  - GET /api/admin/items/[id].
+  - PUT /api/admin/items/[id].
+  - DELETE /api/admin/items/[id].
+- Added validation on admin item data using Zod.
+- Added safe error responses for invalid item data.
+
+
+============================================================
+13. UPDATES PAGE
+============================================================
+
+- Built Updates page.
+- Added update ledger.
+- Added update summary cards.
+- Added category leaders.
+- Added trend/demand-based update rows.
+- Gated the public Updates page in production when needed.
+- Kept Updates page visible in development.
+- Later connected updates data to Firestore-backed value items.
+- Removed duplicate demand insight.
+
+
+============================================================
+14. RESPONSIVE / MOBILE IMPROVEMENTS
+============================================================
+
+- Built mobile responsive layouts across the site.
+- Reworked mobile navigation into sidebar.
+- Fixed mobile modal scrolling so modals no longer exceed the screen without being scrollable.
+- Improved mobile value row alignment.
+- Improved mobile value row spacing.
+- Improved mobile trend metric position.
+- Improved mobile item detail page layout.
+- Improved mobile item graph page layout.
+- Improved mobile stat panels.
+- Fixed mobile graph readability with internal scroll.
+- Confirmed page-level horizontal overflow is avoided.
+- Added phone viewport testing around 360px and 390px widths.
+- Verified range buttons fit on mobile.
+- Verified graph remains readable on mobile.
+- Verified chart scroll happens inside graph panel only.
+
+
+============================================================
+15. MODALS / INTERACTIONS
+============================================================
+
+- Added item detail modals.
+- Added modal open through View button.
+- Added modal open through double-click/double-tap on value rows.
+- Added modal open when clicking an already selected row.
+- Added item picker modal for calculator.
+- Moved calculator item picking into modal.
+- Added modal close behavior.
+- Fixed mobile modal overflow/scrolling.
+- Added calculator modal search.
+- Added calculator modal advanced filters.
+- Added consistent modal styling.
+- Added source field to item modals.
+- Added item page link from detail modals.
+
+
+============================================================
+16. DATA MODEL / ITEM FIELDS
+============================================================
+
+- Defined item categories:
+  - Auras.
+  - Families.
+  - Perks.
+  - Cosmetics.
+  - Artifacts.
+- Defined item rarity values:
+  - Mythic.
+  - Legendary.
+  - Epic.
+  - Rare.
+  - Uncommon.
+  - Common.
+  - Event.
+- Defined item trend values:
+  - Rising.
+  - Stable.
+  - Falling.
+- Added value item fields:
+  - id.
+  - name.
+  - category.
+  - rarity.
+  - value.
+  - valueHistory.
+  - demand.
+  - trend.
+  - taxGems.
+  - prestige.
+  - iconUrl.
+  - source.
+  - owners.
+  - note.
+- Added source inference fallback:
+  - Event reward.
+  - Cosmetic crate.
+  - Aura system.
+  - Family system.
+  - Perk system.
+  - Artifact system.
+  - Unknown source.
+- Added explicit source support for database/admin.
+- Added history point type with date and value.
+
+
+============================================================
+17. DESIGN / POLISH WORK
+============================================================
+
+- Built custom AOTR-themed visual direction.
+- Added cinematic dark/gold market aesthetic.
+- Added textured backgrounds.
+- Added panel styling.
+- Added selected states.
+- Added hover/focus states.
+- Added consistent buttons.
+- Added consistent cards/panels.
+- Added consistent currency controls.
+- Added consistent filter controls.
+- Added consistent icon sizing.
+- Improved text alignment across value rows and calculator.
+- Improved line heights and spacing.
+- Improved action button readability.
+- Improved chart readability.
+- Improved mobile density.
+- Removed redundant repeated info/buttons where they did not add value.
+- Avoided nested-card clutter where possible.
+- Reworked layouts based on direct visual feedback.
+
+
+============================================================
+18. TESTING / VERIFICATION PERFORMED
+============================================================
+
+- Repeatedly ran lint checks.
+- Repeatedly ran production builds.
+- Used browser checks for:
+  - Value list.
+  - Calculator.
+  - Admin page.
+  - Item pages.
+  - Item graphs.
+  - Mobile item graph layout.
+  - Advanced filter expansion/collapse.
+- Used Playwright checks when the in-app browser connector was unavailable.
+- Verified admin page displays 56 Firestore records.
+- Verified value list renders from Firestore-backed data.
+- Verified calculator still renders after Firestore integration.
+- Verified Firestore API endpoints.
+- Verified history save behavior.
+- Verified item graph range buttons render.
+- Verified graph default range is All.
+- Verified 1D selection works.
+- Verified mobile no-overflow conditions at 360px and 390px.
+- Verified chart internal scroll behavior on mobile.
+
+
+============================================================
+19. GIT COMMIT HISTORY SUMMARY
+============================================================
+
+The following commits are part of the tracked project history:
+
+- 14f537a - Initial commit
+- 4c32bbf - Polish calculator and rarity styles
+- be22f0e - Gate updates page in production
+- fe45ad2 - Address value board and calculator feedback
+- 8c10553 - Polish trade slot quantity controls
+- 5437222 - Move quantity controls below trade slots
+- 8b26f75 - Refine trade slot quantity bar
+- be40fb8 - Allow typed trade slot quantities
+- 9ddd8b3 - Center trade quantity input text
+- 79ac43c - Center quantity prefix with input
+- 19539d4 - Align quantity label center
+- b8d844d - Improve tools section and value columns
+- d0996a0 - Align value row metrics with headers
+- ac258ad - Remove duplicate demand insight
+- ad7043a - Simplify and equalize tool cards
+- 288c667 - Adjust calculator verdict and tax layout
+- ccb39a1 - Add value row data modal
+- d9a7ab3 - Refine value row data action
+- 411d056 - Add expand edge action to value rows
+- 77cc413 - Refine value row details action
+- 2cad8f6 - Move mobile trend into value row header
+- 521af2d - Match calculator slot data button style
+- e983793 - Restore angled curve on view buttons
+- 89a74b2 - Improve calculator picker and value details flow
+- 54e82c0 - Update hero value copy
+- 207a5f9 - Reposition mobile value trend metric
+- 0f9b90d - Adjust mobile value card spacing
+- 2f91259 - Lower mobile value card content
+- 051d7e4 - Refine mobile value trend alignment
+- dfa95a5 - Move calculator item picker into modal
+- 2f9dea6 - Increase calculator remove mark contrast
+- 69e6098 - Polish trading tools UI
+- 08c160d - Fix mobile modal scrolling
+- 16c05cc - Refine calculator trade display
+- 7609acc - Add item value history pages
+- 860a3e5 - Require real item value history
+- 1fdd62c - Add advanced value filters
+- 8ae2e37 - Polish advanced filter layout
+- ef8d431 - Balance advanced filter grid
+- 2bc0298 - Streamline mobile value filters
+- 59e1967 - Allow desktop filter collapse
+- cfe3d9d - Add picker advanced filters
+- 6c1cfa3 - Match picker advanced filters
+- 6eee6a0 - Add Firestore admin panel
+- b2d2f23 - Record item value history
+- 2fdd8b6 - Append value history snapshots
+- b2ade76 - Polish item value graph
+- cb7f6d9 - Improve mobile item graph layout
+- 3bfb60f - Make mobile graph readable
+
+
+============================================================
+20. FUTURE-READY FOUNDATION / PLANNED ADDITIONS
+============================================================
+
+The current build has been structured to support additional future systems, including:
+
+- Admin authentication.
+- Staff roles.
+- Editor/admin permissions.
+- R2 bucket uploads for item icons/images.
+- Better image management.
+- Admin-controlled public update logs.
+- More advanced value history imports.
+- Bulk import workflows.
+- Deeper item analytics.
+- More advanced trade demand analytics.
+- More item source/crate/event tracking.
+- Better audit logs for admin edits.
+- Better rollback/versioning of item changes.
+- More public-facing graph history once enough real data exists.
+- Additional admin quality-of-life tools.
+
+These future features are not all completed yet, but the project is already being built with them in mind. That means the current architecture is not throwaway code; it is intended to grow into a maintainable trading platform.
+
+
+============================================================
+21. FINAL SUMMARY
+============================================================
+
+The project currently includes:
+
+- A custom AOTR-themed trading website.
+- A full values list.
+- Advanced filters and sorting.
+- A trade calculator.
+- Item selection modal.
+- Quantity handling.
+- Net tax logic.
+- Median demand calculation.
+- Item detail modals.
+- Individual item pages.
+- Real value history graph system.
+- Graph range filters.
+- Mobile-readable graph behavior.
+- Firestore database integration.
+- Admin API routes.
+- Full item admin panel.
+- Editable item data.
+- Automatic history tracking.
+- Responsive desktop/mobile UI.
+- Custom icons and visual assets.
+- Future-ready backend structure.
+
+This is a custom web application with frontend, backend, database, admin tooling, data modeling, responsive UI, and trading-specific logic. It is substantially more involved than a simple static website or basic value list.
+
