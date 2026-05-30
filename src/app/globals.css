@@ -2719,14 +2719,6 @@
     padding-bottom: 0.6rem;
   }
 
-  .calculator-picker-filter-title {
-    color: rgb(var(--bright-gold));
-    font-size: 0.64rem;
-    font-weight: 900;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-  }
-
   .calculator-picker-filter-grid {
     gap: 0.55rem;
   }

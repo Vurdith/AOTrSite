@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, Info, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Info, Plus, Search, X } from "lucide-react";
 
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
@@ -18,6 +18,23 @@ type PickerDemandFilter = "all" | "high" | "medium" | "low";
 type PickerValueFilter = "all" | "top" | "mid" | "low";
 type PickerSourceFilter = "all" | string;
 type PickerTrendFilter = "all" | ItemTrend;
+
+const filterBreakpoint = "(max-width: 767px)";
+
+function subscribeFilterBreakpoint(onStoreChange: () => void) {
+  const query = window.matchMedia(filterBreakpoint);
+  query.addEventListener("change", onStoreChange);
+
+  return () => query.removeEventListener("change", onStoreChange);
+}
+
+function getFilterBreakpointSnapshot() {
+  return typeof window !== "undefined" && window.matchMedia(filterBreakpoint).matches;
+}
+
+function getFilterBreakpointServerSnapshot() {
+  return false;
+}
 
 const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number; icon: string }> = {
   keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1, icon: "key" },
@@ -161,6 +178,9 @@ export function TradeCalculator() {
   const [pickerTrendFilter, setPickerTrendFilter] = useState<PickerTrendFilter>("all");
   const [pickerValueFilter, setPickerValueFilter] = useState<PickerValueFilter>("all");
   const [pickerSourceFilter, setPickerSourceFilter] = useState<PickerSourceFilter>("all");
+  const isCompactFilterLayout = useSyncExternalStore(subscribeFilterBreakpoint, getFilterBreakpointSnapshot, getFilterBreakpointServerSnapshot);
+  const [manualPickerFiltersExpanded, setManualPickerFiltersExpanded] = useState<boolean | null>(null);
+  const pickerFiltersExpanded = manualPickerFiltersExpanded ?? !isCompactFilterLayout;
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
   const [slotCue, setSlotCue] = useState<ActiveSlot | null>(null);
   const [query, setQuery] = useState("");
@@ -414,6 +434,8 @@ export function TradeCalculator() {
           onSourceFilter={setPickerSourceFilter}
           onTrendFilter={setPickerTrendFilter}
           onValueFilter={setPickerValueFilter}
+          filtersExpanded={pickerFiltersExpanded}
+          onToggleFilters={() => setManualPickerFiltersExpanded(!pickerFiltersExpanded)}
           query={query}
           sortOption={pickerSortOption}
           sourceFilter={pickerSourceFilter}
@@ -435,6 +457,7 @@ function ItemPickerModal({
   clearFilters,
   demandFilter,
   filteredItems,
+  filtersExpanded,
   onCategory,
   onClose,
   onDemandFilter,
@@ -442,6 +465,7 @@ function ItemPickerModal({
   onQuery,
   onSort,
   onSourceFilter,
+  onToggleFilters,
   onTrendFilter,
   onValueFilter,
   query,
@@ -458,6 +482,7 @@ function ItemPickerModal({
   clearFilters: () => void;
   demandFilter: PickerDemandFilter;
   filteredItems: ValueItem[];
+  filtersExpanded: boolean;
   onCategory: (category: "all" | ItemCategory) => void;
   onClose: () => void;
   onDemandFilter: (filter: PickerDemandFilter) => void;
@@ -465,6 +490,7 @@ function ItemPickerModal({
   onQuery: (query: string) => void;
   onSort: (sort: PickerSortOption) => void;
   onSourceFilter: (filter: PickerSourceFilter) => void;
+  onToggleFilters: () => void;
   onTrendFilter: (filter: PickerTrendFilter) => void;
   onValueFilter: (filter: PickerValueFilter) => void;
   query: string;
@@ -518,14 +544,23 @@ function ItemPickerModal({
           <div className="advanced-filter-panel calculator-picker-filter-panel" aria-label="Picker advanced filters">
             <div className="advanced-filter-head">
               <div>
-                <span className="calculator-picker-filter-title">Picker filters</span>
+                <button
+                  type="button"
+                  className="advanced-filter-toggle"
+                  aria-expanded={filtersExpanded}
+                  aria-controls="calculator-picker-filter-controls"
+                  onClick={onToggleFilters}
+                >
+                  <span>Advanced filters</span>
+                  <ChevronDown size={15} strokeWidth={2.5} />
+                </button>
                 <strong>{filteredItems.length} items</strong>
               </div>
               <button type="button" className="advanced-filter-clear" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear picker filters">
                 Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
               </button>
             </div>
-            <div className="advanced-filter-grid advanced-filter-grid-open calculator-picker-filter-grid">
+            <div id="calculator-picker-filter-controls" className={cn("advanced-filter-grid calculator-picker-filter-grid", filtersExpanded && "advanced-filter-grid-open")}>
               <PickerFilterSelect
                 label="Sort"
                 value={sortOption}
