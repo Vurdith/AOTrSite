@@ -1,12 +1,12 @@
 import { AdminPanel } from "@/components/AdminPanel";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
-import { getValueItems } from "@/lib/firestoreItems";
+import { getValueCurrencySettings, getValueItems } from "@/lib/firestoreItems";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const items = await getValueItems();
+  const [items, currencySettings] = await Promise.all([getValueItems(), getValueCurrencySettings()]);
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
@@ -16,7 +16,7 @@ export default async function AdminPage() {
         title="Manage Value Data"
         description="Edit every item field, seed Firestore, and prepare records for future icon uploads."
       />
-      <AdminPanel initialItems={items} />
+      <AdminPanel initialItems={items} initialCurrencySettings={currencySettings} />
     </main>
   );
 }

@@ -9,6 +9,7 @@ import { ArrowLeft, Calculator, TrendingDown, TrendingUp } from "lucide-react";
 import { getItemSource, getItemValueHistory, type ValueItem, type ValueHistoryPoint } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
+import { getDisplayValue, getValueModes, type ValueCurrencySettings, type ValueMode } from "@/lib/valueCurrency";
 
 const trendLabels = {
   rising: "Rising",
@@ -51,6 +52,19 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: value < 100 ? 1 : 0,
   }).format(value);
+}
+
+function formatModeValue(value: number, mode: ValueMode, settings?: ValueCurrencySettings) {
+  const valueModes = getValueModes(settings);
+  const amount = getDisplayValue(value, mode, settings);
+  const formatted =
+    mode === "keys"
+      ? formatNumber(Math.round(amount))
+      : amount >= 100 || Number.isInteger(amount)
+        ? formatNumber(Math.round(amount))
+        : amount.toFixed(1);
+
+  return `${formatted} ${valueModes[mode].unit}`;
 }
 
 function parseHistoryDate(date: string) {
@@ -102,9 +116,11 @@ function filterHistoryByRange(history: ValueHistoryPoint[], range: ChartRange) {
   return previousPoint && visible.length ? [previousPoint, ...visible] : visible;
 }
 
-export function ItemValuePage({ item }: { item: ValueItem }) {
+export function ItemValuePage({ currencySettings, item }: { currencySettings?: ValueCurrencySettings; item: ValueItem }) {
   const router = useRouter();
   const [range, setRange] = useState<ChartRange>("all");
+  const [valueMode, setValueMode] = useState<ValueMode>("keys");
+  const valueModes = useMemo(() => getValueModes(currencySettings), [currencySettings]);
   const history = [...getItemValueHistory(item)].sort((a, b) => a.date.localeCompare(b.date));
   const rangedHistory = useMemo(() => filterHistoryByRange(history, range), [history, range]);
   const hasHistory = rangedHistory.length > 1;
@@ -133,7 +149,7 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
             <div className="item-page-hero-stats" aria-label="Item overview">
               <span>
                 <Image src={statIcons.value} alt="" width={18} height={18} />
-                {formatNumber(item.value)} keys
+                {formatModeValue(item.value, valueMode, currencySettings)}
               </span>
               <span>
                 <Image src={statIcons.demand} alt="" width={18} height={18} />
@@ -160,28 +176,37 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
                 <span>Value history</span>
                 <h2 className="font-display">Trade Graph</h2>
               </div>
-              <div className="item-range-tabs" aria-label="Graph time range">
-                {chartRanges.map((item) => (
-                  <button key={item.id} type="button" className={cn("item-range-tab", range === item.id && "item-range-tab-active")} onClick={() => setRange(item.id)}>
-                    {item.label}
-                  </button>
-                ))}
+              <div className="item-chart-controls">
+                <div className="item-range-tabs" aria-label="Display value as">
+                  {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
+                    <button key={mode} type="button" className={cn("item-range-tab", valueMode === mode && "item-range-tab-active")} onClick={() => setValueMode(mode)}>
+                      {valueModes[mode].shortLabel}
+                    </button>
+                  ))}
+                </div>
+                <div className="item-range-tabs" aria-label="Graph time range">
+                  {chartRanges.map((item) => (
+                    <button key={item.id} type="button" className={cn("item-range-tab", range === item.id && "item-range-tab-active")} onClick={() => setRange(item.id)}>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {hasHistory ? <ValueHistoryChart history={rangedHistory} /> : <NoHistoryState rangeLabel={rangeLabel} />}
+            {hasHistory ? <ValueHistoryChart currencySettings={currencySettings} history={rangedHistory} valueMode={valueMode} /> : <NoHistoryState rangeLabel={rangeLabel} />}
 
             <div className="item-history-summary">
               <div>
                 <span>Current value</span>
-                <strong>{formatNumber(item.value)} keys</strong>
+                <strong>{formatModeValue(item.value, valueMode, currencySettings)}</strong>
               </div>
               {change ? (
                 <div className={changeIsPositive ? "item-change-positive" : "item-change-negative"}>
                   <span>{rangeLabel} change</span>
                   <strong>
-                    {changeIsPositive ? "+" : ""}
-                    {formatNumber(change.delta)} keys ({changeIsPositive ? "+" : ""}
+                    {changeIsPositive ? "+" : "-"}
+                    {formatModeValue(Math.abs(change.delta), valueMode, currencySettings)} ({changeIsPositive ? "+" : ""}
                     {change.percent.toFixed(1)}%)
                   </strong>
                 </div>
@@ -195,7 +220,7 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
           </div>
 
           <aside className="item-stat-panel">
-            <ItemStat icon={statIcons.value} label="Value" value={`${formatNumber(item.value)} keys`} />
+            <ItemStat icon={statIcons.value} label="Value" value={formatModeValue(item.value, valueMode, currencySettings)} />
             <ItemStat icon={statIcons.demand} label="Demand" value={`${item.demand}/100`} />
             <ItemStat icon={statIcons.trend} label="Trend" value={trendLabels[item.trend]} />
             <ItemStat icon={statIcons.tax} label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
@@ -234,11 +259,19 @@ function ItemStat({ icon, label, value, wide = false }: { icon: string; label: s
   );
 }
 
-function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
+function ValueHistoryChart({
+  currencySettings,
+  history,
+  valueMode,
+}: {
+  currencySettings?: ValueCurrencySettings;
+  history: ValueHistoryPoint[];
+  valueMode: ValueMode;
+}) {
   const width = 760;
   const height = 360;
   const padding = { top: 34, right: 44, bottom: 76, left: 78 };
-  const values = history.map((point) => point.value);
+  const values = history.map((point) => getDisplayValue(point.value, valueMode, currencySettings));
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
   const range = Math.max(1, maxValue - minValue);
@@ -246,17 +279,20 @@ function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
   const plotHeight = height - padding.top - padding.bottom;
   const points = history.map((point, index) => {
     const x = padding.left + (history.length === 1 ? plotWidth : (index / (history.length - 1)) * plotWidth);
-    const y = padding.top + ((maxValue - point.value) / range) * plotHeight;
+    const displayValue = getDisplayValue(point.value, valueMode, currencySettings);
+    const y = padding.top + ((maxValue - displayValue) / range) * plotHeight;
 
-    return { ...point, x, y };
+    return { ...point, displayValue, x, y };
   });
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
   const areaPath = `${path} L ${points[points.length - 1].x.toFixed(2)} ${height - padding.bottom} L ${points[0].x.toFixed(2)} ${height - padding.bottom} Z`;
-  const rising = points[points.length - 1].value >= points[0].value;
+  const rising = points[points.length - 1].displayValue >= points[0].displayValue;
   const labelStep = Math.max(1, Math.ceil((points.length - 1) / 4));
-  const delta = points[points.length - 1].value - points[0].value;
-  const deltaPercent = points[0].value ? (delta / points[0].value) * 100 : 0;
+  const delta = points[points.length - 1].displayValue - points[0].displayValue;
+  const deltaPercent = points[0].displayValue ? (delta / points[0].displayValue) * 100 : 0;
   const visibleLabelIndexes = new Set(points.map((_, index) => index).filter((index) => index === 0 || index === points.length - 1 || index % labelStep === 0));
+  const valueModes = getValueModes(currencySettings);
+  const formattedDelta = valueMode === "keys" ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta) >= 100 || Number.isInteger(delta) ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta).toFixed(1);
 
   return (
     <div className="item-chart-wrap">
@@ -290,7 +326,7 @@ function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
         {points.map((point, index) => (
           <g key={`${point.date}-${index}`}>
             <circle cx={point.x} cy={point.y} r="4.5" className="item-chart-dot" />
-            <title>{`${formatDateLabel(point.date)} / ${formatNumber(point.value)} keys`}</title>
+            <title>{`${formatDateLabel(point.date)} / ${formatModeValue(point.value, valueMode, currencySettings)}`}</title>
             {visibleLabelIndexes.has(index) ? (
               <text
                 x={point.x}
@@ -314,7 +350,7 @@ function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
       <div className="item-chart-badge">
         {rising ? <TrendingUp size={15} strokeWidth={2.4} /> : <TrendingDown size={15} strokeWidth={2.4} />}
         {delta >= 0 ? "+" : ""}
-        {formatNumber(delta)} keys / {delta >= 0 ? "+" : ""}
+        {formattedDelta} {valueModes[valueMode].unit} / {delta >= 0 ? "+" : ""}
         {deltaPercent.toFixed(1)}%
       </div>
     </div>

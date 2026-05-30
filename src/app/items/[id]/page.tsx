@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { ItemValuePage } from "@/components/ItemValuePage";
 import { PageHero } from "@/components/PageHero";
-import { getValueItem, getValueItems } from "@/lib/firestoreItems";
+import { getValueCurrencySettings, getValueItem, getValueItems } from "@/lib/firestoreItems";
 
 type ItemPageProps = {
   params: Promise<{ id: string }>;
@@ -52,14 +52,14 @@ export default async function ItemPage({ params }: ItemPageProps) {
   }
 
   const { id } = await params;
-  const item = await getValueItem(id);
+  const [item, currencySettings] = await Promise.all([getValueItem(id), getValueCurrencySettings()]);
 
   if (!item) notFound();
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
       <FloatingHeader />
-      <ItemValuePage item={item} />
+      <ItemValuePage item={item} currencySettings={currencySettings} />
     </main>
   );
 }

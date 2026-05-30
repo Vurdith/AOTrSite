@@ -5,6 +5,7 @@ import { Database, Plus, RotateCcw, Save, Search, Trash2 } from "lucide-react";
 
 import { categories, type ItemCategory, type ItemRarity, type ItemTrend, type ValueItem, type ValueHistoryPoint } from "@/content/items";
 import { cn } from "@/lib/cn";
+import { getCurrencyValues, sanitizeCurrencySettings, type ValueCurrencySettings } from "@/lib/valueCurrency";
 
 const rarityOptions: ItemRarity[] = ["mythic", "legendary", "epic", "rare", "uncommon", "common", "event"];
 const trendOptions: ItemTrend[] = ["rising", "stable", "falling"];
@@ -15,6 +16,9 @@ const emptyItem: ValueItem = {
   category: "cosmetics",
   rarity: "common",
   value: 0,
+  valueKeys: 0,
+  valueMasks: 0,
+  valueScrolls: 0,
   valueHistory: [],
   demand: 10,
   trend: "stable",
@@ -54,8 +58,9 @@ function parseHistory(value: string) {
   }));
 }
 
-export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
+export function AdminPanel({ initialCurrencySettings, initialItems }: { initialCurrencySettings: ValueCurrencySettings; initialItems: ValueItem[] }) {
   const [items, setItems] = useState(initialItems);
+  const [currencySettings, setCurrencySettings] = useState(sanitizeCurrencySettings(initialCurrencySettings));
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(initialItems[0]?.id ?? "");
   const [draft, setDraft] = useState<ValueItem>(initialItems[0] ?? emptyItem);
@@ -80,6 +85,26 @@ export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
 
   function updateDraft<K extends keyof ValueItem>(key: K, value: ValueItem[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateDraftValueKeys(value: number) {
+    setDraft((current) => ({
+      ...current,
+      value,
+      ...getCurrencyValues(value, currencySettings),
+    }));
+  }
+
+  function updateDraftValueMasks(value: number) {
+    updateDraftValueKeys(value * currencySettings.maskToKeys);
+  }
+
+  function updateDraftValueScrolls(value: number) {
+    updateDraftValueKeys(value * currencySettings.scrollToKeys);
+  }
+
+  function updateCurrencySetting<K extends keyof ValueCurrencySettings>(key: K, value: ValueCurrencySettings[K]) {
+    setCurrencySettings((current) => sanitizeCurrencySettings({ ...current, [key]: value }));
   }
 
   function newItem() {
@@ -107,6 +132,8 @@ export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
       const payload = {
         ...draft,
         id: draft.id || slugify(draft.name),
+        value: draft.valueKeys ?? draft.value,
+        ...getCurrencyValues(draft.valueKeys ?? draft.value, currencySettings),
         valueHistory: parseHistory(historyDraft),
       };
       const response = await fetch("/api/admin/items", {
@@ -124,6 +151,32 @@ export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
       setStatus(`Saved ${saved.name}.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Save failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveSettings() {
+    setSaving(true);
+    setStatus("Saving conversion settings...");
+
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(currencySettings),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error ?? "Unable to save conversion settings.");
+
+      setCurrencySettings(sanitizeCurrencySettings(data.settings));
+      const freshItems = await refreshItems();
+      const current = freshItems.find((item) => item.id === selectedId) ?? freshItems[0] ?? emptyItem;
+      selectItem(current);
+      setStatus("Saved conversion settings. Values now use the updated rates.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Settings save failed.");
     } finally {
       setSaving(false);
     }
@@ -246,6 +299,22 @@ export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
               Trade graph history is kept automatically: saving a changed value appends a timestamped value point, while the JSON field stays editable for imports and corrections.
             </div>
 
+            <div className="admin-settings-panel">
+              <div>
+                <span>Market settings</span>
+                <strong>Conversion rates</strong>
+                <p>These control how keys, vizards, and scrolls display across values, calculator, item pages, and modals.</p>
+              </div>
+              <div className="admin-settings-grid">
+                <AdminInput label="1 Vizard = Keys" type="number" value={String(currencySettings.maskToKeys)} onChange={(value) => updateCurrencySetting("maskToKeys", Number(value))} />
+                <AdminInput label="1 Scroll = Keys" type="number" value={String(currencySettings.scrollToKeys)} onChange={(value) => updateCurrencySetting("scrollToKeys", Number(value))} />
+                <button type="button" className="admin-save-action admin-settings-save" onClick={saveSettings} disabled={saving}>
+                  <Save size={15} strokeWidth={2.4} />
+                  Save rates
+                </button>
+              </div>
+            </div>
+
             <div className="admin-form-grid">
               <AdminInput label="ID" value={draft.id} onChange={(value) => updateDraft("id", slugify(value))} placeholder="auto-from-name-if-empty" />
               <AdminInput
@@ -258,7 +327,9 @@ export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
               />
               <AdminSelect label="Category" value={draft.category} onChange={(value) => updateDraft("category", value as ItemCategory)} options={categories.filter((item) => item.id !== "all").map((item) => item.id)} />
               <AdminSelect label="Rarity" value={draft.rarity} onChange={(value) => updateDraft("rarity", value as ItemRarity)} options={rarityOptions} />
-              <AdminInput label="Value" type="number" value={String(draft.value)} onChange={(value) => updateDraft("value", Number(value))} />
+              <AdminInput label="Value Keys" type="number" value={String(draft.valueKeys ?? draft.value)} onChange={(value) => updateDraftValueKeys(Number(value))} />
+              <AdminInput label="Value Vizards" type="number" value={String(draft.valueMasks ?? getCurrencyValues(draft.value, currencySettings).valueMasks)} onChange={(value) => updateDraftValueMasks(Number(value))} />
+              <AdminInput label="Value Scrolls" type="number" value={String(draft.valueScrolls ?? getCurrencyValues(draft.value, currencySettings).valueScrolls)} onChange={(value) => updateDraftValueScrolls(Number(value))} />
               <AdminInput label="Demand" type="number" value={String(draft.demand)} onChange={(value) => updateDraft("demand", Number(value))} />
               <AdminSelect label="Trend" value={draft.trend} onChange={(value) => updateDraft("trend", value as ItemTrend)} options={trendOptions} />
               <AdminInput label="Gem Tax" type="number" value={String(draft.taxGems)} onChange={(value) => updateDraft("taxGems", Number(value))} />

@@ -7,25 +7,13 @@ import { ChevronDown, Info, X } from "lucide-react";
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
+import { getDisplayValue, getValueModes, type ValueCurrencySettings, type ValueMode, valueModeIcon } from "@/lib/valueCurrency";
 
-type ValueMode = "keys" | "masks" | "scrolls";
 type SortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
 type DemandFilter = "all" | "high" | "medium" | "low";
 type ValueFilter = "all" | "top" | "mid" | "low";
 type SourceFilter = "all" | string;
 type TrendFilter = "all" | ItemTrend;
-
-const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number }> = {
-  keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1 },
-  masks: { label: "Vizards", shortLabel: "Vizards", unit: "vizards", rate: 900 },
-  scrolls: { label: "Scrolls", shortLabel: "Scrolls", unit: "scrolls", rate: 3 },
-};
-
-const valueModeIcon: Record<ValueMode, string> = {
-  keys: "key",
-  masks: "mask",
-  scrolls: "scroll",
-};
 
 const trendMeta: Record<ItemTrend, { label: string; className: string }> = {
   rising: {
@@ -100,8 +88,9 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function formatCurrencyValue(value: number, mode: ValueMode) {
-  const amount = value / valueModes[mode].rate;
+function formatCurrencyValue(value: number, mode: ValueMode, settings?: ValueCurrencySettings) {
+  const valueModes = getValueModes(settings);
+  const amount = getDisplayValue(value, mode, settings);
   const formatted =
     mode === "keys"
       ? formatNumber(Math.round(amount))
@@ -172,7 +161,8 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function ValuesList({ items = valueItems }: { items?: ValueItem[] }) {
+export function ValuesList({ currencySettings, items = valueItems }: { currencySettings?: ValueCurrencySettings; items?: ValueItem[] }) {
+  const valueModes = useMemo(() => getValueModes(currencySettings), [currencySettings]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
   const [sortOption, setSortOption] = useState<SortOption>("value-desc");
@@ -390,6 +380,7 @@ export function ValuesList({ items = valueItems }: { items?: ValueItem[] }) {
                   item={item}
                   iconUrl={iconOverrides[item.id] ?? item.iconUrl ?? ""}
                   selected={selected.id === item.id}
+                  currencySettings={currencySettings}
                   valueMode={valueMode}
                   onSelect={() => {
                     if (selected.id === item.id) {
@@ -436,6 +427,7 @@ export function ValuesList({ items = valueItems }: { items?: ValueItem[] }) {
             iconUrl={iconOverrides[detailItem.id] ?? detailItem.iconUrl ?? ""}
             item={detailItem}
             onClose={() => setDetailItem(null)}
+            currencySettings={currencySettings}
             valueRank={getValueRank(detailItem, items)}
             valueMode={valueMode}
           />
@@ -524,6 +516,7 @@ function ValueRow({
   item,
   iconUrl,
   selected,
+  currencySettings,
   valueMode,
   onOpen,
   onSelect,
@@ -532,6 +525,7 @@ function ValueRow({
   item: ValueItem;
   iconUrl: string;
   selected: boolean;
+  currencySettings?: ValueCurrencySettings;
   valueMode: ValueMode;
   onOpen: () => void;
   onSelect: () => void;
@@ -559,7 +553,7 @@ function ValueRow({
         }
       }}
       aria-pressed={selected}
-      aria-label={`${item.name}, ${formatCurrencyValue(item.value, valueMode)}, ${trendMeta[item.trend].label}, ${formatNumber(item.taxGems)} gems tax, demand ${item.demand} out of 100, prestige P${item.prestige}`}
+      aria-label={`${item.name}, ${formatCurrencyValue(item.value, valueMode, currencySettings)}, ${trendMeta[item.trend].label}, ${formatNumber(item.taxGems)} gems tax, demand ${item.demand} out of 100, prestige P${item.prestige}`}
       className={cn(
         "market-row group w-full text-left",
         selected && "market-row-selected",
@@ -589,7 +583,7 @@ function ValueRow({
         </div>
       </div>
 
-      <RowMetric label="Value" value={formatCurrencyValue(item.value, valueMode)} icon={valueModeIcon[valueMode]} />
+      <RowMetric label="Value" value={formatCurrencyValue(item.value, valueMode, currencySettings)} icon={valueModeIcon[valueMode]} />
       <div className="hidden min-w-0 items-center lg:block">
         <span className="mr-2 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.62)] lg:hidden">Trend</span>
         <TrendBadge trend={item.trend} />
@@ -623,15 +617,19 @@ function ValueDetailModal({
   iconUrl,
   item,
   onClose,
+  currencySettings,
   valueRank,
   valueMode,
 }: {
   iconUrl: string;
   item: ValueItem;
   onClose: () => void;
+  currencySettings?: ValueCurrencySettings;
   valueRank: number;
   valueMode: ValueMode;
 }) {
+  const valueModes = getValueModes(currencySettings);
+
   return (
     <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
       <div
@@ -660,7 +658,7 @@ function ValueDetailModal({
             <div key={mode} className={cn("calculator-modal-value", valueMode === mode && "calculator-modal-value-active")}>
               <GemIcon type={valueModeIcon[mode]} className={cn("calculator-modal-value-icon", `trade-icon-${valueModeIcon[mode]}`)} />
               <span>{valueModes[mode].label}</span>
-              <strong>{formatCurrencyValue(item.value, mode)}</strong>
+              <strong>{formatCurrencyValue(item.value, mode, currencySettings)}</strong>
             </div>
           ))}
         </div>

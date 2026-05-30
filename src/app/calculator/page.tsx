@@ -1,12 +1,12 @@
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { TradeCalculator } from "@/components/TradeCalculator";
-import { getValueItems } from "@/lib/firestoreItems";
+import { getValueCurrencySettings, getValueItems } from "@/lib/firestoreItems";
 
 export const dynamic = "force-dynamic";
 
 export default async function CalculatorPage() {
-  const items = await getValueItems();
+  const [items, currencySettings] = await Promise.all([getValueItems(), getValueCurrencySettings()]);
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
@@ -16,7 +16,7 @@ export default async function CalculatorPage() {
         title="Calculate Your Trade"
         description="Pick items, compare values, and check demand before you accept."
       />
-      <TradeCalculator items={items} />
+      <TradeCalculator items={items} currencySettings={currencySettings} />
     </main>
   );
 }

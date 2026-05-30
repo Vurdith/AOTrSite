@@ -7,12 +7,12 @@ import { ArrowLeftRight, ChevronDown, Info, Plus, Search, X } from "lucide-react
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
+import { getDisplayValue, getValueModes, type ValueCurrencySettings, type ValueMode } from "@/lib/valueCurrency";
 
 type Side = "yours" | "theirs";
 type FilledTradeSlot = { item: ValueItem; quantity: number };
 type TradeSlot = FilledTradeSlot | null;
 type ActiveSlot = { side: Side; index: number };
-type ValueMode = "keys" | "masks" | "scrolls";
 type PickerSortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
 type PickerDemandFilter = "all" | "high" | "medium" | "low";
 type PickerValueFilter = "all" | "top" | "mid" | "low";
@@ -36,12 +36,6 @@ function getFilterBreakpointSnapshot() {
 function getFilterBreakpointServerSnapshot() {
   return false;
 }
-
-const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number; icon: string }> = {
-  keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1, icon: "key" },
-  masks: { label: "Vizards", shortLabel: "Vizards", unit: "vizards", rate: 900, icon: "mask" },
-  scrolls: { label: "Scrolls", shortLabel: "Scrolls", unit: "scrolls", rate: 3, icon: "scroll" },
-};
 
 const trendLabels: Record<ItemTrend, string> = {
   rising: "Rising",
@@ -88,8 +82,9 @@ function formatValue(value: number) {
   }).format(value);
 }
 
-function formatModeValue(value: number, mode: ValueMode) {
-  const amount = value / valueModes[mode].rate;
+function formatModeValue(value: number, mode: ValueMode, settings?: ValueCurrencySettings) {
+  const valueModes = getValueModes(settings);
+  const amount = getDisplayValue(value, mode, settings);
   const formatted =
     mode === "keys"
       ? formatValue(Math.round(amount))
@@ -171,7 +166,8 @@ function sortPickerItems(items: ValueItem[], sortOption: PickerSortOption) {
   });
 }
 
-export function TradeCalculator({ items = valueItems }: { items?: ValueItem[] }) {
+export function TradeCalculator({ currencySettings, items = valueItems }: { currencySettings?: ValueCurrencySettings; items?: ValueItem[] }) {
+  const valueModes = useMemo(() => getValueModes(currencySettings), [currencySettings]);
   const [yours, setYours] = useState<TradeSlot[]>(() => initialYoursSlots(items));
   const [theirs, setTheirs] = useState<TradeSlot[]>(() => initialTheirsSlots(items));
   const [activeSlot, setActiveSlot] = useState<ActiveSlot>({ side: "yours", index: 2 });
@@ -369,7 +365,7 @@ export function TradeCalculator({ items = valueItems }: { items?: ValueItem[] })
               <span>{favor}</span>
               <strong className="calculator-result-value">
                 <CalcValueIcon type={valueModes[valueMode].icon} className={cn("calculator-result-icon", `trade-icon-${valueModes[valueMode].icon}`)} />
-                {diff >= 0 ? "+" : "-"}{formatModeValue(Math.abs(diff), valueMode)}
+                {diff >= 0 ? "+" : "-"}{formatModeValue(Math.abs(diff), valueMode, currencySettings)}
               </strong>
             </div>
           </div>
@@ -396,7 +392,7 @@ export function TradeCalculator({ items = valueItems }: { items?: ValueItem[] })
               slotCue={slotCue}
               side="yours"
               title="You give"
-              total={`${formatModeValue(yourTotal, valueMode)} in value`}
+              total={`${formatModeValue(yourTotal, valueMode, currencySettings)} in value`}
               valueIcon={valueModes[valueMode].icon}
             />
             <div className="calculator-trade-mark" aria-hidden="true">
@@ -413,7 +409,7 @@ export function TradeCalculator({ items = valueItems }: { items?: ValueItem[] })
               slotCue={slotCue}
               side="theirs"
               title="You get"
-              total={`${formatModeValue(theirTotal, valueMode)} in value`}
+              total={`${formatModeValue(theirTotal, valueMode, currencySettings)} in value`}
               valueIcon={valueModes[valueMode].icon}
             />
           </div>
@@ -421,7 +417,7 @@ export function TradeCalculator({ items = valueItems }: { items?: ValueItem[] })
 
       </div>
       {detailItem ? (
-        <ItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} valueMode={valueMode} />
+        <ItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} currencySettings={currencySettings} valueMode={valueMode} />
       ) : null}
       {pickerOpen ? (
         <ItemPickerModal
@@ -860,7 +856,19 @@ function TradeCell({
   );
 }
 
-function ItemDetailModal({ item, onClose, valueMode }: { item: ValueItem; onClose: () => void; valueMode: ValueMode }) {
+function ItemDetailModal({
+  item,
+  onClose,
+  currencySettings,
+  valueMode,
+}: {
+  item: ValueItem;
+  onClose: () => void;
+  currencySettings?: ValueCurrencySettings;
+  valueMode: ValueMode;
+}) {
+  const valueModes = getValueModes(currencySettings);
+
   return (
     <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
       <div
@@ -889,7 +897,7 @@ function ItemDetailModal({ item, onClose, valueMode }: { item: ValueItem; onClos
             <div key={mode} className={cn("calculator-modal-value", valueMode === mode && "calculator-modal-value-active")}>
               <CalcValueIcon type={valueModes[mode].icon} className={cn("calculator-modal-value-icon", `trade-icon-${valueModes[mode].icon}`)} />
               <span>{valueModes[mode].label}</span>
-              <strong>{formatModeValue(item.value, mode)}</strong>
+              <strong>{formatModeValue(item.value, mode, currencySettings)}</strong>
             </div>
           ))}
         </div>

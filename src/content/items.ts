@@ -8,6 +8,9 @@ export type ValueItem = {
   category: ItemCategory;
   rarity: ItemRarity;
   value: number;
+  valueKeys?: number;
+  valueMasks?: number;
+  valueScrolls?: number;
   valueHistory?: ValueHistoryPoint[];
   demand: number;
   trend: ItemTrend;
