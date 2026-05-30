@@ -3183,6 +3183,37 @@
     padding: 0.65rem;
   }
 
+  .item-history-empty {
+    display: grid;
+    min-height: 18rem;
+    align-content: center;
+    justify-items: center;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    border: 1px dashed rgb(var(--gold) / 0.2);
+    border-radius: 18px 6px 18px 6px;
+    background:
+      linear-gradient(180deg, rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.24)),
+      radial-gradient(360px 180px at 50% 0%, rgb(var(--gold) / 0.08), transparent 70%);
+    padding: 1.25rem;
+    text-align: center;
+  }
+
+  .item-history-empty span {
+    color: rgb(var(--ink));
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .item-history-empty p {
+    max-width: 25rem;
+    color: rgb(var(--fog) / 0.78);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
   .item-history-chart {
     display: block;
     min-width: 42rem;

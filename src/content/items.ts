@@ -831,27 +831,8 @@ export function getItemSource(item: ValueItem) {
   return "Unknown source";
 }
 
-const historyDates = ["2026-04-18", "2026-04-25", "2026-05-02", "2026-05-09", "2026-05-16", "2026-05-23", "2026-05-30"];
-
-const trendHistoryFactors: Record<ItemTrend, number[]> = {
-  rising: [0.82, 0.86, 0.9, 0.93, 0.96, 0.98, 1],
-  stable: [0.98, 1, 0.99, 1.01, 1, 0.99, 1],
-  falling: [1.18, 1.14, 1.1, 1.07, 1.04, 1.02, 1],
-};
-
-function roundHistoryValue(value: number) {
-  if (value >= 1000) return Math.round(value / 10) * 10;
-  if (value >= 100) return Math.round(value / 5) * 5;
-  return Math.max(0.1, Math.round(value * 10) / 10);
-}
-
 export function getItemValueHistory(item: ValueItem) {
-  if (item.valueHistory?.length) return item.valueHistory;
-
-  return historyDates.map((date, index) => ({
-    date,
-    value: roundHistoryValue(item.value * trendHistoryFactors[item.trend][index]),
-  }));
+  return item.valueHistory ?? [];
 }
 
 export const updateLog = [

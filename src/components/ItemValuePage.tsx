@@ -37,8 +37,9 @@ function getHistoryChange(history: ValueHistoryPoint[]) {
 export function ItemValuePage({ item }: { item: ValueItem }) {
   const router = useRouter();
   const history = getItemValueHistory(item);
-  const change = getHistoryChange(history);
-  const changeIsPositive = change.delta >= 0;
+  const hasHistory = history.length > 1;
+  const change = hasHistory ? getHistoryChange(history) : null;
+  const changeIsPositive = (change?.delta ?? 0) >= 0;
 
   return (
     <section className="item-page-shell px-4 pb-10 pt-28 sm:px-6 lg:px-8">
@@ -74,21 +75,28 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
               <h2 className="font-display">Trade Graph</h2>
             </div>
 
-            <ValueHistoryChart history={history} />
+            {hasHistory ? <ValueHistoryChart history={history} /> : <NoHistoryState />}
 
             <div className="item-history-summary">
               <div>
                 <span>Current value</span>
                 <strong>{formatNumber(item.value)} keys</strong>
               </div>
-              <div className={changeIsPositive ? "item-change-positive" : "item-change-negative"}>
-                <span>Period change</span>
-                <strong>
-                  {changeIsPositive ? "+" : ""}
-                  {formatNumber(change.delta)} keys ({changeIsPositive ? "+" : ""}
-                  {change.percent.toFixed(1)}%)
-                </strong>
-              </div>
+              {change ? (
+                <div className={changeIsPositive ? "item-change-positive" : "item-change-negative"}>
+                  <span>Period change</span>
+                  <strong>
+                    {changeIsPositive ? "+" : ""}
+                    {formatNumber(change.delta)} keys ({changeIsPositive ? "+" : ""}
+                    {change.percent.toFixed(1)}%)
+                  </strong>
+                </div>
+              ) : (
+                <div>
+                  <span>Period change</span>
+                  <strong>No real history yet</strong>
+                </div>
+              )}
             </div>
           </div>
 
@@ -106,6 +114,15 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function NoHistoryState() {
+  return (
+    <div className="item-history-empty">
+      <span>No historical value data yet</span>
+      <p>Once real dated value imports are added for this item, the trade graph will appear here.</p>
+    </div>
   );
 }
 
