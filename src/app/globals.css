@@ -2709,6 +2709,33 @@
     margin-top: 0;
   }
 
+  .calculator-picker-filter-panel {
+    margin-top: 0;
+    gap: 0.65rem;
+    padding: 0.7rem;
+  }
+
+  .calculator-picker-filter-panel .advanced-filter-head {
+    padding-bottom: 0.6rem;
+  }
+
+  .calculator-picker-filter-title {
+    color: rgb(var(--bright-gold));
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .calculator-picker-filter-grid {
+    gap: 0.55rem;
+  }
+
+  .calculator-picker-filter-grid .advanced-filter-field select {
+    height: 2.35rem;
+    font-size: 0.7rem;
+  }
+
   .calculator-picker-modal-list {
     display: grid;
     min-height: 0;

@@ -13,6 +13,11 @@ type FilledTradeSlot = { item: ValueItem; quantity: number };
 type TradeSlot = FilledTradeSlot | null;
 type ActiveSlot = { side: Side; index: number };
 type ValueMode = "keys" | "masks" | "scrolls";
+type PickerSortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
+type PickerDemandFilter = "all" | "high" | "medium" | "low";
+type PickerValueFilter = "all" | "top" | "mid" | "low";
+type PickerSourceFilter = "all" | string;
+type PickerTrendFilter = "all" | ItemTrend;
 
 const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number; icon: string }> = {
   keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1, icon: "key" },
@@ -25,6 +30,39 @@ const trendLabels: Record<ItemTrend, string> = {
   stable: "Stable",
   falling: "Falling",
 };
+
+const pickerSortOptions: { id: PickerSortOption; label: string }[] = [
+  { id: "value-desc", label: "Value high-low" },
+  { id: "value-asc", label: "Value low-high" },
+  { id: "demand-desc", label: "Demand high-low" },
+  { id: "demand-asc", label: "Demand low-high" },
+  { id: "tax-desc", label: "Gem tax high-low" },
+  { id: "tax-asc", label: "Gem tax low-high" },
+  { id: "prestige-desc", label: "Prestige high-low" },
+  { id: "prestige-asc", label: "Prestige low-high" },
+  { id: "name-asc", label: "Name A-Z" },
+];
+
+const pickerDemandOptions: { id: PickerDemandFilter; label: string }[] = [
+  { id: "all", label: "Any demand" },
+  { id: "high", label: "High 70+" },
+  { id: "medium", label: "Medium 35-69" },
+  { id: "low", label: "Low <35" },
+];
+
+const pickerTrendOptions: { id: PickerTrendFilter; label: string }[] = [
+  { id: "all", label: "Any trend" },
+  { id: "rising", label: "Rising" },
+  { id: "stable", label: "Stable" },
+  { id: "falling", label: "Falling" },
+];
+
+const pickerValueOptions: { id: PickerValueFilter; label: string }[] = [
+  { id: "all", label: "Any value" },
+  { id: "top", label: "Top 10k+" },
+  { id: "mid", label: "Mid 1k-9.9k" },
+  { id: "low", label: "Low <1k" },
+];
 
 function formatValue(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -71,6 +109,46 @@ function formatDemand(value: number | null) {
   return `${Number.isInteger(value) ? value : value.toFixed(1)}/100`;
 }
 
+function matchesPickerDemand(item: ValueItem, filter: PickerDemandFilter) {
+  if (filter === "all") return true;
+  if (filter === "high") return item.demand >= 70;
+  if (filter === "medium") return item.demand >= 35 && item.demand < 70;
+  return item.demand < 35;
+}
+
+function matchesPickerValue(item: ValueItem, filter: PickerValueFilter) {
+  if (filter === "all") return true;
+  if (filter === "top") return item.value >= 10000;
+  if (filter === "mid") return item.value >= 1000 && item.value < 10000;
+  return item.value < 1000;
+}
+
+function sortPickerItems(items: ValueItem[], sortOption: PickerSortOption) {
+  return [...items].sort((a, b) => {
+    switch (sortOption) {
+      case "value-asc":
+        return a.value - b.value;
+      case "demand-desc":
+        return b.demand - a.demand || b.value - a.value;
+      case "demand-asc":
+        return a.demand - b.demand || b.value - a.value;
+      case "tax-desc":
+        return b.taxGems - a.taxGems || b.value - a.value;
+      case "tax-asc":
+        return a.taxGems - b.taxGems || b.value - a.value;
+      case "prestige-desc":
+        return b.prestige - a.prestige || b.value - a.value;
+      case "prestige-asc":
+        return a.prestige - b.prestige || b.value - a.value;
+      case "name-asc":
+        return a.name.localeCompare(b.name);
+      case "value-desc":
+      default:
+        return b.value - a.value;
+    }
+  });
+}
+
 export function TradeCalculator() {
   const [yours, setYours] = useState<TradeSlot[]>(initialYoursSlots);
   const [theirs, setTheirs] = useState<TradeSlot[]>([{ item: valueItems[1], quantity: 1 }, ...Array<TradeSlot>(8).fill(null)]);
@@ -78,6 +156,11 @@ export function TradeCalculator() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
+  const [pickerSortOption, setPickerSortOption] = useState<PickerSortOption>("value-desc");
+  const [pickerDemandFilter, setPickerDemandFilter] = useState<PickerDemandFilter>("all");
+  const [pickerTrendFilter, setPickerTrendFilter] = useState<PickerTrendFilter>("all");
+  const [pickerValueFilter, setPickerValueFilter] = useState<PickerValueFilter>("all");
+  const [pickerSourceFilter, setPickerSourceFilter] = useState<PickerSourceFilter>("all");
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
   const [slotCue, setSlotCue] = useState<ActiveSlot | null>(null);
   const [query, setQuery] = useState("");
@@ -96,14 +179,28 @@ export function TradeCalculator() {
   const favor = diff >= 0 ? "Fair trade" : "Overpay";
   const targetLabel = `${activeSlot.side === "yours" ? "Your" : "Their"} slot ${activeSlot.index + 1}`;
   const visibleCategories = categories.filter((item) => item.id === "all" || valueItems.some((value) => value.category === item.id));
+  const pickerSourceOptions = useMemo(() => ["all", ...Array.from(new Set(valueItems.map(getItemSource))).sort()] as PickerSourceFilter[], []);
   const filteredItems = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return valueItems.filter((item) => {
+    const matches = valueItems.filter((item) => {
       const matchesCategory = category === "all" || item.category === category;
       const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
-      return matchesCategory && matchesQuery;
+      const matchesTrend = pickerTrendFilter === "all" || item.trend === pickerTrendFilter;
+      const matchesSource = pickerSourceFilter === "all" || getItemSource(item) === pickerSourceFilter;
+      return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesPickerDemand(item, pickerDemandFilter) && matchesPickerValue(item, pickerValueFilter);
     });
-  }, [category, query]);
+    return sortPickerItems(matches, pickerSortOption);
+  }, [category, pickerDemandFilter, pickerSortOption, pickerSourceFilter, pickerTrendFilter, pickerValueFilter, query]);
+  const pickerActiveFilterCount = [category !== "all", pickerSortOption !== "value-desc", pickerDemandFilter !== "all", pickerTrendFilter !== "all", pickerValueFilter !== "all", pickerSourceFilter !== "all"].filter(Boolean).length;
+
+  function clearPickerFilters() {
+    setCategory("all");
+    setPickerSortOption("value-desc");
+    setPickerDemandFilter("all");
+    setPickerTrendFilter("all");
+    setPickerValueFilter("all");
+    setPickerSourceFilter("all");
+  }
 
   useEffect(() => {
     if (!slotCue) return;
@@ -304,13 +401,26 @@ export function TradeCalculator() {
       {pickerOpen ? (
         <ItemPickerModal
           category={category}
+          clearFilters={clearPickerFilters}
           filteredItems={filteredItems}
+          activeFilterCount={pickerActiveFilterCount}
+          demandFilter={pickerDemandFilter}
           onCategory={setCategory}
           onClose={() => setPickerOpen(false)}
+          onDemandFilter={setPickerDemandFilter}
           onPick={pickItem}
           onQuery={setQuery}
+          onSort={setPickerSortOption}
+          onSourceFilter={setPickerSourceFilter}
+          onTrendFilter={setPickerTrendFilter}
+          onValueFilter={setPickerValueFilter}
           query={query}
+          sortOption={pickerSortOption}
+          sourceFilter={pickerSourceFilter}
+          sourceOptions={pickerSourceOptions}
           targetLabel={targetLabel}
+          trendFilter={pickerTrendFilter}
+          valueFilter={pickerValueFilter}
           visibleCategories={visibleCategories}
         />
       ) : null}
@@ -320,24 +430,50 @@ export function TradeCalculator() {
 }
 
 function ItemPickerModal({
+  activeFilterCount,
   category,
+  clearFilters,
+  demandFilter,
   filteredItems,
   onCategory,
   onClose,
+  onDemandFilter,
   onPick,
   onQuery,
+  onSort,
+  onSourceFilter,
+  onTrendFilter,
+  onValueFilter,
   query,
+  sortOption,
+  sourceFilter,
+  sourceOptions,
   targetLabel,
+  trendFilter,
+  valueFilter,
   visibleCategories,
 }: {
+  activeFilterCount: number;
   category: "all" | ItemCategory;
+  clearFilters: () => void;
+  demandFilter: PickerDemandFilter;
   filteredItems: ValueItem[];
   onCategory: (category: "all" | ItemCategory) => void;
   onClose: () => void;
+  onDemandFilter: (filter: PickerDemandFilter) => void;
   onPick: (item: ValueItem) => void;
   onQuery: (query: string) => void;
+  onSort: (sort: PickerSortOption) => void;
+  onSourceFilter: (filter: PickerSourceFilter) => void;
+  onTrendFilter: (filter: PickerTrendFilter) => void;
+  onValueFilter: (filter: PickerValueFilter) => void;
   query: string;
+  sortOption: PickerSortOption;
+  sourceFilter: PickerSourceFilter;
+  sourceOptions: PickerSourceFilter[];
   targetLabel: string;
+  trendFilter: PickerTrendFilter;
+  valueFilter: PickerValueFilter;
   visibleCategories: typeof categories;
 }) {
   return (
@@ -379,19 +515,57 @@ function ItemPickerModal({
             </label>
           </div>
 
-          <div className="category-tabs calculator-picker-categories" aria-label="Item categories">
-            {visibleCategories.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onCategory(item.id)}
-                aria-pressed={category === item.id}
-                className={cn("category-tab", category === item.id && "category-tab-active")}
-              >
-                {item.label}
-                <span>{item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length}</span>
+          <div className="advanced-filter-panel calculator-picker-filter-panel" aria-label="Picker advanced filters">
+            <div className="advanced-filter-head">
+              <div>
+                <span className="calculator-picker-filter-title">Picker filters</span>
+                <strong>{filteredItems.length} items</strong>
+              </div>
+              <button type="button" className="advanced-filter-clear" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear picker filters">
+                Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
               </button>
-            ))}
+            </div>
+            <div className="advanced-filter-grid advanced-filter-grid-open calculator-picker-filter-grid">
+              <PickerFilterSelect
+                label="Sort"
+                value={sortOption}
+                onChange={(value) => onSort(value as PickerSortOption)}
+                options={pickerSortOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <PickerFilterSelect
+                label="Category"
+                value={category}
+                onChange={(value) => onCategory(value as "all" | ItemCategory)}
+                options={visibleCategories.map((item) => ({
+                  value: item.id,
+                  label: `${item.label} (${item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length})`,
+                }))}
+              />
+              <PickerFilterSelect
+                label="Demand"
+                value={demandFilter}
+                onChange={(value) => onDemandFilter(value as PickerDemandFilter)}
+                options={pickerDemandOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <PickerFilterSelect
+                label="Trend"
+                value={trendFilter}
+                onChange={(value) => onTrendFilter(value as PickerTrendFilter)}
+                options={pickerTrendOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <PickerFilterSelect
+                label="Value"
+                value={valueFilter}
+                onChange={(value) => onValueFilter(value as PickerValueFilter)}
+                options={pickerValueOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <PickerFilterSelect
+                label="Source"
+                value={sourceFilter}
+                onChange={(value) => onSourceFilter(value)}
+                options={sourceOptions.map((source) => ({ value: source, label: source === "all" ? "Any source" : source }))}
+              />
+            </div>
           </div>
         </div>
 
@@ -413,6 +587,31 @@ function ItemPickerModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function PickerFilterSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  value: string;
+}) {
+  return (
+    <label className="advanced-filter-field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
