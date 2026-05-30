@@ -98,7 +98,6 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <div className="tools-section-head">
             <div>
-              <p>Trading tools</p>
               <h2 className="font-display">Trading Tools</h2>
             </div>
           </div>

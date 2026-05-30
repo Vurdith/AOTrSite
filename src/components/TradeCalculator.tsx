@@ -15,7 +15,7 @@ type ValueMode = "keys" | "masks" | "scrolls";
 
 const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number; icon: string }> = {
   keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1, icon: "key" },
-  masks: { label: "Masks", shortLabel: "Masks", unit: "masks", rate: 900, icon: "mask" },
+  masks: { label: "Vizards", shortLabel: "Vizards", unit: "vizards", rate: 900, icon: "mask" },
   scrolls: { label: "Scrolls", shortLabel: "Scrolls", unit: "scrolls", rate: 3, icon: "scroll" },
 };
 
@@ -84,7 +84,9 @@ export function TradeCalculator() {
 
   const yourTotal = yours.reduce((sum, slot) => sum + (slot ? slot.item.value * slot.quantity : 0), 0);
   const theirTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.value * slot.quantity : 0), 0);
-  const gemTaxTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.taxGems * slot.quantity : 0), 0);
+  const yourGemTaxTotal = yours.reduce((sum, slot) => sum + (slot ? slot.item.taxGems * slot.quantity : 0), 0);
+  const theirGemTaxTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.taxGems * slot.quantity : 0), 0);
+  const gemTaxTotal = Math.abs(theirGemTaxTotal - yourGemTaxTotal);
   const yourMedianDemand = getMedianDemand(yours);
   const theirMedianDemand = getMedianDemand(theirs);
   const yourCount = yours.filter(Boolean).length;
@@ -246,7 +248,6 @@ export function TradeCalculator() {
                 <CalcValueIcon type={valueModes[valueMode].icon} className={cn("calculator-result-icon", `trade-icon-${valueModes[valueMode].icon}`)} />
                 {diff >= 0 ? "+" : "-"}{formatModeValue(Math.abs(diff), valueMode)}
               </strong>
-              <small>{diff >= 0 ? "Receiving more than you give" : "Giving more than you receive"}</small>
             </div>
           </div>
 

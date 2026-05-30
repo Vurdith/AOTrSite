@@ -12,7 +12,7 @@ type ValueMode = "keys" | "masks" | "scrolls";
 
 const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number }> = {
   keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1 },
-  masks: { label: "Masks", shortLabel: "Masks", unit: "masks", rate: 900 },
+  masks: { label: "Vizards", shortLabel: "Vizards", unit: "vizards", rate: 900 },
   scrolls: { label: "Scrolls", shortLabel: "Scrolls", unit: "scrolls", rate: 3 },
 };
 
