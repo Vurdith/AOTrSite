@@ -27,6 +27,26 @@ const chartRanges: { id: ChartRange; label: string; days?: number }[] = [
   { id: "all", label: "All" },
 ];
 
+const categoryLabels = {
+  auras: "Auras",
+  families: "Families",
+  perks: "Perks",
+  cosmetics: "Cosmetics",
+  artifacts: "Artifacts",
+} as const;
+
+const statIcons = {
+  value: "/icons/trade/key.png",
+  demand: "/icons/trade/demand.png",
+  trend: "/icons/trade/trend.png",
+  tax: "/icons/trade/gem.png",
+  prestige: "/icons/trade/prestige.png",
+  source: "/icons/trade/source.png",
+  rarity: "/icons/trade/rank.png",
+  category: "/icons/trade/mask.png",
+  note: "/icons/trade/scroll.png",
+} as const;
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: value < 100 ? 1 : 0,
@@ -39,11 +59,18 @@ function parseHistoryDate(date: string) {
 
 function formatDateLabel(date: string) {
   const parsedDate = parseHistoryDate(date);
-  const options: Intl.DateTimeFormatOptions = date.includes("T")
-    ? { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
-    : { month: "short", day: "numeric" };
+  const options: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
 
   return new Intl.DateTimeFormat("en-US", options).format(parsedDate);
+}
+
+function formatTimeLabel(date: string) {
+  if (!date.includes("T")) return "";
+
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parseHistoryDate(date));
 }
 
 function formatRangeLabel(range: ChartRange) {
@@ -103,6 +130,20 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
             <span className={cn("item-page-rarity", rarityStyles[item.rarity].badge)}>{rarityStyles[item.rarity].label}</span>
             <h1 className="font-display">{item.name}</h1>
             <p>{item.note}</p>
+            <div className="item-page-hero-stats" aria-label="Item overview">
+              <span>
+                <Image src={statIcons.value} alt="" width={18} height={18} />
+                {formatNumber(item.value)} keys
+              </span>
+              <span>
+                <Image src={statIcons.demand} alt="" width={18} height={18} />
+                {item.demand}/100 demand
+              </span>
+              <span>
+                <Image src={statIcons.source} alt="" width={18} height={18} />
+                {getItemSource(item)}
+              </span>
+            </div>
           </div>
 
           <div className="item-page-icon-card">
@@ -128,7 +169,7 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
               </div>
             </div>
 
-            {hasHistory ? <ValueHistoryChart history={rangedHistory} rangeLabel={rangeLabel} /> : <NoHistoryState rangeLabel={rangeLabel} />}
+            {hasHistory ? <ValueHistoryChart history={rangedHistory} /> : <NoHistoryState rangeLabel={rangeLabel} />}
 
             <div className="item-history-summary">
               <div>
@@ -154,11 +195,15 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
           </div>
 
           <aside className="item-stat-panel">
-            <ItemStat label="Demand" value={`${item.demand}/100`} />
-            <ItemStat label="Trend" value={trendLabels[item.trend]} />
-            <ItemStat label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
-            <ItemStat label="Prestige" value={`P${item.prestige}`} />
-            <ItemStat label="Source" value={getItemSource(item)} />
+            <ItemStat icon={statIcons.value} label="Value" value={`${formatNumber(item.value)} keys`} />
+            <ItemStat icon={statIcons.demand} label="Demand" value={`${item.demand}/100`} />
+            <ItemStat icon={statIcons.trend} label="Trend" value={trendLabels[item.trend]} />
+            <ItemStat icon={statIcons.tax} label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
+            <ItemStat icon={statIcons.prestige} label="Prestige" value={`P${item.prestige}`} />
+            <ItemStat icon={statIcons.source} label="Source" value={getItemSource(item)} />
+            <ItemStat icon={statIcons.rarity} label="Rarity" value={rarityStyles[item.rarity].label} />
+            <ItemStat icon={statIcons.category} label="Category" value={categoryLabels[item.category]} />
+            <ItemStat icon={statIcons.note} label="Notes" value={item.note} wide />
             <Link href={`/calculator?item=${item.id}`} className="item-page-calculator">
               <Calculator size={16} strokeWidth={2.4} />
               Add to calculator
@@ -179,19 +224,20 @@ function NoHistoryState({ rangeLabel }: { rangeLabel: string }) {
   );
 }
 
-function ItemStat({ label, value }: { label: string; value: string }) {
+function ItemStat({ icon, label, value, wide = false }: { icon: string; label: string; value: string; wide?: boolean }) {
   return (
-    <div className="item-stat-row">
+    <div className={cn("item-stat-row", wide && "item-stat-row-wide")}>
+      <Image src={icon} alt="" width={25} height={25} />
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
   );
 }
 
-function ValueHistoryChart({ history, rangeLabel }: { history: ValueHistoryPoint[]; rangeLabel: string }) {
-  const width = 720;
-  const height = 340;
-  const padding = { top: 36, right: 26, bottom: 58, left: 76 };
+function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
+  const width = 760;
+  const height = 360;
+  const padding = { top: 34, right: 44, bottom: 76, left: 78 };
   const values = history.map((point) => point.value);
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
@@ -208,18 +254,17 @@ function ValueHistoryChart({ history, rangeLabel }: { history: ValueHistoryPoint
   const areaPath = `${path} L ${points[points.length - 1].x.toFixed(2)} ${height - padding.bottom} L ${points[0].x.toFixed(2)} ${height - padding.bottom} Z`;
   const rising = points[points.length - 1].value >= points[0].value;
   const labelStep = Math.max(1, Math.ceil((points.length - 1) / 4));
+  const delta = points[points.length - 1].value - points[0].value;
+  const deltaPercent = points[0].value ? (delta / points[0].value) * 100 : 0;
+  const visibleLabelIndexes = new Set(points.map((_, index) => index).filter((index) => index === 0 || index === points.length - 1 || index % labelStep === 0));
 
   return (
     <div className="item-chart-wrap">
       <svg className="item-history-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Item value history graph">
         <defs>
           <linearGradient id="itemChartArea" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor={rising ? "rgb(167 243 208)" : "rgb(254 202 202)"} stopOpacity="0.28" />
-            <stop offset="100%" stopColor={rising ? "rgb(167 243 208)" : "rgb(254 202 202)"} stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="itemChartStroke" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0%" stopColor="rgb(var(--bright-gold))" />
-            <stop offset="100%" stopColor={rising ? "rgb(167 243 208)" : "rgb(254 202 202)"} />
+            <stop offset="0%" stopColor="rgb(var(--bright-gold))" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="rgb(var(--bright-gold))" stopOpacity="0.02" />
           </linearGradient>
         </defs>
         {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
@@ -236,7 +281,7 @@ function ValueHistoryChart({ history, rangeLabel }: { history: ValueHistoryPoint
           );
         })}
         {points.map((point, index) =>
-          index === 0 || index === points.length - 1 || index % labelStep === 0 ? (
+          visibleLabelIndexes.has(index) ? (
             <line key={`x-${point.date}-${index}`} x1={point.x} x2={point.x} y1={padding.top} y2={height - padding.bottom} className="item-chart-grid item-chart-grid-vertical" />
           ) : null,
         )}
@@ -246,17 +291,31 @@ function ValueHistoryChart({ history, rangeLabel }: { history: ValueHistoryPoint
           <g key={`${point.date}-${index}`}>
             <circle cx={point.x} cy={point.y} r="4.5" className="item-chart-dot" />
             <title>{`${formatDateLabel(point.date)} / ${formatNumber(point.value)} keys`}</title>
-            {index === 0 || index === points.length - 1 || index % labelStep === 0 ? (
-              <text x={point.x} y={height - 18} textAnchor="middle" className="item-chart-axis">
-                {formatDateLabel(point.date)}
+            {visibleLabelIndexes.has(index) ? (
+              <text
+                x={point.x}
+                y={height - 33}
+                textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}
+                className="item-chart-axis item-chart-date"
+              >
+                <tspan x={point.x} dy="0">
+                  {formatDateLabel(point.date)}
+                </tspan>
+                {formatTimeLabel(point.date) ? (
+                  <tspan x={point.x} dy="13">
+                    {formatTimeLabel(point.date)}
+                  </tspan>
+                ) : null}
               </text>
             ) : null}
           </g>
         ))}
       </svg>
-      <div className={cn("item-chart-badge", rising ? "item-change-positive" : "item-change-negative")}>
+      <div className="item-chart-badge">
         {rising ? <TrendingUp size={15} strokeWidth={2.4} /> : <TrendingDown size={15} strokeWidth={2.4} />}
-        {rising ? "Up" : "Down"} / {rangeLabel}
+        {delta >= 0 ? "+" : ""}
+        {formatNumber(delta)} keys / {delta >= 0 ? "+" : ""}
+        {deltaPercent.toFixed(1)}%
       </div>
     </div>
   );
