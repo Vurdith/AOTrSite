@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeftRight, Info, Plus, Search, X } from "lucide-react";
 
-import { categories, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
+import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
 
@@ -24,25 +24,6 @@ const trendLabels: Record<ItemTrend, string> = {
   stable: "Stable",
   falling: "Falling",
 };
-
-const detailIconClasses = {
-  gem: {
-    slot: "calculator-detail-icon-slot calculator-detail-icon-slot-gem",
-    glyph: "calculator-detail-glyph calculator-detail-glyph-gem",
-  },
-  demand: {
-    slot: "calculator-detail-icon-slot calculator-detail-icon-slot-demand",
-    glyph: "calculator-detail-glyph calculator-detail-glyph-demand",
-  },
-  prestige: {
-    slot: "calculator-detail-icon-slot calculator-detail-icon-slot-prestige",
-    glyph: "calculator-detail-glyph calculator-detail-glyph-prestige",
-  },
-  trend: {
-    slot: "calculator-detail-icon-slot calculator-detail-icon-slot-trend",
-    glyph: "calculator-detail-glyph calculator-detail-glyph-trend",
-  },
-} as const;
 
 function formatValue(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -65,6 +46,30 @@ function initialYoursSlots() {
   return [{ item: valueItems[2], quantity: 1 }, { item: valueItems[5], quantity: 1 }, ...Array<TradeSlot>(7).fill(null)];
 }
 
+function getNextSlotIndex(slots: TradeSlot[], currentIndex: number) {
+  const afterCurrent = slots.findIndex((slot, index) => index > currentIndex && !slot);
+
+  if (afterCurrent !== -1) return afterCurrent;
+
+  return slots.findIndex((slot, index) => index !== currentIndex && !slot);
+}
+
+function getMedianDemand(slots: TradeSlot[]) {
+  const demands = slots
+    .flatMap((slot) => (slot ? Array.from({ length: slot.quantity }, () => slot.item.demand) : []))
+    .sort((a, b) => a - b);
+
+  if (!demands.length) return null;
+
+  const middle = Math.floor(demands.length / 2);
+  return demands.length % 2 === 0 ? (demands[middle - 1] + demands[middle]) / 2 : demands[middle];
+}
+
+function formatDemand(value: number | null) {
+  if (value === null) return "No items";
+  return `${Number.isInteger(value) ? value : value.toFixed(1)}/100`;
+}
+
 export function TradeCalculator() {
   const [yours, setYours] = useState<TradeSlot[]>(initialYoursSlots);
   const [theirs, setTheirs] = useState<TradeSlot[]>([{ item: valueItems[1], quantity: 1 }, ...Array<TradeSlot>(8).fill(null)]);
@@ -73,11 +78,15 @@ export function TradeCalculator() {
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
+  const [slotCue, setSlotCue] = useState<ActiveSlot | null>(null);
   const [query, setQuery] = useState("");
+  const pickerReopenTimer = useRef<number | null>(null);
 
   const yourTotal = yours.reduce((sum, slot) => sum + (slot ? slot.item.value * slot.quantity : 0), 0);
   const theirTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.value * slot.quantity : 0), 0);
-  const receiveGemTaxTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.taxGems * slot.quantity : 0), 0);
+  const gemTaxTotal = theirs.reduce((sum, slot) => sum + (slot ? slot.item.taxGems * slot.quantity : 0), 0);
+  const yourMedianDemand = getMedianDemand(yours);
+  const theirMedianDemand = getMedianDemand(theirs);
   const yourCount = yours.filter(Boolean).length;
   const theirCount = theirs.filter(Boolean).length;
   const diff = theirTotal - yourTotal;
@@ -88,11 +97,26 @@ export function TradeCalculator() {
     const needle = query.trim().toLowerCase();
     return valueItems.filter((item) => {
       const matchesCategory = category === "all" || item.category === category;
-      const matchesQuery =
-        !needle || `${item.name} ${item.rarity} ${item.trend} ${item.demand} ${item.taxGems} P${item.prestige}`.toLowerCase().includes(needle);
+      const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
       return matchesCategory && matchesQuery;
     });
   }, [category, query]);
+
+  useEffect(() => {
+    if (!slotCue) return;
+
+    const timer = window.setTimeout(() => setSlotCue(null), 950);
+
+    return () => window.clearTimeout(timer);
+  }, [slotCue]);
+
+  useEffect(() => {
+    return () => {
+      if (pickerReopenTimer.current) {
+        window.clearTimeout(pickerReopenTimer.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const itemId = new URLSearchParams(window.location.search).get("item");
@@ -104,7 +128,10 @@ export function TradeCalculator() {
       setYours((current) => {
         const emptyIndex = current.findIndex((slot) => !slot);
         const targetIndex = emptyIndex === -1 ? 0 : emptyIndex;
-        setActiveSlot({ side: "yours", index: targetIndex });
+        const nextIndex = getNextSlotIndex(current, targetIndex);
+        const nextSlot = { side: "yours" as const, index: nextIndex === -1 ? targetIndex : nextIndex };
+        setActiveSlot(nextSlot);
+        setSlotCue(nextSlot);
         return current.map((slot, slotIndex) => (slotIndex === targetIndex ? { item, quantity: 1 } : slot));
       });
       window.history.replaceState(null, "", window.location.pathname);
@@ -119,6 +146,11 @@ export function TradeCalculator() {
   }
 
   function pickSlot(side: Side, index: number) {
+    if (pickerReopenTimer.current) {
+      window.clearTimeout(pickerReopenTimer.current);
+      pickerReopenTimer.current = null;
+    }
+
     setActiveSlot({ side, index });
     setQuery("");
     setPickerOpen(true);
@@ -126,6 +158,9 @@ export function TradeCalculator() {
 
   function pickItem(item: ValueItem) {
     const setter = activeSlot.side === "yours" ? setYours : setTheirs;
+    const slots = activeSlot.side === "yours" ? yours : theirs;
+    const nextIndex = getNextSlotIndex(slots, activeSlot.index);
+
     setter((current) =>
       current.map((slot, slotIndex) =>
         slotIndex === activeSlot.index
@@ -134,7 +169,24 @@ export function TradeCalculator() {
       ),
     );
     setQuery("");
+    if (nextIndex === -1) {
+      setPickerOpen(false);
+      return;
+    }
+
+    const nextSlot = { side: activeSlot.side, index: nextIndex };
+    setActiveSlot(nextSlot);
+    setSlotCue(nextSlot);
     setPickerOpen(false);
+
+    if (pickerReopenTimer.current) {
+      window.clearTimeout(pickerReopenTimer.current);
+    }
+
+    pickerReopenTimer.current = window.setTimeout(() => {
+      setPickerOpen(true);
+      pickerReopenTimer.current = null;
+    }, 950);
   }
 
   function setQuantity(side: Side, index: number, quantity: number) {
@@ -199,8 +251,13 @@ export function TradeCalculator() {
           </div>
 
           <div className="calculator-tax-summary mt-4">
-            <StatChip label="Gem tax to receive" value={receiveGemTaxTotal ? `${receiveGemTaxTotal.toLocaleString()} gems total` : "No gem tax to receive"} icon="gem" />
-            <StatChip label="Gold tax to receive" value="No gold tax listed" icon="gold" />
+            <StatChip label="Gem Tax" value={gemTaxTotal ? `${gemTaxTotal.toLocaleString()} gems total` : "No gem tax"} icon="gem" />
+            <StatChip label="Gold Tax" value="No gold tax listed" icon="gold" />
+          </div>
+
+          <div className="calculator-demand-summary mt-3">
+            <StatChip label="Your Median Demand" value={formatDemand(yourMedianDemand)} icon="demand" />
+            <StatChip label="Their Median Demand" value={formatDemand(theirMedianDemand)} icon="demand" />
           </div>
 
           <div className="calculator-offers mt-5">
@@ -212,6 +269,7 @@ export function TradeCalculator() {
               onQuantity={(index, quantity) => setQuantity("yours", index, quantity)}
               onRemove={(index) => setSlot("yours", index, null)}
               onView={setDetailItem}
+              slotCue={slotCue}
               side="yours"
               title="You give"
               total={`${formatModeValue(yourTotal, valueMode)} in value`}
@@ -228,6 +286,7 @@ export function TradeCalculator() {
               onQuantity={(index, quantity) => setQuantity("theirs", index, quantity)}
               onRemove={(index) => setSlot("theirs", index, null)}
               onView={setDetailItem}
+              slotCue={slotCue}
               side="theirs"
               title="You get"
               total={`${formatModeValue(theirTotal, valueMode)} in value`}
@@ -307,7 +366,7 @@ function ItemPickerModal({
               <input
                 value={query}
                 onChange={(event) => onQuery(event.target.value)}
-                placeholder="Name, rarity, prestige"
+                placeholder="Search names"
                 className="h-10 w-full min-w-0 bg-transparent px-3 text-sm text-white outline-none placeholder:text-[rgb(var(--fog)/.48)]"
               />
               {query ? (
@@ -363,19 +422,18 @@ function StatChip({
 }: {
   label: string;
   value: string;
-  icon: "gem" | "gold" | "key" | "target" | "value";
+  icon: "gem" | "gold" | "key" | "target" | "value" | "demand";
   valueIcon?: string;
 }) {
   const selectedValueIcon = valueIcon ?? "key";
 
   return (
     <div className="calculator-stat-chip">
-      {icon === "key" || icon === "gem" ? <TradeMetricIcon type={icon} /> : null}
+      {icon === "key" || icon === "gem" || icon === "gold" || icon === "demand" ? <TradeMetricIcon type={icon} /> : null}
       {icon === "value" ? (
         <CalcValueIcon type={selectedValueIcon} className={cn("calculator-value-stat-icon", `trade-icon-${selectedValueIcon}`)} />
       ) : null}
-      {icon === "target" ? <span className="stat-glyph stat-glyph-prestige" aria-hidden="true" /> : null}
-      {icon === "gold" ? <span className="calculator-gold-tax-icon" aria-hidden="true" /> : null}
+      {icon === "target" ? <CalcValueIcon type="prestige" className="calculator-metric-icon trade-icon-prestige" /> : null}
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -390,6 +448,7 @@ function Offer({
   onQuantity,
   onRemove,
   onView,
+  slotCue,
   side,
   title,
   total,
@@ -402,6 +461,7 @@ function Offer({
   onQuantity: (index: number, quantity: number) => void;
   onRemove: (index: number) => void;
   onView: (item: ValueItem) => void;
+  slotCue: ActiveSlot | null;
   side: Side;
   title: string;
   total: string;
@@ -429,6 +489,7 @@ function Offer({
             onQuantity={(quantity) => onQuantity(index, quantity)}
             onRemove={() => onRemove(index)}
             onView={onView}
+            pulse={slotCue?.side === side && slotCue.index === index}
             slotNumber={index + 1}
           />
         ))}
@@ -444,6 +505,7 @@ function TradeCell({
   onQuantity,
   onRemove,
   onView,
+  pulse,
   slotNumber,
 }: {
   active: boolean;
@@ -452,14 +514,16 @@ function TradeCell({
   onQuantity: (quantity: number) => void;
   onRemove: () => void;
   onView: (item: ValueItem) => void;
+  pulse: boolean;
   slotNumber: number;
 }) {
   if (!item) {
     return (
-      <button className={cn("calculator-slot calculator-slot-empty", active && "calculator-slot-active")} onClick={onPick} type="button">
+      <button className={cn("calculator-slot calculator-slot-empty", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} type="button">
         <span className="calculator-slot-plus">
           <Plus size={18} strokeWidth={2.4} />
         </span>
+        {pulse ? <span className="calculator-slot-next-label">Next</span> : null}
         <small>Slot {slotNumber}</small>
       </button>
     );
@@ -468,8 +532,8 @@ function TradeCell({
   const itemData = item.item;
 
   return (
-    <div className={cn("calculator-slot-wrap", active && "calculator-slot-wrap-active")}>
-      <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active")} onClick={onPick} role="button" tabIndex={0} onKeyDown={(event) => {
+    <div className={cn("calculator-slot-wrap", active && "calculator-slot-wrap-active", pulse && "calculator-slot-wrap-jumped")}>
+      <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} role="button" tabIndex={0} onKeyDown={(event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         onPick();
@@ -505,9 +569,13 @@ function TradeCell({
           type="button"
           onClick={(event) => {
             event.stopPropagation();
+            if (item.quantity <= 1) {
+              onRemove();
+              return;
+            }
+
             onQuantity(item.quantity - 1);
           }}
-          disabled={item.quantity <= 1}
           aria-label={`Decrease ${itemData.name} quantity`}
         >
           -
@@ -587,6 +655,7 @@ function ItemDetailModal({ item, onClose, valueMode }: { item: ValueItem; onClos
           <DetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
           <DetailLine icon="prestige" label="Prestige" value={`P${item.prestige}`} />
           <DetailLine icon="trend" label="Trend" value={trendLabels[item.trend]} />
+          <DetailLine icon="source" label="Source" value={getItemSource(item)} />
         </div>
 
         <div className="calculator-modal-note">
@@ -598,7 +667,7 @@ function ItemDetailModal({ item, onClose, valueMode }: { item: ValueItem; onClos
   );
 }
 
-function DetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "trend"; label: string; value: string }) {
+function DetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "trend" | "source"; label: string; value: string }) {
   return (
     <div className="calculator-detail-line">
       <DetailIcon type={icon} />
@@ -608,14 +677,8 @@ function DetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige
   );
 }
 
-function DetailIcon({ type }: { type: "gem" | "demand" | "prestige" | "trend" }) {
-  const classNames = detailIconClasses[type];
-
-  return (
-    <span className={classNames.slot} aria-hidden="true">
-      <span className={classNames.glyph} />
-    </span>
-  );
+function DetailIcon({ type }: { type: "gem" | "demand" | "prestige" | "trend" | "source" }) {
+  return <CalcValueIcon type={type} className={cn("calculator-detail-image-icon", `trade-icon-${type}`)} />;
 }
 
 function CalcValueIcon({ type, className }: { type: string; className?: string }) {
@@ -627,7 +690,7 @@ function CalcValueIcon({ type, className }: { type: string; className?: string }
   );
 }
 
-function TradeMetricIcon({ type }: { type: "key" | "gem" }) {
+function TradeMetricIcon({ type }: { type: "key" | "gem" | "gold" | "demand" }) {
   return <CalcValueIcon type={type} className={cn("calculator-metric-icon", `trade-icon-${type}`)} />;
 }
 

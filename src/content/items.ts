@@ -13,6 +13,7 @@ export type ValueItem = {
   taxGems: number;
   prestige: number;
   iconUrl?: string;
+  source?: string;
   owners: string;
   note: string;
 };
@@ -812,6 +813,17 @@ export const valueItems: ValueItem[] = [
     "note": "Low-volume cosmetic, best checked against recent offers."
   }
 ];
+
+export function getItemSource(item: ValueItem) {
+  if (item.source) return item.source;
+  if (item.rarity === "event") return "Event reward";
+  if (item.category === "cosmetics") return "Cosmetic crate";
+  if (item.category === "auras") return "Aura system";
+  if (item.category === "families") return "Family system";
+  if (item.category === "perks") return "Perk system";
+  if (item.category === "artifacts") return "Artifact system";
+  return "Unknown source";
+}
 
 export const updateLog = [
   {

@@ -1,15 +1,14 @@
 ﻿"use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Info, X } from "lucide-react";
 
-import { categories, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
+import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
 
 type ValueMode = "keys" | "masks" | "scrolls";
-type SortKey = "value" | "demand" | "tax" | "prestige";
 
 const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number }> = {
   keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1 },
@@ -82,7 +81,6 @@ export function ValuesList() {
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
   const [selectedId, setSelectedId] = useState(valueItems[0]?.id ?? "");
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
-  const [sortKey, setSortKey] = useState<SortKey>("value");
   const [page, setPage] = useState(1);
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
   const [iconOverrides] = useState<Record<string, string>>({});
@@ -92,17 +90,11 @@ export function ValuesList() {
     return valueItems
       .filter((item) => {
         const matchesCategory = category === "all" || item.category === category;
-        const matchesQuery =
-          !needle || `${item.name} ${item.category} ${item.rarity} prestige ${item.prestige} ${item.trend}`.toLowerCase().includes(needle);
+        const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
         return matchesCategory && matchesQuery;
       })
-      .sort((a, b) => {
-        if (sortKey === "demand") return b.demand - a.demand;
-        if (sortKey === "tax") return b.taxGems - a.taxGems;
-        if (sortKey === "prestige") return b.prestige - a.prestige || b.value - a.value;
-        return b.value - a.value;
-      });
-  }, [category, query, sortKey]);
+      .sort((a, b) => b.value - a.value);
+  }, [category, query]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? valueItems[0];
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -119,7 +111,7 @@ export function ValuesList() {
             <div className="title-lockup">
               <div>
                 <h2 className="font-display text-3xl leading-none md:text-4xl">Market Values</h2>
-                <p className="mt-2 text-sm text-[rgb(var(--fog)/.8)]">Search, sort, and add the selected item to the calculator.</p>
+                <p className="mt-2 text-sm text-[rgb(var(--fog)/.8)]">Search, sort, and compare current item values.</p>
               </div>
             </div>
 
@@ -134,7 +126,7 @@ export function ValuesList() {
                       setQuery(event.target.value);
                       setPage(1);
                     }}
-                    placeholder="Name, rarity, prestige"
+                    placeholder="Search names"
                     className="h-10 w-full min-w-0 bg-transparent px-4 text-sm text-white outline-none placeholder:text-[rgb(var(--fog)/.48)]"
                   />
                   {query ? (
@@ -198,25 +190,13 @@ export function ValuesList() {
 
         <div className="mt-5">
           <div className="market-ledger">
-            <div className="ledger-columns mx-3 hidden gap-3 border-b border-[rgb(var(--gold)/.12)] px-4 text-[10px] font-bold uppercase tracking-[0.16em] text-[rgb(var(--fog)/.72)] lg:grid">
+            <div className="ledger-columns hidden text-[10px] font-bold uppercase tracking-[0.16em] text-[rgb(var(--fog)/.72)] lg:grid">
               <span>ITEM</span>
-              <SortHeader label="VALUE" sortKey="value" activeSort={sortKey} onSort={(nextSort) => {
-                setSortKey(nextSort);
-                setPage(1);
-              }} />
+              <span>VALUE</span>
               <span>TREND</span>
-              <SortHeader label="GEM TAX" sortKey="tax" activeSort={sortKey} onSort={(nextSort) => {
-                setSortKey(nextSort);
-                setPage(1);
-              }} />
-              <SortHeader label="DEMAND" sortKey="demand" activeSort={sortKey} onSort={(nextSort) => {
-                setSortKey(nextSort);
-                setPage(1);
-              }} />
-              <SortHeader label="PRESTIGE" sortKey="prestige" activeSort={sortKey} onSort={(nextSort) => {
-                setSortKey(nextSort);
-                setPage(1);
-              }} />
+              <span>GEM TAX</span>
+              <span>DEMAND</span>
+              <span>PRESTIGE</span>
               <span>DETAILS</span>
             </div>
 
@@ -228,7 +208,18 @@ export function ValuesList() {
                   iconUrl={iconOverrides[item.id] ?? item.iconUrl ?? ""}
                   selected={selected.id === item.id}
                   valueMode={valueMode}
-                  onSelect={() => setSelectedId(item.id)}
+                  onSelect={() => {
+                    if (selected.id === item.id) {
+                      setDetailItem(item);
+                      return;
+                    }
+
+                    setSelectedId(item.id);
+                  }}
+                  onOpen={() => {
+                    setSelectedId(item.id);
+                    setDetailItem(item);
+                  }}
                   onView={() => {
                     setSelectedId(item.id);
                     setDetailItem(item);
@@ -324,6 +315,7 @@ function ValueRow({
   iconUrl,
   selected,
   valueMode,
+  onOpen,
   onSelect,
   onView,
 }: {
@@ -331,12 +323,25 @@ function ValueRow({
   iconUrl: string;
   selected: boolean;
   valueMode: ValueMode;
+  onOpen: () => void;
   onSelect: () => void;
   onView: () => void;
 }) {
+  const lastTouchTime = useRef(0);
+
   return (
     <article
       onClick={onSelect}
+      onDoubleClick={onOpen}
+      onTouchEnd={() => {
+        const now = Date.now();
+
+        if (now - lastTouchTime.current < 320) {
+          onOpen();
+        }
+
+        lastTouchTime.current = now;
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
@@ -394,6 +399,7 @@ function ValueRow({
             event.stopPropagation();
             onView();
           }}
+          onDoubleClick={(event) => event.stopPropagation()}
         >
           <Info size={12} strokeWidth={2.4} />
           View
@@ -455,6 +461,7 @@ function ValueDetailModal({
           <ValueDetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
           <ValueDetailLine icon="prestige" label="Prestige" value={`P${item.prestige} / ${prestigeLabels[item.prestige]}`} />
           <ValueDetailLine icon="trend" label="Trend" value={trendMeta[item.trend].label} />
+          <ValueDetailLine icon="source" label="Source" value={getItemSource(item)} />
         </div>
 
         <div className="calculator-modal-note">
@@ -473,42 +480,13 @@ function ValueDetailModal({
   );
 }
 
-function ValueDetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "rank" | "trend"; label: string; value: string }) {
+function ValueDetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "rank" | "trend" | "source"; label: string; value: string }) {
   return (
     <div className="calculator-detail-line">
-      <span className={cn("calculator-detail-icon-slot", `calculator-detail-icon-slot-${icon}`)} aria-hidden="true">
-        <span className={cn("calculator-detail-glyph", `calculator-detail-glyph-${icon}`)} />
-      </span>
+      <GemIcon type={icon} className={cn("calculator-detail-image-icon", `trade-icon-${icon}`)} />
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
-  );
-}
-
-function SortHeader({
-  label,
-  sortKey,
-  activeSort,
-  onSort,
-}: {
-  label: string;
-  sortKey: SortKey;
-  activeSort: SortKey;
-  onSort: (sortKey: SortKey) => void;
-}) {
-  const active = activeSort === sortKey;
-
-  return (
-    <button
-      type="button"
-      className={cn("sort-header", active && "sort-header-active")}
-      onClick={() => onSort(sortKey)}
-      aria-pressed={active}
-      aria-label={`Sort by ${label}${active ? ", currently active descending" : ""}`}
-    >
-      {label}
-      <span className="sort-indicator" aria-hidden="true" />
-    </button>
   );
 }
 
@@ -517,8 +495,7 @@ function RowMetric({ label, value, icon, title, strong = false }: { label: strin
     <div className="min-w-0">
       <span className="block text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.62)] lg:hidden">{label}</span>
       <strong className={cn("row-metric-value text-sm text-[rgb(var(--ink))]", strong && "font-display text-lg text-[rgb(var(--bright-gold))]")} title={title}>
-        {icon === "demand" ? <span className="demand-orb" aria-hidden="true" /> : null}
-        {icon && icon !== "demand" ? <GemIcon type={icon} className={cn("metric-icon", `trade-icon-${icon}`)} /> : null}
+        {icon ? <GemIcon type={icon} className={cn("metric-icon", `trade-icon-${icon}`)} /> : null}
         <span className="truncate">{value}</span>
       </strong>
     </div>

@@ -8,15 +8,13 @@ const features = [
   {
     href: "/values",
     title: "Values",
-    text: "Current item value, demand, tax, trend, and prestige in one scan-friendly board.",
-    eyebrow: "Board",
-    action: "Open board",
+    text: "Current item value, demand, tax, trend, and prestige in one place.",
+    action: "Open values",
   },
   {
     href: "/calculator",
     title: "Calculator",
     text: "Build both sides of a trade and check the value gap before you accept.",
-    eyebrow: "Offer",
     action: "Calculate trade",
   },
   ...(process.env.NODE_ENV === "development"
@@ -101,7 +99,7 @@ export default function Home() {
           <div className="tools-section-head">
             <div>
               <p>Trading tools</p>
-              <h2 className="font-display">Choose a focused workflow.</h2>
+              <h2 className="font-display">Trading Tools</h2>
             </div>
           </div>
           <div className="tools-grid">
@@ -112,9 +110,6 @@ export default function Home() {
                 className={`tool-card group ${index === 0 ? "tool-card-primary" : ""}`}
               >
                 <div>
-                  <div className="tool-card-topline">
-                    <span>{feature.eyebrow}</span>
-                  </div>
                   <div>
                     <h3 className="font-display">{feature.title}</h3>
                     <p>{feature.text}</p>

@@ -214,7 +214,7 @@ function UpdateMetric({
       <span className="block text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.62)] lg:hidden">{label}</span>
       <strong className={cn("row-metric-value text-sm", tone === "updated" ? "text-[rgb(var(--ink))]" : "text-[rgb(var(--fog)/.72)]")}>
         {icon === "key" ? <GemIcon type="key" className="metric-icon trade-icon-key" /> : null}
-        {icon === "demand" ? <span className="demand-orb" aria-hidden="true" /> : null}
+        {icon === "demand" ? <GemIcon type="demand" className="metric-icon trade-icon-demand" /> : null}
         <span className="truncate">{value}</span>
       </strong>
     </div>
