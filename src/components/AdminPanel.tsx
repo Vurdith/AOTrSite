@@ -243,7 +243,7 @@ export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
               {status}
             </div>
             <div className="admin-status admin-history-note">
-              Trade graph history is kept automatically: saving a new value records today&apos;s value point, while the JSON field stays editable for imports and corrections.
+              Trade graph history is kept automatically: saving a changed value appends a timestamped value point, while the JSON field stays editable for imports and corrections.
             </div>
 
             <div className="admin-form-grid">

@@ -8,10 +8,6 @@ import { valueItemInputSchema } from "@/lib/valueItemSchema";
 
 const collectionName = "items";
 
-function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function sortByValue(items: ValueItem[]) {
   return [...items].sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 }
@@ -33,18 +29,11 @@ function withRecordedValueHistory(item: ValueItem, previous?: ValueItem | null) 
   const history = [...(item.valueHistory ?? [])]
     .filter((point) => point.date)
     .sort((a, b) => a.date.localeCompare(b.date));
-  const today = getTodayKey();
-  const shouldRecordToday = !history.length || !previous || previous.value !== item.value;
+  const shouldRecordSnapshot = !history.length || !previous || previous.value !== item.value;
 
-  if (!shouldRecordToday) return { ...item, valueHistory: history };
+  if (!shouldRecordSnapshot) return { ...item, valueHistory: history };
 
-  const todayIndex = history.findIndex((point) => point.date === today);
-
-  if (todayIndex === -1) {
-    history.push({ date: today, value: item.value });
-  } else {
-    history[todayIndex] = { date: today, value: item.value };
-  }
+  history.push({ date: new Date().toISOString(), value: item.value });
 
   return {
     ...item,

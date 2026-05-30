@@ -22,7 +22,12 @@ function formatNumber(value: number) {
 }
 
 function formatDateLabel(date: string) {
-  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(`${date}T00:00:00`));
+  const parsedDate = new Date(date.includes("T") ? date : `${date}T00:00:00`);
+  const options: Intl.DateTimeFormatOptions = date.includes("T")
+    ? { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
+    : { month: "short", day: "numeric" };
+
+  return new Intl.DateTimeFormat("en-US", options).format(parsedDate);
 }
 
 function getHistoryChange(history: ValueHistoryPoint[]) {
@@ -36,7 +41,7 @@ function getHistoryChange(history: ValueHistoryPoint[]) {
 
 export function ItemValuePage({ item }: { item: ValueItem }) {
   const router = useRouter();
-  const history = getItemValueHistory(item);
+  const history = [...getItemValueHistory(item)].sort((a, b) => a.date.localeCompare(b.date));
   const hasHistory = history.length > 1;
   const change = hasHistory ? getHistoryChange(history) : null;
   const changeIsPositive = (change?.delta ?? 0) >= 0;
