@@ -242,6 +242,9 @@ export function AdminPanel({ initialItems }: { initialItems: ValueItem[] }) {
             <div className="admin-status" aria-live="polite">
               {status}
             </div>
+            <div className="admin-status admin-history-note">
+              Trade graph history is kept automatically: saving a new value records today&apos;s value point, while the JSON field stays editable for imports and corrections.
+            </div>
 
             <div className="admin-form-grid">
               <AdminInput label="ID" value={draft.id} onChange={(value) => updateDraft("id", slugify(value))} placeholder="auto-from-name-if-empty" />

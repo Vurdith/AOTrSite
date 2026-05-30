@@ -8,6 +8,10 @@ import { valueItemInputSchema } from "@/lib/valueItemSchema";
 
 const collectionName = "items";
 
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function sortByValue(items: ValueItem[]) {
   return [...items].sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 }
@@ -23,6 +27,29 @@ function parseItemDocument(id: string, data: FirebaseFirestore.DocumentData): Va
   });
 
   return parsed.success ? parsed.data : null;
+}
+
+function withRecordedValueHistory(item: ValueItem, previous?: ValueItem | null) {
+  const history = [...(item.valueHistory ?? [])]
+    .filter((point) => point.date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const today = getTodayKey();
+  const shouldRecordToday = !history.length || !previous || previous.value !== item.value;
+
+  if (!shouldRecordToday) return { ...item, valueHistory: history };
+
+  const todayIndex = history.findIndex((point) => point.date === today);
+
+  if (todayIndex === -1) {
+    history.push({ date: today, value: item.value });
+  } else {
+    history[todayIndex] = { date: today, value: item.value };
+  }
+
+  return {
+    ...item,
+    valueHistory: history.sort((a, b) => a.date.localeCompare(b.date)),
+  };
 }
 
 export async function getFirestoreValueItems() {
@@ -63,16 +90,17 @@ export async function getValueItem(id: string) {
 }
 
 export async function saveValueItem(input: unknown) {
-  const item = valueItemInputSchema.parse(input);
+  const parsedItem = valueItemInputSchema.parse(input);
   const db = getFirebaseAdminDb();
+  const ref = db.collection(collectionName).doc(parsedItem.id);
+  const existing = await ref.get();
+  const previous = existing.exists ? parseItemDocument(existing.id, existing.data() ?? {}) : null;
+  const item = withRecordedValueHistory(parsedItem, previous);
 
-  await db
-    .collection(collectionName)
-    .doc(item.id)
-    .set({
-      ...toFirestoreData(item),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+  await ref.set({
+    ...toFirestoreData(item),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
 
   return item;
 }
@@ -87,8 +115,9 @@ export async function seedValueItems() {
 
   valueItems.forEach((item) => {
     const ref = db.collection(collectionName).doc(item.id);
+    const parsedItem = valueItemInputSchema.parse(item);
     batch.set(ref, {
-      ...toFirestoreData(valueItemInputSchema.parse(item)),
+      ...toFirestoreData(withRecordedValueHistory(parsedItem)),
       updatedAt: FieldValue.serverTimestamp(),
     });
   });
