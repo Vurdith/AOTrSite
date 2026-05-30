@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,19 +16,38 @@ const trendLabels = {
   falling: "Falling",
 } as const;
 
+type ChartRange = "1d" | "1w" | "1m" | "3m" | "1y" | "all";
+
+const chartRanges: { id: ChartRange; label: string; days?: number }[] = [
+  { id: "1d", label: "1D", days: 1 },
+  { id: "1w", label: "1W", days: 7 },
+  { id: "1m", label: "1M", days: 30 },
+  { id: "3m", label: "3M", days: 90 },
+  { id: "1y", label: "1Y", days: 365 },
+  { id: "all", label: "All" },
+];
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: value < 100 ? 1 : 0,
   }).format(value);
 }
 
+function parseHistoryDate(date: string) {
+  return new Date(date.includes("T") ? date : `${date}T00:00:00`);
+}
+
 function formatDateLabel(date: string) {
-  const parsedDate = new Date(date.includes("T") ? date : `${date}T00:00:00`);
+  const parsedDate = parseHistoryDate(date);
   const options: Intl.DateTimeFormatOptions = date.includes("T")
     ? { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }
     : { month: "short", day: "numeric" };
 
   return new Intl.DateTimeFormat("en-US", options).format(parsedDate);
+}
+
+function formatRangeLabel(range: ChartRange) {
+  return chartRanges.find((item) => item.id === range)?.label ?? "All";
 }
 
 function getHistoryChange(history: ValueHistoryPoint[]) {
@@ -39,12 +59,31 @@ function getHistoryChange(history: ValueHistoryPoint[]) {
   return { delta, percent };
 }
 
+function filterHistoryByRange(history: ValueHistoryPoint[], range: ChartRange) {
+  const selectedRange = chartRanges.find((item) => item.id === range);
+
+  if (!selectedRange?.days) return history;
+
+  const latestTime = Math.max(...history.map((point) => parseHistoryDate(point.date).getTime()));
+  const cutoff = latestTime - selectedRange.days * 24 * 60 * 60 * 1000;
+  const visible = history.filter((point) => parseHistoryDate(point.date).getTime() >= cutoff);
+
+  if (visible.length > 1) return visible;
+
+  const previousPoint = [...history].reverse().find((point) => parseHistoryDate(point.date).getTime() < cutoff);
+
+  return previousPoint && visible.length ? [previousPoint, ...visible] : visible;
+}
+
 export function ItemValuePage({ item }: { item: ValueItem }) {
   const router = useRouter();
+  const [range, setRange] = useState<ChartRange>("all");
   const history = [...getItemValueHistory(item)].sort((a, b) => a.date.localeCompare(b.date));
-  const hasHistory = history.length > 1;
-  const change = hasHistory ? getHistoryChange(history) : null;
+  const rangedHistory = useMemo(() => filterHistoryByRange(history, range), [history, range]);
+  const hasHistory = rangedHistory.length > 1;
+  const change = hasHistory ? getHistoryChange(rangedHistory) : null;
   const changeIsPositive = (change?.delta ?? 0) >= 0;
+  const rangeLabel = formatRangeLabel(range);
 
   return (
     <section className="item-page-shell px-4 pb-10 pt-28 sm:px-6 lg:px-8">
@@ -75,12 +114,21 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
 
         <div className="item-page-grid">
           <div className="item-history-panel">
-            <div className="item-section-head">
-              <span>Value history</span>
-              <h2 className="font-display">Trade Graph</h2>
+            <div className="item-chart-header">
+              <div className="item-section-head">
+                <span>Value history</span>
+                <h2 className="font-display">Trade Graph</h2>
+              </div>
+              <div className="item-range-tabs" aria-label="Graph time range">
+                {chartRanges.map((item) => (
+                  <button key={item.id} type="button" className={cn("item-range-tab", range === item.id && "item-range-tab-active")} onClick={() => setRange(item.id)}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {hasHistory ? <ValueHistoryChart history={history} /> : <NoHistoryState />}
+            {hasHistory ? <ValueHistoryChart history={rangedHistory} rangeLabel={rangeLabel} /> : <NoHistoryState rangeLabel={rangeLabel} />}
 
             <div className="item-history-summary">
               <div>
@@ -89,7 +137,7 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
               </div>
               {change ? (
                 <div className={changeIsPositive ? "item-change-positive" : "item-change-negative"}>
-                  <span>Period change</span>
+                  <span>{rangeLabel} change</span>
                   <strong>
                     {changeIsPositive ? "+" : ""}
                     {formatNumber(change.delta)} keys ({changeIsPositive ? "+" : ""}
@@ -122,11 +170,11 @@ export function ItemValuePage({ item }: { item: ValueItem }) {
   );
 }
 
-function NoHistoryState() {
+function NoHistoryState({ rangeLabel }: { rangeLabel: string }) {
   return (
     <div className="item-history-empty">
-      <span>No historical value data yet</span>
-      <p>Once real dated value imports are added for this item, the trade graph will appear here.</p>
+      <span>Not enough {rangeLabel} data</span>
+      <p>Value changes saved in admin will add timestamped points here.</p>
     </div>
   );
 }
@@ -140,10 +188,10 @@ function ItemStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
+function ValueHistoryChart({ history, rangeLabel }: { history: ValueHistoryPoint[]; rangeLabel: string }) {
   const width = 720;
   const height = 300;
-  const padding = { top: 24, right: 20, bottom: 46, left: 68 };
+  const padding = { top: 34, right: 24, bottom: 52, left: 72 };
   const values = history.map((point) => point.value);
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
@@ -159,14 +207,19 @@ function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
   const areaPath = `${path} L ${points[points.length - 1].x.toFixed(2)} ${height - padding.bottom} L ${points[0].x.toFixed(2)} ${height - padding.bottom} Z`;
   const rising = points[points.length - 1].value >= points[0].value;
+  const labelStep = Math.max(1, Math.ceil((points.length - 1) / 4));
 
   return (
     <div className="item-chart-wrap">
       <svg className="item-history-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Item value history graph">
         <defs>
           <linearGradient id="itemChartArea" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="rgb(var(--bright-gold))" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="rgb(var(--bright-gold))" stopOpacity="0" />
+            <stop offset="0%" stopColor={rising ? "rgb(167 243 208)" : "rgb(254 202 202)"} stopOpacity="0.28" />
+            <stop offset="100%" stopColor={rising ? "rgb(167 243 208)" : "rgb(254 202 202)"} stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="itemChartStroke" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="rgb(var(--bright-gold))" />
+            <stop offset="100%" stopColor={rising ? "rgb(167 243 208)" : "rgb(254 202 202)"} />
           </linearGradient>
         </defs>
         {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
@@ -182,20 +235,28 @@ function ValueHistoryChart({ history }: { history: ValueHistoryPoint[] }) {
             </g>
           );
         })}
+        {points.map((point, index) =>
+          index === 0 || index === points.length - 1 || index % labelStep === 0 ? (
+            <line key={`x-${point.date}-${index}`} x1={point.x} x2={point.x} y1={padding.top} y2={height - padding.bottom} className="item-chart-grid item-chart-grid-vertical" />
+          ) : null,
+        )}
         <path d={areaPath} fill="url(#itemChartArea)" />
-        <path d={path} className={cn("item-chart-line", rising ? "item-chart-line-rising" : "item-chart-line-falling")} />
-        {points.map((point) => (
-          <g key={point.date}>
+        <path d={path} className="item-chart-line" />
+        {points.map((point, index) => (
+          <g key={`${point.date}-${index}`}>
             <circle cx={point.x} cy={point.y} r="4.5" className="item-chart-dot" />
-            <text x={point.x} y={height - 18} textAnchor="middle" className="item-chart-axis">
-              {formatDateLabel(point.date)}
-            </text>
+            <title>{`${formatDateLabel(point.date)} / ${formatNumber(point.value)} keys`}</title>
+            {index === 0 || index === points.length - 1 || index % labelStep === 0 ? (
+              <text x={point.x} y={height - 18} textAnchor="middle" className="item-chart-axis">
+                {formatDateLabel(point.date)}
+              </text>
+            ) : null}
           </g>
         ))}
       </svg>
       <div className={cn("item-chart-badge", rising ? "item-change-positive" : "item-change-negative")}>
         {rising ? <TrendingUp size={15} strokeWidth={2.4} /> : <TrendingDown size={15} strokeWidth={2.4} />}
-        {rising ? "Up over period" : "Down over period"}
+        {rising ? "Up" : "Down"} / {rangeLabel}
       </div>
     </div>
   );

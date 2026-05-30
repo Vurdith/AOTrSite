@@ -3175,6 +3175,18 @@
     }
   }
 
+  .item-chart-header {
+    display: grid;
+    gap: 1rem;
+    align-items: end;
+  }
+
+  @media (min-width: 780px) {
+    .item-chart-header {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+
   .item-section-head span {
     color: rgb(var(--bright-gold));
     font-size: 0.66rem;
@@ -3190,16 +3202,72 @@
     line-height: 1;
   }
 
+  .item-range-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.38rem;
+    width: fit-content;
+    max-width: 100%;
+    border: 1px solid rgb(var(--gold) / 0.12);
+    border-radius: 16px 5px 16px 5px;
+    background: rgb(0 0 0 / 0.22);
+    padding: 0.32rem;
+  }
+
+  .item-range-tab {
+    display: inline-grid;
+    min-width: 2.8rem;
+    min-height: 2.15rem;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 12px 4px 12px 4px;
+    color: rgb(var(--fog) / 0.72);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      color 160ms ease,
+      transform 160ms ease;
+  }
+
+  .item-range-tab:hover,
+  .item-range-tab:focus-visible {
+    border-color: rgb(var(--bright-gold) / 0.26);
+    background: rgb(var(--bright-gold) / 0.06);
+    color: rgb(var(--ink));
+    outline: none;
+  }
+
+  .item-range-tab-active {
+    border-color: rgb(var(--bright-gold) / 0.42);
+    background:
+      linear-gradient(180deg, rgb(var(--bright-gold) / 0.2), rgb(var(--deep-gold) / 0.1)),
+      rgb(var(--gold) / 0.1);
+    color: white;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 10px 24px rgb(var(--gold) / 0.12);
+  }
+
   .item-chart-wrap {
     position: relative;
     margin-top: 1rem;
     overflow-x: auto;
-    border: 1px solid rgb(var(--gold) / 0.1);
-    border-radius: 18px 6px 18px 6px;
+    border: 1px solid rgb(var(--gold) / 0.16);
+    border-radius: 22px 7px 22px 7px;
     background:
-      linear-gradient(180deg, rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.24)),
-      radial-gradient(460px 220px at 50% 0%, rgb(var(--gold) / 0.1), transparent 70%);
-    padding: 0.65rem;
+      linear-gradient(180deg, rgb(255 244 216 / 0.05), rgb(0 0 0 / 0.16) 46%, rgb(0 0 0 / 0.28)),
+      radial-gradient(520px 260px at 50% 0%, rgb(var(--bright-gold) / 0.14), transparent 72%),
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.025) 0 1px, transparent 1px 84px),
+      rgb(6 4 3 / 0.72);
+    padding: 0.8rem;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      inset 0 -1px 0 rgb(0 0 0 / 0.32),
+      0 16px 38px rgb(0 0 0 / 0.2);
   }
 
   .item-history-empty {
@@ -3238,15 +3306,20 @@
     min-width: 42rem;
     width: 100%;
     height: auto;
+    border-radius: 16px 5px 16px 5px;
   }
 
   .item-chart-grid {
-    stroke: rgb(var(--gold) / 0.12);
+    stroke: rgb(var(--gold) / 0.14);
     stroke-width: 1;
   }
 
+  .item-chart-grid-vertical {
+    stroke: rgb(var(--gold) / 0.07);
+  }
+
   .item-chart-axis {
-    fill: rgb(var(--fog) / 0.62);
+    fill: rgb(var(--fog) / 0.68);
     font-family: var(--font-sans);
     font-size: 0.68rem;
     font-weight: 800;
@@ -3255,24 +3328,20 @@
 
   .item-chart-line {
     fill: none;
-    stroke-width: 4;
+    stroke: url("#itemChartStroke");
+    stroke-width: 4.5;
     stroke-linecap: round;
     stroke-linejoin: round;
-    filter: drop-shadow(0 0 10px rgb(var(--gold) / 0.28));
-  }
-
-  .item-chart-line-rising {
-    stroke: rgb(167 243 208);
-  }
-
-  .item-chart-line-falling {
-    stroke: rgb(254 202 202);
+    filter:
+      drop-shadow(0 0 8px rgb(var(--gold) / 0.22))
+      drop-shadow(0 0 18px rgb(var(--bright-gold) / 0.12));
   }
 
   .item-chart-dot {
-    fill: rgb(var(--void));
+    fill: rgb(8 6 4);
     stroke: rgb(var(--bright-gold));
     stroke-width: 3;
+    filter: drop-shadow(0 0 8px rgb(var(--bright-gold) / 0.34));
   }
 
   .item-chart-badge {
