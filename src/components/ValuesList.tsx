@@ -9,6 +9,13 @@ import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
 
 type ValueMode = "keys" | "masks" | "scrolls";
+type SortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
+type DemandFilter = "all" | "high" | "medium" | "low";
+type TaxFilter = "all" | "none" | "low" | "medium" | "high";
+type ValueFilter = "all" | "top" | "mid" | "low";
+type SourceFilter = "all" | string;
+type PrestigeFilter = "all" | 0 | 1 | 2 | 3;
+type TrendFilter = "all" | ItemTrend;
 
 const valueModes: Record<ValueMode, { label: string; shortLabel: string; unit: string; rate: number }> = {
   keys: { label: "Keys", shortLabel: "Keys", unit: "keys", rate: 1 },
@@ -40,6 +47,55 @@ const trendMeta: Record<ItemTrend, { label: string; className: string }> = {
 const prestigeLabels = ["Open trade", "Low gate", "Mid gate", "High gate"];
 const pageSize = 8;
 
+const sortOptions: { id: SortOption; label: string }[] = [
+  { id: "value-desc", label: "Value high-low" },
+  { id: "value-asc", label: "Value low-high" },
+  { id: "demand-desc", label: "Demand high-low" },
+  { id: "demand-asc", label: "Demand low-high" },
+  { id: "tax-desc", label: "Gem tax high-low" },
+  { id: "tax-asc", label: "Gem tax low-high" },
+  { id: "prestige-desc", label: "Prestige high-low" },
+  { id: "prestige-asc", label: "Prestige low-high" },
+  { id: "name-asc", label: "Name A-Z" },
+];
+
+const trendOptions: { id: TrendFilter; label: string }[] = [
+  { id: "all", label: "Any trend" },
+  { id: "rising", label: "Rising" },
+  { id: "stable", label: "Stable" },
+  { id: "falling", label: "Falling" },
+];
+
+const demandOptions: { id: DemandFilter; label: string }[] = [
+  { id: "all", label: "Any demand" },
+  { id: "high", label: "High 70+" },
+  { id: "medium", label: "Medium 35-69" },
+  { id: "low", label: "Low <35" },
+];
+
+const taxOptions: { id: TaxFilter; label: string }[] = [
+  { id: "all", label: "Any tax" },
+  { id: "none", label: "No tax" },
+  { id: "low", label: "Low <=300" },
+  { id: "medium", label: "Mid <=1.5k" },
+  { id: "high", label: "High 1.5k+" },
+];
+
+const valueRangeOptions: { id: ValueFilter; label: string }[] = [
+  { id: "all", label: "Any value" },
+  { id: "top", label: "Top 10k+" },
+  { id: "mid", label: "Mid 1k-9.9k" },
+  { id: "low", label: "Low <1k" },
+];
+
+const prestigeOptions: { id: PrestigeFilter; label: string }[] = [
+  { id: "all", label: "Any prestige" },
+  { id: 0, label: "P0" },
+  { id: 1, label: "P1" },
+  { id: 2, label: "P2" },
+  { id: 3, label: "P3" },
+];
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
@@ -67,6 +123,54 @@ function getValueRank(item: ValueItem) {
   return valueItems.filter((value) => value.value > item.value).length + 1;
 }
 
+function matchesDemandFilter(item: ValueItem, filter: DemandFilter) {
+  if (filter === "all") return true;
+  if (filter === "high") return item.demand >= 70;
+  if (filter === "medium") return item.demand >= 35 && item.demand < 70;
+  return item.demand < 35;
+}
+
+function matchesTaxFilter(item: ValueItem, filter: TaxFilter) {
+  if (filter === "all") return true;
+  if (filter === "none") return item.taxGems === 0;
+  if (filter === "low") return item.taxGems > 0 && item.taxGems <= 300;
+  if (filter === "medium") return item.taxGems > 300 && item.taxGems <= 1500;
+  return item.taxGems > 1500;
+}
+
+function matchesValueFilter(item: ValueItem, filter: ValueFilter) {
+  if (filter === "all") return true;
+  if (filter === "top") return item.value >= 10000;
+  if (filter === "mid") return item.value >= 1000 && item.value < 10000;
+  return item.value < 1000;
+}
+
+function sortItems(items: ValueItem[], sortOption: SortOption) {
+  return [...items].sort((a, b) => {
+    switch (sortOption) {
+      case "value-asc":
+        return a.value - b.value;
+      case "demand-desc":
+        return b.demand - a.demand || b.value - a.value;
+      case "demand-asc":
+        return a.demand - b.demand || b.value - a.value;
+      case "tax-desc":
+        return b.taxGems - a.taxGems || b.value - a.value;
+      case "tax-asc":
+        return a.taxGems - b.taxGems || b.value - a.value;
+      case "prestige-desc":
+        return b.prestige - a.prestige || b.value - a.value;
+      case "prestige-asc":
+        return a.prestige - b.prestige || b.value - a.value;
+      case "name-asc":
+        return a.name.localeCompare(b.name);
+      case "value-desc":
+      default:
+        return b.value - a.value;
+    }
+  });
+}
+
 function initials(name: string) {
   return name
     .split(" ")
@@ -79,6 +183,13 @@ function initials(name: string) {
 export function ValuesList() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("value-desc");
+  const [trendFilter, setTrendFilter] = useState<TrendFilter>("all");
+  const [demandFilter, setDemandFilter] = useState<DemandFilter>("all");
+  const [taxFilter, setTaxFilter] = useState<TaxFilter>("all");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [prestigeFilter, setPrestigeFilter] = useState<PrestigeFilter>("all");
+  const [valueFilter, setValueFilter] = useState<ValueFilter>("all");
   const [selectedId, setSelectedId] = useState(valueItems[0]?.id ?? "");
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [page, setPage] = useState(1);
@@ -87,14 +198,18 @@ export function ValuesList() {
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return valueItems
+    const matches = valueItems
       .filter((item) => {
         const matchesCategory = category === "all" || item.category === category;
         const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
-        return matchesCategory && matchesQuery;
+        const matchesTrend = trendFilter === "all" || item.trend === trendFilter;
+        const matchesSource = sourceFilter === "all" || getItemSource(item) === sourceFilter;
+        const matchesPrestige = prestigeFilter === "all" || item.prestige === prestigeFilter;
+        return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesPrestige && matchesDemandFilter(item, demandFilter) && matchesTaxFilter(item, taxFilter) && matchesValueFilter(item, valueFilter);
       })
-      .sort((a, b) => b.value - a.value);
-  }, [category, query]);
+
+    return sortItems(matches, sortOption);
+  }, [category, demandFilter, prestigeFilter, query, sortOption, sourceFilter, taxFilter, trendFilter, valueFilter]);
 
   const selected = filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? valueItems[0];
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -102,6 +217,24 @@ export function ValuesList() {
   const firstItemIndex = (currentPage - 1) * pageSize;
   const pagedItems = filtered.slice(firstItemIndex, firstItemIndex + pageSize);
   const visibleCategories = categories.filter((item) => item.id === "all" || valueItems.some((value) => value.category === item.id));
+  const sourceOptions = useMemo(() => ["all", ...Array.from(new Set(valueItems.map(getItemSource))).sort()] as SourceFilter[], []);
+  const activeFilterCount = [category !== "all", sortOption !== "value-desc", trendFilter !== "all", demandFilter !== "all", taxFilter !== "all", sourceFilter !== "all", prestigeFilter !== "all", valueFilter !== "all"].filter(Boolean).length;
+
+  function resetPage() {
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setCategory("all");
+    setSortOption("value-desc");
+    setTrendFilter("all");
+    setDemandFilter("all");
+    setTaxFilter("all");
+    setSourceFilter("all");
+    setPrestigeFilter("all");
+    setValueFilter("all");
+    setPage(1);
+  }
 
   return (
     <section className="px-4 py-7 sm:px-6 lg:px-8">
@@ -166,25 +299,105 @@ export function ValuesList() {
             <InfoPanel label="Demand" value="Trade interest" detail="Higher score means easier movement" />
           </div>
 
-          <div className="category-tabs" aria-label="Item categories">
-            {visibleCategories.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  setCategory(item.id);
-                  setPage(1);
-                }}
-                aria-pressed={category === item.id}
-                className={cn(
-                  "category-tab",
-                  category === item.id && "category-tab-active",
-                )}
-              >
-                {item.label}
-                <span>{item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length}</span>
+          <div className="advanced-filter-panel" aria-label="Advanced value filters">
+            <div className="advanced-filter-head">
+              <div>
+                <span>Advanced filters</span>
+                <strong>{filtered.length} items</strong>
+              </div>
+              <button type="button" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear advanced filters">
+                Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
               </button>
-            ))}
+            </div>
+
+            <FilterGroup label="Sort">
+              {sortOptions.map((option) => (
+                <FilterTag key={option.id} active={sortOption === option.id} onClick={() => {
+                  setSortOption(option.id);
+                  resetPage();
+                }}>
+                  {option.label}
+                </FilterTag>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup label="Category">
+              {visibleCategories.map((item) => (
+                <FilterTag key={item.id} active={category === item.id} onClick={() => {
+                  setCategory(item.id);
+                  resetPage();
+                }}>
+                  {item.label}
+                  <span>{item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length}</span>
+                </FilterTag>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup label="Demand">
+              {demandOptions.map((option) => (
+                <FilterTag key={option.id} active={demandFilter === option.id} onClick={() => {
+                  setDemandFilter(option.id);
+                  resetPage();
+                }}>
+                  {option.label}
+                </FilterTag>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup label="Trend">
+              {trendOptions.map((option) => (
+                <FilterTag key={option.id} active={trendFilter === option.id} onClick={() => {
+                  setTrendFilter(option.id);
+                  resetPage();
+                }}>
+                  {option.label}
+                </FilterTag>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup label="Gem tax">
+              {taxOptions.map((option) => (
+                <FilterTag key={option.id} active={taxFilter === option.id} onClick={() => {
+                  setTaxFilter(option.id);
+                  resetPage();
+                }}>
+                  {option.label}
+                </FilterTag>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup label="Value">
+              {valueRangeOptions.map((option) => (
+                <FilterTag key={option.id} active={valueFilter === option.id} onClick={() => {
+                  setValueFilter(option.id);
+                  resetPage();
+                }}>
+                  {option.label}
+                </FilterTag>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup label="Prestige">
+              {prestigeOptions.map((option) => (
+                <FilterTag key={option.label} active={prestigeFilter === option.id} onClick={() => {
+                  setPrestigeFilter(option.id);
+                  resetPage();
+                }}>
+                  {option.label}
+                </FilterTag>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup label="Source">
+              {sourceOptions.map((source) => (
+                <FilterTag key={source} active={sourceFilter === source} onClick={() => {
+                  setSourceFilter(source);
+                  resetPage();
+                }}>
+                  {source === "all" ? "Any source" : source}
+                </FilterTag>
+              ))}
+            </FilterGroup>
           </div>
         </div>
 
@@ -242,7 +455,7 @@ export function ValuesList() {
             {!filtered.length && (
               <div className="p-8 text-center">
                 <h3 className="font-display text-2xl">No item found</h3>
-                <p className="mt-2 text-zinc-400">Clear the search or switch category.</p>
+                <p className="mt-2 text-zinc-400">Clear the search or adjust advanced filters.</p>
               </div>
             )}
           </div>
@@ -259,6 +472,23 @@ export function ValuesList() {
         ) : null}
       </div>
     </section>
+  );
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="advanced-filter-group">
+      <span>{label}</span>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function FilterTag({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
+  return (
+    <button type="button" className={cn("advanced-filter-tag", active && "advanced-filter-tag-active")} aria-pressed={active} onClick={onClick}>
+      {children}
+    </button>
   );
 }
 
