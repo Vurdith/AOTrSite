@@ -19,6 +19,7 @@ type PickerValueFilter = "all" | "top" | "mid" | "low";
 type PickerSourceFilter = "all" | string;
 type PickerTrendFilter = "all" | ItemTrend;
 
+const isDevelopment = process.env.NODE_ENV === "development";
 const filterBreakpoint = "(max-width: 767px)";
 
 function subscribeFilterBreakpoint(onStoreChange: () => void) {
@@ -906,12 +907,14 @@ function ItemDetailModal({ item, onClose, valueMode }: { item: ValueItem; onClos
           <p>{item.note}</p>
         </div>
 
-        <Link
-          href={`/items/${item.id}`}
-          className="item-modal-page-link mt-4 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
-        >
-          View trade graph
-        </Link>
+        {isDevelopment ? (
+          <Link
+            href={`/items/${item.id}`}
+            className="item-modal-page-link mt-4 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
+          >
+            View trade graph
+          </Link>
+        ) : null}
       </div>
     </div>
   );

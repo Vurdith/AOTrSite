@@ -44,6 +44,7 @@ const trendMeta: Record<ItemTrend, { label: string; className: string }> = {
 
 const prestigeLabels = ["Open trade", "Low gate", "Mid gate", "High gate"];
 const pageSize = 8;
+const isDevelopment = process.env.NODE_ENV === "development";
 
 const filterBreakpoint = "(max-width: 767px)";
 
@@ -684,12 +685,14 @@ function ValueDetailModal({
         >
           <span>Add to calculator</span>
         </Link>
-        <Link
-          href={`/items/${item.id}`}
-          className="item-modal-page-link mt-3 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
-        >
-          View trade graph
-        </Link>
+        {isDevelopment ? (
+          <Link
+            href={`/items/${item.id}`}
+            className="item-modal-page-link mt-3 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
+          >
+            View trade graph
+          </Link>
+        ) : null}
       </div>
     </div>
   );
