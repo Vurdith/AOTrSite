@@ -190,8 +190,8 @@ function ItemStat({ label, value }: { label: string; value: string }) {
 
 function ValueHistoryChart({ history, rangeLabel }: { history: ValueHistoryPoint[]; rangeLabel: string }) {
   const width = 720;
-  const height = 300;
-  const padding = { top: 34, right: 24, bottom: 52, left: 72 };
+  const height = 340;
+  const padding = { top: 36, right: 26, bottom: 58, left: 76 };
   const values = history.map((point) => point.value);
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
