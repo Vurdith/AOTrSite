@@ -310,94 +310,85 @@ export function ValuesList() {
               </button>
             </div>
 
-            <FilterGroup label="Sort">
-              {sortOptions.map((option) => (
-                <FilterTag key={option.id} active={sortOption === option.id} onClick={() => {
-                  setSortOption(option.id);
+            <div className="advanced-filter-grid">
+              <FilterSelect
+                label="Sort"
+                value={sortOption}
+                wide
+                onChange={(value) => {
+                  setSortOption(value as SortOption);
                   resetPage();
-                }}>
-                  {option.label}
-                </FilterTag>
-              ))}
-            </FilterGroup>
-
-            <FilterGroup label="Category">
-              {visibleCategories.map((item) => (
-                <FilterTag key={item.id} active={category === item.id} onClick={() => {
-                  setCategory(item.id);
+                }}
+                options={sortOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <FilterSelect
+                label="Category"
+                value={category}
+                onChange={(value) => {
+                  setCategory(value as "all" | ItemCategory);
                   resetPage();
-                }}>
-                  {item.label}
-                  <span>{item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length}</span>
-                </FilterTag>
-              ))}
-            </FilterGroup>
-
-            <FilterGroup label="Demand">
-              {demandOptions.map((option) => (
-                <FilterTag key={option.id} active={demandFilter === option.id} onClick={() => {
-                  setDemandFilter(option.id);
+                }}
+                options={visibleCategories.map((item) => ({
+                  value: item.id,
+                  label: `${item.label} (${item.id === "all" ? valueItems.length : valueItems.filter((value) => value.category === item.id).length})`,
+                }))}
+              />
+              <FilterSelect
+                label="Demand"
+                value={demandFilter}
+                onChange={(value) => {
+                  setDemandFilter(value as DemandFilter);
                   resetPage();
-                }}>
-                  {option.label}
-                </FilterTag>
-              ))}
-            </FilterGroup>
-
-            <FilterGroup label="Trend">
-              {trendOptions.map((option) => (
-                <FilterTag key={option.id} active={trendFilter === option.id} onClick={() => {
-                  setTrendFilter(option.id);
+                }}
+                options={demandOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <FilterSelect
+                label="Trend"
+                value={trendFilter}
+                onChange={(value) => {
+                  setTrendFilter(value as TrendFilter);
                   resetPage();
-                }}>
-                  {option.label}
-                </FilterTag>
-              ))}
-            </FilterGroup>
-
-            <FilterGroup label="Gem tax">
-              {taxOptions.map((option) => (
-                <FilterTag key={option.id} active={taxFilter === option.id} onClick={() => {
-                  setTaxFilter(option.id);
+                }}
+                options={trendOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <FilterSelect
+                label="Gem tax"
+                value={taxFilter}
+                onChange={(value) => {
+                  setTaxFilter(value as TaxFilter);
                   resetPage();
-                }}>
-                  {option.label}
-                </FilterTag>
-              ))}
-            </FilterGroup>
-
-            <FilterGroup label="Value">
-              {valueRangeOptions.map((option) => (
-                <FilterTag key={option.id} active={valueFilter === option.id} onClick={() => {
-                  setValueFilter(option.id);
+                }}
+                options={taxOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <FilterSelect
+                label="Value"
+                value={valueFilter}
+                onChange={(value) => {
+                  setValueFilter(value as ValueFilter);
                   resetPage();
-                }}>
-                  {option.label}
-                </FilterTag>
-              ))}
-            </FilterGroup>
-
-            <FilterGroup label="Prestige">
-              {prestigeOptions.map((option) => (
-                <FilterTag key={option.label} active={prestigeFilter === option.id} onClick={() => {
-                  setPrestigeFilter(option.id);
+                }}
+                options={valueRangeOptions.map((option) => ({ value: option.id, label: option.label }))}
+              />
+              <FilterSelect
+                label="Prestige"
+                value={`${prestigeFilter}`}
+                onChange={(value) => {
+                  setPrestigeFilter(value === "all" ? "all" : Number(value) as PrestigeFilter);
                   resetPage();
-                }}>
-                  {option.label}
-                </FilterTag>
-              ))}
-            </FilterGroup>
-
-            <FilterGroup label="Source">
-              {sourceOptions.map((source) => (
-                <FilterTag key={source} active={sourceFilter === source} onClick={() => {
-                  setSourceFilter(source);
+                }}
+                options={prestigeOptions.map((option) => ({ value: `${option.id}`, label: option.label }))}
+              />
+              <FilterSelect
+                label="Source"
+                value={sourceFilter}
+                wide
+                onChange={(value) => {
+                  setSourceFilter(value);
                   resetPage();
-                }}>
-                  {source === "all" ? "Any source" : source}
-                </FilterTag>
-              ))}
-            </FilterGroup>
+                }}
+                options={sourceOptions.map((source) => ({ value: source, label: source === "all" ? "Any source" : source }))}
+              />
+            </div>
           </div>
         </div>
 
@@ -475,20 +466,30 @@ export function ValuesList() {
   );
 }
 
-function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+function FilterSelect({
+  label,
+  onChange,
+  options,
+  value,
+  wide = false,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  value: string;
+  wide?: boolean;
+}) {
   return (
-    <div className="advanced-filter-group">
+    <label className={cn("advanced-filter-field", wide && "advanced-filter-field-wide")}>
       <span>{label}</span>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-function FilterTag({ active, children, onClick }: { active: boolean; children: ReactNode; onClick: () => void }) {
-  return (
-    <button type="button" className={cn("advanced-filter-tag", active && "advanced-filter-tag-active")} aria-pressed={active} onClick={onClick}>
-      {children}
-    </button>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
