@@ -650,3 +650,361 @@ The project currently includes:
 
 This is a custom web application with frontend, backend, database, admin tooling, data modeling, responsive UI, and trading-specific logic. It is substantially more involved than a simple static website or basic value list.
 
+
+============================================================
+22. EXACT GIT FILE-LEVEL CHANGE MAP
+============================================================
+
+This appendix is included to make the document closer to a full "from birth to now" record.
+
+The earlier sections explain the work in client-readable language. This section is the mechanical Git evidence: every tracked commit currently in the repository history and the files added or modified in that commit.
+
+Legend:
+- A = added.
+- M = modified.
+
+=== COMMIT 14f537a | 2026-05-29 | Initial commit ===
+A .gitignore
+A eslint.config.mjs
+A next.config.ts
+A package-lock.json
+A package.json
+A postcss.config.js
+A public/aotevo-logo.png
+A public/hero/aotr-gilded-sanctum.png
+A public/hero/aotr-raid-market.png
+A public/hero/aotr-walled-market.png
+A public/icons/items/akatsuki.png
+A public/icons/items/archer.png
+A public/icons/items/aspiring-warrior.png
+A public/icons/items/astolfo-2.png
+A public/icons/items/astolfo.png
+A public/icons/items/banana.png
+A public/icons/items/berserker.png
+A public/icons/items/bikini.png
+A public/icons/items/bunny-girl.png
+A public/icons/items/captain.png
+A public/icons/items/chef.png
+A public/icons/items/citizen.png
+A public/icons/items/cowboy.png
+A public/icons/items/detective.png
+A public/icons/items/geto.png
+A public/icons/items/gilgamesh.png
+A public/icons/items/giyuu.png
+A public/icons/items/goku.png
+A public/icons/items/hinata.png
+A public/icons/items/idol.png
+A public/icons/items/jolly-mascot.png
+A public/icons/items/kenny.png
+A public/icons/items/kisuke.png
+A public/icons/items/madara.png
+A public/icons/items/maid.png
+A public/icons/items/maiden.png
+A public/icons/items/miku.png
+A public/icons/items/military.png
+A public/icons/items/monk.png
+A public/icons/items/naruto.png
+A public/icons/items/ninja-war.png
+A public/icons/items/ninja.png
+A public/icons/items/pajama.png
+A public/icons/items/pirate.png
+A public/icons/items/priest.png
+A public/icons/items/primera.png
+A public/icons/items/quincy.png
+A public/icons/items/rengoku.png
+A public/icons/items/rock-lee.png
+A public/icons/items/saber.png
+A public/icons/items/saitama.png
+A public/icons/items/santa.png
+A public/icons/items/sasuke.png
+A public/icons/items/scathach.png
+A public/icons/items/shadow.png
+A public/icons/items/shinobu.png
+A public/icons/items/shogun.png
+A public/icons/items/slayer-f.png
+A public/icons/items/slayer-m.png
+A public/icons/items/sorcerer.png
+A public/icons/items/soul-reaper.png
+A public/icons/items/steampunk.png
+A public/icons/items/sung-dripwoo.png
+A public/icons/items/tanjiro.png
+A public/icons/items/tengen.png
+A public/icons/items/toji.png
+A public/icons/items/ulquiorra.png
+A public/icons/items/utahime.png
+A public/icons/trade/demand.png
+A public/icons/trade/gem.png
+A public/icons/trade/key.png
+A public/icons/trade/mask.png
+A public/icons/trade/prestige.png
+A public/icons/trade/scroll.png
+A public/intro-loader.mp4
+A public/noise.svg
+A src/app/calculator/page.tsx
+A src/app/globals.css
+A src/app/layout.tsx
+A src/app/page.tsx
+A src/app/updates/page.tsx
+A src/app/values/page.tsx
+A src/components/FloatingHeader.tsx
+A src/components/HeroBackdrop.tsx
+A src/components/LoadingScene.tsx
+A src/components/PageHero.tsx
+A src/components/SignalDust.tsx
+A src/components/TradeCalculator.tsx
+A src/components/UpdatesList.tsx
+A src/components/ValueTerminal.tsx
+A src/components/ValuesList.tsx
+A src/content/items.ts
+A src/lib/cn.ts
+A src/lib/rarityStyles.ts
+A tailwind.config.ts
+A tsconfig.json
+
+=== COMMIT 4c32bbf | 2026-05-29 | Polish calculator and rarity styles ===
+M src/app/globals.css
+
+=== COMMIT be22f0e | 2026-05-29 | Gate updates page in production ===
+M src/app/page.tsx
+M src/app/updates/page.tsx
+M src/components/FloatingHeader.tsx
+
+=== COMMIT fe45ad2 | 2026-05-29 | Address value board and calculator feedback ===
+M src/app/calculator/page.tsx
+M src/app/globals.css
+M src/app/page.tsx
+M src/app/values/page.tsx
+M src/components/TradeCalculator.tsx
+M src/components/ValuesList.tsx
+
+=== COMMIT 8c10553 | 2026-05-29 | Polish trade slot quantity controls ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT 5437222 | 2026-05-29 | Move quantity controls below trade slots ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT 8b26f75 | 2026-05-29 | Refine trade slot quantity bar ===
+M src/app/globals.css
+
+=== COMMIT be40fb8 | 2026-05-29 | Allow typed trade slot quantities ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT 9ddd8b3 | 2026-05-29 | Center trade quantity input text ===
+M src/app/globals.css
+
+=== COMMIT 79ac43c | 2026-05-29 | Center quantity prefix with input ===
+M src/app/globals.css
+
+=== COMMIT 19539d4 | 2026-05-29 | Align quantity label center ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT b8d844d | 2026-05-29 | Improve tools section and value columns ===
+M src/app/globals.css
+M src/app/page.tsx
+
+=== COMMIT d0996a0 | 2026-05-29 | Align value row metrics with headers ===
+M src/app/globals.css
+
+=== COMMIT ac258ad | 2026-05-29 | Remove duplicate demand insight ===
+M src/components/ValuesList.tsx
+
+=== COMMIT ad7043a | 2026-05-29 | Simplify and equalize tool cards ===
+M src/app/globals.css
+M src/app/page.tsx
+
+=== COMMIT 288c667 | 2026-05-29 | Adjust calculator verdict and tax layout ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT ccb39a1 | 2026-05-29 | Add value row data modal ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT d9a7ab3 | 2026-05-29 | Refine value row data action ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 411d056 | 2026-05-29 | Add expand edge action to value rows ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 77cc413 | 2026-05-29 | Refine value row details action ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 2cad8f6 | 2026-05-29 | Move mobile trend into value row header ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 521af2d | 2026-05-29 | Match calculator slot data button style ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT e983793 | 2026-05-29 | Restore angled curve on view buttons ===
+M src/app/globals.css
+
+=== COMMIT 89a74b2 | 2026-05-29 | Improve calculator picker and value details flow ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+M src/components/ValuesList.tsx
+
+=== COMMIT 54e82c0 | 2026-05-29 | Update hero value copy ===
+M src/app/page.tsx
+M src/app/values/page.tsx
+
+=== COMMIT 207a5f9 | 2026-05-29 | Reposition mobile value trend metric ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 0f9b90d | 2026-05-29 | Adjust mobile value card spacing ===
+M src/app/globals.css
+
+=== COMMIT 2f91259 | 2026-05-29 | Lower mobile value card content ===
+M src/app/globals.css
+
+=== COMMIT 051d7e4 | 2026-05-29 | Refine mobile value trend alignment ===
+M src/app/globals.css
+
+=== COMMIT dfa95a5 | 2026-05-29 | Move calculator item picker into modal ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT 2f9dea6 | 2026-05-29 | Increase calculator remove mark contrast ===
+M src/app/globals.css
+
+=== COMMIT 69e6098 | 2026-05-30 | Polish trading tools UI ===
+M public/icons/trade/demand.png
+M public/icons/trade/gem.png
+A public/icons/trade/gold.png
+M public/icons/trade/key.png
+M public/icons/trade/mask.png
+M public/icons/trade/prestige.png
+A public/icons/trade/rank.png
+M public/icons/trade/scroll.png
+A public/icons/trade/source.png
+A public/icons/trade/trend.png
+M src/app/globals.css
+M src/app/page.tsx
+M src/components/FloatingHeader.tsx
+M src/components/TradeCalculator.tsx
+M src/components/UpdatesList.tsx
+M src/components/ValuesList.tsx
+M src/content/items.ts
+
+=== COMMIT 08c160d | 2026-05-30 | Fix mobile modal scrolling ===
+M src/app/globals.css
+
+=== COMMIT 16c05cc | 2026-05-30 | Refine calculator trade display ===
+M src/app/page.tsx
+M src/components/TradeCalculator.tsx
+M src/components/ValuesList.tsx
+
+=== COMMIT 7609acc | 2026-05-30 | Add item value history pages ===
+M src/app/globals.css
+A src/app/items/[id]/page.tsx
+A src/components/ItemValuePage.tsx
+M src/components/TradeCalculator.tsx
+M src/components/ValuesList.tsx
+M src/content/items.ts
+
+=== COMMIT 860a3e5 | 2026-05-30 | Require real item value history ===
+M src/app/globals.css
+M src/components/ItemValuePage.tsx
+M src/content/items.ts
+
+=== COMMIT 1fdd62c | 2026-05-30 | Add advanced value filters ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 8ae2e37 | 2026-05-30 | Polish advanced filter layout ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT ef8d431 | 2026-05-30 | Balance advanced filter grid ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 2bc0298 | 2026-05-30 | Streamline mobile value filters ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT 59e1967 | 2026-05-30 | Allow desktop filter collapse ===
+M src/app/globals.css
+M src/components/ValuesList.tsx
+
+=== COMMIT cfe3d9d | 2026-05-30 | Add picker advanced filters ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT 6c1cfa3 | 2026-05-30 | Match picker advanced filters ===
+M src/app/globals.css
+M src/components/TradeCalculator.tsx
+
+=== COMMIT 6eee6a0 | 2026-05-30 | Add Firestore admin panel ===
+M package-lock.json
+M package.json
+A src/app/admin/page.tsx
+A src/app/api/admin/items/[id]/route.ts
+A src/app/api/admin/items/route.ts
+M src/app/calculator/page.tsx
+M src/app/globals.css
+M src/app/items/[id]/page.tsx
+M src/app/updates/page.tsx
+M src/app/values/page.tsx
+A src/components/AdminPanel.tsx
+M src/components/FloatingHeader.tsx
+M src/components/TradeCalculator.tsx
+M src/components/UpdatesList.tsx
+M src/components/ValuesList.tsx
+A src/lib/firebaseAdmin.ts
+A src/lib/firestoreItems.ts
+A src/lib/valueItemSchema.ts
+
+=== COMMIT b2d2f23 | 2026-05-30 | Record item value history ===
+M src/app/globals.css
+M src/components/AdminPanel.tsx
+M src/lib/firestoreItems.ts
+
+=== COMMIT 2fdd8b6 | 2026-05-30 | Append value history snapshots ===
+M src/components/AdminPanel.tsx
+M src/components/ItemValuePage.tsx
+M src/lib/firestoreItems.ts
+
+=== COMMIT b2ade76 | 2026-05-30 | Polish item value graph ===
+M src/app/globals.css
+M src/components/ItemValuePage.tsx
+
+=== COMMIT cb7f6d9 | 2026-05-30 | Improve mobile item graph layout ===
+M src/app/globals.css
+M src/components/ItemValuePage.tsx
+
+=== COMMIT 3bfb60f | 2026-05-30 | Make mobile graph readable ===
+M src/app/globals.css
+
+=== COMMIT d370313 | 2026-05-30 | Add project update log ===
+A PROJECT_UPDATE_LOG.txt
+
+
+============================================================
+23. LIMITS OF THIS DOCUMENT
+============================================================
+
+This document now contains two levels of evidence:
+
+1. A human-readable feature and system summary.
+2. A commit-by-commit file-level Git audit trail.
+
+This is the most complete practical project log available from the repository and the current conversation context.
+
+The only thing this document does not include is every single line-level diff, because including the full raw patch for every commit would make the file extremely large and much harder for a client to read. If line-level proof is ever needed, Git itself remains the source of truth and can produce it with:
+
+git log -p
+
+or for a specific commit:
+
+git show COMMIT_HASH
+
