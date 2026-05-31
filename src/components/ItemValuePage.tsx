@@ -37,6 +37,9 @@ const categoryLabels = {
 } as const;
 
 const statIcons = {
+  key: "/icons/trade/key.png",
+  mask: "/icons/trade/mask.png",
+  scroll: "/icons/trade/scroll.png",
   value: "/icons/trade/key.png",
   demand: "/icons/trade/demand.png",
   trend: "/icons/trade/trend.png",
@@ -47,6 +50,12 @@ const statIcons = {
   category: "/icons/trade/mask.png",
   note: "/icons/trade/scroll.png",
 } as const;
+
+const valueModeIcons: Record<ValueMode, string> = {
+  keys: statIcons.key,
+  masks: statIcons.mask,
+  scrolls: statIcons.scroll,
+};
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -136,9 +145,6 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
             <ArrowLeft size={17} strokeWidth={2.4} />
             Go back
           </button>
-          <Link href="/values" className="item-page-back item-page-back-secondary">
-            Value list
-          </Link>
         </div>
 
         <div className="item-page-hero">
@@ -148,16 +154,16 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
             <p>{item.note}</p>
             <div className="item-page-hero-stats" aria-label="Item overview">
               <span>
-                <Image src={statIcons.value} alt="" width={18} height={18} />
+                <Image src={valueModeIcons[valueMode]} alt="" width={18} height={18} />
                 {formatModeValue(item.value, valueMode, currencySettings)}
               </span>
               <span>
                 <Image src={statIcons.demand} alt="" width={18} height={18} />
-                {item.demand}/100 demand
+                {item.demand}/100
               </span>
               <span>
-                <Image src={statIcons.source} alt="" width={18} height={18} />
-                {getItemSource(item)}
+                <Image src={statIcons.trend} alt="" width={18} height={18} />
+                {trendLabels[item.trend]}
               </span>
             </div>
           </div>
@@ -180,6 +186,7 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
                 <div className="item-range-tabs" aria-label="Display value as">
                   {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
                     <button key={mode} type="button" className={cn("item-range-tab", valueMode === mode && "item-range-tab-active")} onClick={() => setValueMode(mode)}>
+                      <Image src={valueModeIcons[mode]} alt="" width={17} height={17} />
                       {valueModes[mode].shortLabel}
                     </button>
                   ))}
@@ -220,7 +227,7 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
           </div>
 
           <aside className="item-stat-panel">
-            <ItemStat icon={statIcons.value} label="Value" value={formatModeValue(item.value, valueMode, currencySettings)} />
+            <ItemStat icon={valueModeIcons[valueMode]} label="Value" value={formatModeValue(item.value, valueMode, currencySettings)} />
             <ItemStat icon={statIcons.demand} label="Demand" value={`${item.demand}/100`} />
             <ItemStat icon={statIcons.trend} label="Trend" value={trendLabels[item.trend]} />
             <ItemStat icon={statIcons.tax} label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
@@ -270,6 +277,7 @@ function ValueHistoryChart({
 }) {
   const width = 760;
   const height = 360;
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const padding = { top: 34, right: 44, bottom: 76, left: 78 };
   const values = history.map((point) => getDisplayValue(point.value, valueMode, currencySettings));
   const minValue = Math.min(...values);
@@ -293,9 +301,16 @@ function ValueHistoryChart({
   const visibleLabelIndexes = new Set(points.map((_, index) => index).filter((index) => index === 0 || index === points.length - 1 || index % labelStep === 0));
   const valueModes = getValueModes(currencySettings);
   const formattedDelta = valueMode === "keys" ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta) >= 100 || Number.isInteger(delta) ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta).toFixed(1);
+  const activePoint = activeIndex === null ? null : points[activeIndex] ?? null;
+  const activeTooltipWidth = 174;
+  const activeTooltipHeight = 76;
+  const activeTooltipX = activePoint ? Math.min(width - padding.right - activeTooltipWidth, Math.max(padding.left, activePoint.x - activeTooltipWidth / 2)) : 0;
+  const activeTooltipY = activePoint ? Math.max(12, activePoint.y - activeTooltipHeight - 18) : 0;
+  const activeDelta = activePoint ? activePoint.value - points[0].value : 0;
+  const activeDeltaPercent = activePoint && points[0].value ? (activeDelta / points[0].value) * 100 : 0;
 
   return (
-    <div className="item-chart-wrap">
+    <div className="item-chart-wrap" onMouseLeave={() => setActiveIndex(null)}>
       <svg className="item-history-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Item value history graph">
         <defs>
           <linearGradient id="itemChartArea" x1="0" x2="0" y1="0" y2="1">
@@ -323,9 +338,38 @@ function ValueHistoryChart({
         )}
         <path d={areaPath} fill="url(#itemChartArea)" />
         <path d={path} className="item-chart-line" />
+        {activePoint ? (
+          <g className="item-chart-active-layer" pointerEvents="none">
+            <line x1={activePoint.x} x2={activePoint.x} y1={padding.top} y2={height - padding.bottom} className="item-chart-active-line" />
+            <circle cx={activePoint.x} cy={activePoint.y} r="8" className="item-chart-active-dot" />
+            <rect x={activeTooltipX} y={activeTooltipY} width={activeTooltipWidth} height={activeTooltipHeight} rx="12" className="item-chart-tooltip-box" />
+            <text x={activeTooltipX + 14} y={activeTooltipY + 21} className="item-chart-tooltip-label">
+              {formatDateLabel(activePoint.date)}
+              {formatTimeLabel(activePoint.date) ? ` / ${formatTimeLabel(activePoint.date)}` : ""}
+            </text>
+            <text x={activeTooltipX + 14} y={activeTooltipY + 44} className="item-chart-tooltip-value">
+              {formatModeValue(activePoint.value, valueMode, currencySettings)}
+            </text>
+            <text x={activeTooltipX + 14} y={activeTooltipY + 62} className={activeDelta >= 0 ? "item-chart-tooltip-good" : "item-chart-tooltip-bad"}>
+              {activeDelta >= 0 ? "+" : ""}
+              {formatModeValue(Math.abs(activeDelta), valueMode, currencySettings)} / {activeDelta >= 0 ? "+" : ""}
+              {activeDeltaPercent.toFixed(1)}%
+            </text>
+          </g>
+        ) : null}
         {points.map((point, index) => (
           <g key={`${point.date}-${index}`}>
             <circle cx={point.x} cy={point.y} r="4.5" className="item-chart-dot" />
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r="16"
+              className="item-chart-hit-area"
+              onBlur={() => setActiveIndex(null)}
+              onFocus={() => setActiveIndex(index)}
+              onMouseEnter={() => setActiveIndex(index)}
+              tabIndex={0}
+            />
             <title>{`${formatDateLabel(point.date)} / ${formatModeValue(point.value, valueMode, currencySettings)}`}</title>
             {visibleLabelIndexes.has(index) ? (
               <text
