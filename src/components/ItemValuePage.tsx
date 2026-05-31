@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type PointerEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -18,6 +18,14 @@ const trendLabels = {
 } as const;
 
 type ChartRange = "1d" | "1w" | "1m" | "3m" | "1y" | "all";
+
+type ActiveChartPoint = {
+  date: string;
+  displayValue: number;
+  rawValue: number;
+  x: number;
+  y: number;
+};
 
 const chartRanges: { id: ChartRange; label: string; days?: number }[] = [
   { id: "1d", label: "1D", days: 1 },
@@ -76,6 +84,17 @@ function formatModeValue(value: number, mode: ValueMode, settings?: ValueCurrenc
   return `${formatted} ${valueModes[mode].unit}`;
 }
 
+function formatPreciseModeValue(value: number, mode: ValueMode, settings?: ValueCurrencySettings) {
+  const valueModes = getValueModes(settings);
+  const amount = getDisplayValue(value, mode, settings);
+  const formatted = new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: Number.isInteger(amount) ? 0 : 1,
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 1,
+  }).format(amount);
+
+  return `${formatted} ${valueModes[mode].unit}`;
+}
+
 function parseHistoryDate(date: string) {
   return new Date(date.includes("T") ? date : `${date}T00:00:00`);
 }
@@ -94,6 +113,17 @@ function formatTimeLabel(date: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(parseHistoryDate(date));
+}
+
+function formatChartTooltipDate(date: string) {
+  const parsedDate = parseHistoryDate(date);
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(parsedDate);
 }
 
 function formatRangeLabel(range: ChartRange) {
@@ -277,7 +307,7 @@ function ValueHistoryChart({
 }) {
   const width = 760;
   const height = 360;
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [activePoint, setActivePoint] = useState<ActiveChartPoint | null>(null);
   const padding = { top: 34, right: 44, bottom: 76, left: 78 };
   const values = history.map((point) => getDisplayValue(point.value, valueMode, currencySettings));
   const minValue = Math.min(...values);
@@ -301,16 +331,48 @@ function ValueHistoryChart({
   const visibleLabelIndexes = new Set(points.map((_, index) => index).filter((index) => index === 0 || index === points.length - 1 || index % labelStep === 0));
   const valueModes = getValueModes(currencySettings);
   const formattedDelta = valueMode === "keys" ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta) >= 100 || Number.isInteger(delta) ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta).toFixed(1);
-  const activePoint = activeIndex === null ? null : points[activeIndex] ?? null;
   const activeTooltipWidth = 174;
   const activeTooltipHeight = 76;
   const activeTooltipX = activePoint ? Math.min(width - padding.right - activeTooltipWidth, Math.max(padding.left, activePoint.x - activeTooltipWidth / 2)) : 0;
   const activeTooltipY = activePoint ? Math.max(12, activePoint.y - activeTooltipHeight - 18) : 0;
-  const activeDelta = activePoint ? activePoint.value - points[0].value : 0;
+  const activeDelta = activePoint ? activePoint.rawValue - points[0].value : 0;
   const activeDeltaPercent = activePoint && points[0].value ? (activeDelta / points[0].value) * 100 : 0;
 
+  function setActiveFromPoint(point: (typeof points)[number]) {
+    setActivePoint({
+      date: point.date,
+      displayValue: point.displayValue,
+      rawValue: point.value,
+      x: point.x,
+      y: point.y,
+    });
+  }
+
+  function setActiveFromPointer(event: PointerEvent<SVGPathElement>) {
+    const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
+    if (!bounds) return;
+
+    const pointerX = ((event.clientX - bounds.left) / bounds.width) * width;
+    const x = Math.min(width - padding.right, Math.max(padding.left, pointerX));
+    const nextIndex = points.findIndex((point, index) => index > 0 && x <= point.x);
+    const endIndex = nextIndex === -1 ? points.length - 1 : nextIndex;
+    const startIndex = Math.max(0, endIndex - 1);
+    const start = points[startIndex];
+    const end = points[endIndex];
+    const segmentWidth = Math.max(1, end.x - start.x);
+    const progress = start === end ? 0 : (x - start.x) / segmentWidth;
+    const rawValue = start.value + (end.value - start.value) * progress;
+    const displayValue = getDisplayValue(rawValue, valueMode, currencySettings);
+    const startTime = parseHistoryDate(start.date).getTime();
+    const endTime = parseHistoryDate(end.date).getTime();
+    const date = new Date(startTime + (endTime - startTime) * progress).toISOString();
+    const y = padding.top + ((maxValue - displayValue) / range) * plotHeight;
+
+    setActivePoint({ date, displayValue, rawValue, x, y });
+  }
+
   return (
-    <div className="item-chart-wrap" onMouseLeave={() => setActiveIndex(null)}>
+    <div className="item-chart-wrap" onMouseLeave={() => setActivePoint(null)}>
       <svg className="item-history-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Item value history graph">
         <defs>
           <linearGradient id="itemChartArea" x1="0" x2="0" y1="0" y2="1">
@@ -341,22 +403,23 @@ function ValueHistoryChart({
         {activePoint ? (
           <g className="item-chart-active-layer" pointerEvents="none">
             <line x1={activePoint.x} x2={activePoint.x} y1={padding.top} y2={height - padding.bottom} className="item-chart-active-line" />
+            <line x1={padding.left} x2={width - padding.right} y1={activePoint.y} y2={activePoint.y} className="item-chart-active-line item-chart-active-line-horizontal" />
             <circle cx={activePoint.x} cy={activePoint.y} r="8" className="item-chart-active-dot" />
             <rect x={activeTooltipX} y={activeTooltipY} width={activeTooltipWidth} height={activeTooltipHeight} rx="12" className="item-chart-tooltip-box" />
             <text x={activeTooltipX + 14} y={activeTooltipY + 21} className="item-chart-tooltip-label">
-              {formatDateLabel(activePoint.date)}
-              {formatTimeLabel(activePoint.date) ? ` / ${formatTimeLabel(activePoint.date)}` : ""}
+              {formatChartTooltipDate(activePoint.date)}
             </text>
             <text x={activeTooltipX + 14} y={activeTooltipY + 44} className="item-chart-tooltip-value">
-              {formatModeValue(activePoint.value, valueMode, currencySettings)}
+              {formatPreciseModeValue(activePoint.rawValue, valueMode, currencySettings)}
             </text>
             <text x={activeTooltipX + 14} y={activeTooltipY + 62} className={activeDelta >= 0 ? "item-chart-tooltip-good" : "item-chart-tooltip-bad"}>
               {activeDelta >= 0 ? "+" : ""}
-              {formatModeValue(Math.abs(activeDelta), valueMode, currencySettings)} / {activeDelta >= 0 ? "+" : ""}
+              {formatPreciseModeValue(Math.abs(activeDelta), valueMode, currencySettings)} / {activeDelta >= 0 ? "+" : ""}
               {activeDeltaPercent.toFixed(1)}%
             </text>
           </g>
         ) : null}
+        <path d={path} className="item-chart-line-hitbox" onPointerEnter={setActiveFromPointer} onPointerMove={setActiveFromPointer} />
         {points.map((point, index) => (
           <g key={`${point.date}-${index}`}>
             <circle cx={point.x} cy={point.y} r="4.5" className="item-chart-dot" />
@@ -365,9 +428,9 @@ function ValueHistoryChart({
               cy={point.y}
               r="16"
               className="item-chart-hit-area"
-              onBlur={() => setActiveIndex(null)}
-              onFocus={() => setActiveIndex(index)}
-              onMouseEnter={() => setActiveIndex(index)}
+              onBlur={() => setActivePoint(null)}
+              onFocus={() => setActiveFromPoint(point)}
+              onMouseEnter={() => setActiveFromPoint(point)}
               tabIndex={0}
             />
             <title>{`${formatDateLabel(point.date)} / ${formatModeValue(point.value, valueMode, currencySettings)}`}</title>

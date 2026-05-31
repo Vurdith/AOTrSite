@@ -3541,6 +3541,16 @@
     filter: drop-shadow(0 0 6px rgb(var(--bright-gold) / 0.18));
   }
 
+  .item-chart-line-hitbox {
+    cursor: crosshair;
+    fill: none;
+    pointer-events: stroke;
+    stroke: transparent;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 34;
+  }
+
   .item-chart-dot {
     fill: rgb(7 5 4);
     stroke: rgb(var(--bright-gold));
@@ -3559,6 +3569,10 @@
     stroke: rgb(var(--bright-gold) / 0.38);
     stroke-dasharray: 4 6;
     stroke-width: 1.2;
+  }
+
+  .item-chart-active-line-horizontal {
+    stroke: rgb(var(--bright-gold) / 0.22);
   }
 
   .item-chart-active-dot {
