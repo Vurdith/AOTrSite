@@ -213,20 +213,26 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
                 <h2 className="font-display">Trade Graph</h2>
               </div>
               <div className="item-chart-controls">
-                <div className="item-range-tabs" aria-label="Display value as">
-                  {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
-                    <button key={mode} type="button" className={cn("item-range-tab", valueMode === mode && "item-range-tab-active")} onClick={() => setValueMode(mode)}>
-                      <Image src={valueModeIcons[mode]} alt="" width={17} height={17} />
-                      {valueModes[mode].shortLabel}
-                    </button>
-                  ))}
+                <div className="item-chart-control-group">
+                  <span>Display value as</span>
+                  <div className="item-range-tabs" aria-label="Display value as">
+                    {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
+                      <button key={mode} type="button" className={cn("item-range-tab", valueMode === mode && "item-range-tab-active")} onClick={() => setValueMode(mode)}>
+                        <Image src={valueModeIcons[mode]} alt="" width={17} height={17} />
+                        {valueModes[mode].shortLabel}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="item-range-tabs" aria-label="Graph time range">
-                  {chartRanges.map((item) => (
-                    <button key={item.id} type="button" className={cn("item-range-tab", range === item.id && "item-range-tab-active")} onClick={() => setRange(item.id)}>
-                      {item.label}
-                    </button>
-                  ))}
+                <div className="item-chart-control-group">
+                  <span>Range</span>
+                  <div className="item-range-tabs" aria-label="Graph time range">
+                    {chartRanges.map((item) => (
+                      <button key={item.id} type="button" className={cn("item-range-tab", range === item.id && "item-range-tab-active")} onClick={() => setRange(item.id)}>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -234,12 +240,14 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
             {hasHistory ? <ValueHistoryChart currencySettings={currencySettings} history={rangedHistory} valueMode={valueMode} /> : <NoHistoryState rangeLabel={rangeLabel} />}
 
             <div className="item-history-summary">
-              <div>
+              <div className="item-history-summary-card">
+                <Image src={valueModeIcons[valueMode]} alt="" width={24} height={24} />
                 <span>Current value</span>
                 <strong>{formatModeValue(item.value, valueMode, currencySettings)}</strong>
               </div>
               {change ? (
-                <div className={changeIsPositive ? "item-change-positive" : "item-change-negative"}>
+                <div className={cn("item-history-summary-card", changeIsPositive ? "item-change-positive" : "item-change-negative")}>
+                  <Image src={statIcons.trend} alt="" width={24} height={24} />
                   <span>{rangeLabel} change</span>
                   <strong>
                     {changeIsPositive ? "+" : "-"}
@@ -248,7 +256,8 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
                   </strong>
                 </div>
               ) : (
-                <div>
+                <div className="item-history-summary-card">
+                  <Image src={statIcons.trend} alt="" width={24} height={24} />
                   <span>Period change</span>
                   <strong>No real history yet</strong>
                 </div>
