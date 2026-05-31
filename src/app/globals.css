@@ -3155,34 +3155,6 @@
     line-height: 1.55;
   }
 
-  .item-page-hero-stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-
-  .item-page-hero-stats span {
-    display: inline-flex;
-    min-height: 2.25rem;
-    align-items: center;
-    gap: 0.42rem;
-    border: 1px solid rgb(var(--gold) / 0.13);
-    border-radius: 999px;
-    background: rgb(0 0 0 / 0.24);
-    color: rgb(var(--ink));
-    padding: 0.35rem 0.72rem;
-    font-size: 0.74rem;
-    font-weight: 900;
-    letter-spacing: 0.02em;
-  }
-
-  .item-page-hero-stats img {
-    width: 1.1rem;
-    height: 1.1rem;
-    object-fit: contain;
-  }
-
   @media (max-width: 639px) {
     .item-page-title-lockup h1 {
       margin-top: 0.58rem;

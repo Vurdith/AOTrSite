@@ -182,20 +182,6 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
             <span className={cn("item-page-rarity", rarityStyles[item.rarity].badge)}>{rarityStyles[item.rarity].label}</span>
             <h1 className="font-display">{item.name}</h1>
             <p>{item.note}</p>
-            <div className="item-page-hero-stats" aria-label="Item overview">
-              <span>
-                <Image src={valueModeIcons[valueMode]} alt="" width={18} height={18} />
-                {formatModeValue(item.value, valueMode, currencySettings)}
-              </span>
-              <span>
-                <Image src={statIcons.demand} alt="" width={18} height={18} />
-                {item.demand}/100
-              </span>
-              <span>
-                <Image src={statIcons.trend} alt="" width={18} height={18} />
-                {trendLabels[item.trend]}
-              </span>
-            </div>
           </div>
 
           <div className="item-page-icon-card">
