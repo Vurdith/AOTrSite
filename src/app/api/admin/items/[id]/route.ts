@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { requireAdminSession } from "@/lib/discordAuth";
 import { deleteValueItem, getValueItem, saveValueItem } from "@/lib/firestoreItems";
 
 type ItemRouteProps = {
@@ -7,6 +8,9 @@ type ItemRouteProps = {
 };
 
 export async function GET(_request: Request, { params }: ItemRouteProps) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   const item = await getValueItem(id);
 
@@ -18,6 +22,9 @@ export async function GET(_request: Request, { params }: ItemRouteProps) {
 }
 
 export async function PUT(request: Request, { params }: ItemRouteProps) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const { id } = await params;
     const item = await saveValueItem({ ...(await request.json()), id });
@@ -31,6 +38,9 @@ export async function PUT(request: Request, { params }: ItemRouteProps) {
 }
 
 export async function DELETE(_request: Request, { params }: ItemRouteProps) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   const { id } = await params;
   await deleteValueItem(id);
 

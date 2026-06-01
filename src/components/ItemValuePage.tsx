@@ -4,9 +4,9 @@ import { useMemo, useState, type PointerEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Calculator, TrendingDown, TrendingUp } from "lucide-react";
+import { ArrowLeft, Calculator } from "lucide-react";
 
-import { getItemSource, getItemValueHistory, type ValueItem, type ValueHistoryPoint } from "@/content/items";
+import { getItemSource, getItemValueHistory, type ItemTrend, type ValueItem, type ValueHistoryPoint } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
 import { getDisplayValue, getValueModes, type ValueCurrencySettings, type ValueMode } from "@/lib/valueCurrency";
@@ -50,14 +50,19 @@ const statIcons = {
   scroll: "/icons/trade/scroll.png",
   value: "/icons/trade/key.png",
   demand: "/icons/trade/demand.png",
-  trend: "/icons/trade/trend.png",
+  trend: "/icons/trade/trend-stable.png",
   tax: "/icons/trade/gem.png",
   prestige: "/icons/trade/prestige.png",
   source: "/icons/trade/source.png",
-  rarity: "/icons/trade/rank.png",
-  category: "/icons/trade/mask.png",
-  note: "/icons/trade/scroll.png",
+  category: "/icons/trade/category.png",
+  note: "/icons/trade/notes.png",
 } as const;
+
+const trendIcons: Record<ItemTrend, string> = {
+  rising: "/icons/trade/trend-rising.png",
+  stable: "/icons/trade/trend-stable.png",
+  falling: "/icons/trade/trend-falling.png",
+};
 
 const valueModeIcons: Record<ValueMode, string> = {
   keys: statIcons.key,
@@ -185,7 +190,7 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
           </div>
 
           <div className="item-page-icon-card">
-            <span className={cn("item-page-icon-frame", rarityStyles[item.rarity].crest)}>
+            <span className={cn("item-crest item-page-icon-frame", rarityStyles[item.rarity].crest)}>
               {item.iconUrl ? <Image src={item.iconUrl} alt="" width={86} height={86} /> : <span>{item.name.slice(0, 2).toUpperCase()}</span>}
             </span>
           </div>
@@ -233,7 +238,7 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
               </div>
               {change ? (
                 <div className={cn("item-history-summary-card", changeIsPositive ? "item-change-positive" : "item-change-negative")}>
-                  <Image src={statIcons.trend} alt="" width={24} height={24} />
+                  <Image src={changeIsPositive ? trendIcons.rising : trendIcons.falling} alt="" width={24} height={24} />
                   <span>{rangeLabel} change</span>
                   <strong>
                     {changeIsPositive ? "+" : "-"}
@@ -243,7 +248,7 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
                 </div>
               ) : (
                 <div className="item-history-summary-card">
-                  <Image src={statIcons.trend} alt="" width={24} height={24} />
+                  <Image src={trendIcons.stable} alt="" width={24} height={24} />
                   <span>Period change</span>
                   <strong>No real history yet</strong>
                 </div>
@@ -254,11 +259,10 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
           <aside className="item-stat-panel">
             <ItemStat icon={valueModeIcons[valueMode]} label="Value" value={formatModeValue(item.value, valueMode, currencySettings)} />
             <ItemStat icon={statIcons.demand} label="Demand" value={`${item.demand}/100`} />
-            <ItemStat icon={statIcons.trend} label="Trend" value={trendLabels[item.trend]} />
+            <ItemStat icon={trendIcons[item.trend]} label="Trend" value={trendLabels[item.trend]} />
             <ItemStat icon={statIcons.tax} label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
             <ItemStat icon={statIcons.prestige} label="Prestige" value={`P${item.prestige}`} />
             <ItemStat icon={statIcons.source} label="Source" value={getItemSource(item)} />
-            <ItemStat icon={statIcons.rarity} label="Rarity" value={rarityStyles[item.rarity].label} />
             <ItemStat icon={statIcons.category} label="Category" value={categoryLabels[item.category]} />
             <ItemStat icon={statIcons.note} label="Notes" value={item.note} wide />
             <Link href={`/calculator?item=${item.id}`} className="item-page-calculator">
@@ -319,13 +323,8 @@ function ValueHistoryChart({
   });
   const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
   const areaPath = `${path} L ${points[points.length - 1].x.toFixed(2)} ${height - padding.bottom} L ${points[0].x.toFixed(2)} ${height - padding.bottom} Z`;
-  const rising = points[points.length - 1].displayValue >= points[0].displayValue;
   const labelStep = Math.max(1, Math.ceil((points.length - 1) / 4));
-  const delta = points[points.length - 1].displayValue - points[0].displayValue;
-  const deltaPercent = points[0].displayValue ? (delta / points[0].displayValue) * 100 : 0;
   const visibleLabelIndexes = new Set(points.map((_, index) => index).filter((index) => index === 0 || index === points.length - 1 || index % labelStep === 0));
-  const valueModes = getValueModes(currencySettings);
-  const formattedDelta = valueMode === "keys" ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta) >= 100 || Number.isInteger(delta) ? formatNumber(Math.round(Math.abs(delta))) : Math.abs(delta).toFixed(1);
   const activeTooltipWidth = 174;
   const activeTooltipHeight = 76;
   const activeTooltipX = activePoint ? Math.min(width - padding.right - activeTooltipWidth, Math.max(padding.left, activePoint.x - activeTooltipWidth / 2)) : 0;
@@ -343,27 +342,74 @@ function ValueHistoryChart({
     });
   }
 
-  function setActiveFromPointer(event: PointerEvent<SVGPathElement>) {
-    const bounds = event.currentTarget.ownerSVGElement?.getBoundingClientRect();
-    if (!bounds) return;
+  function getSvgPointer(event: PointerEvent<SVGElement>) {
+    const svg = event.currentTarget.ownerSVGElement;
+    if (!svg) return null;
 
-    const pointerX = ((event.clientX - bounds.left) / bounds.width) * width;
-    const x = Math.min(width - padding.right, Math.max(padding.left, pointerX));
-    const nextIndex = points.findIndex((point, index) => index > 0 && x <= point.x);
+    const matrix = svg.getScreenCTM();
+    if (matrix) {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+
+      return point.matrixTransform(matrix.inverse());
+    }
+
+    const bounds = svg.getBoundingClientRect();
+    return {
+      x: ((event.clientX - bounds.left) / bounds.width) * width,
+      y: ((event.clientY - bounds.top) / bounds.height) * height,
+    };
+  }
+
+  function setActiveFromPointer(event: PointerEvent<SVGElement>) {
+    const pointer = getSvgPointer(event);
+    if (!pointer) return;
+
+    const pointerX = pointer.x;
+    const pointX = Math.min(width - padding.right, Math.max(padding.left, pointerX));
+
+    if (points.length === 1) {
+      setActiveFromPoint(points[0]);
+      return;
+    }
+
+    if (pointX <= points[0].x) {
+      setActiveFromPoint(points[0]);
+      return;
+    }
+
+    if (pointX >= points[points.length - 1].x) {
+      setActiveFromPoint(points[points.length - 1]);
+      return;
+    }
+
+    const pointSnapRadius = Math.max(18, plotWidth / Math.max(24, points.length * 8));
+    const nearestPoint = points.reduce((best, point) => {
+      const distance = Math.abs(point.x - pointX);
+      return distance < best.distance ? { distance, point } : best;
+    }, { distance: Number.POSITIVE_INFINITY, point: points[0] });
+
+    if (nearestPoint.distance <= pointSnapRadius) {
+      setActiveFromPoint(nearestPoint.point);
+      return;
+    }
+
+    const nextIndex = points.findIndex((point, index) => index > 0 && pointX <= point.x);
     const endIndex = nextIndex === -1 ? points.length - 1 : nextIndex;
     const startIndex = Math.max(0, endIndex - 1);
     const start = points[startIndex];
     const end = points[endIndex];
     const segmentWidth = Math.max(1, end.x - start.x);
-    const progress = start === end ? 0 : (x - start.x) / segmentWidth;
+    const progress = start === end ? 0 : (pointX - start.x) / segmentWidth;
     const rawValue = start.value + (end.value - start.value) * progress;
     const displayValue = getDisplayValue(rawValue, valueMode, currencySettings);
     const startTime = parseHistoryDate(start.date).getTime();
     const endTime = parseHistoryDate(end.date).getTime();
     const date = new Date(startTime + (endTime - startTime) * progress).toISOString();
-    const y = padding.top + ((maxValue - displayValue) / range) * plotHeight;
+    const y = start.y + (end.y - start.y) * progress;
 
-    setActivePoint({ date, displayValue, rawValue, x, y });
+    setActivePoint({ date, displayValue, rawValue, x: pointX, y });
   }
 
   return (
@@ -414,7 +460,6 @@ function ValueHistoryChart({
             </text>
           </g>
         ) : null}
-        <path d={path} className="item-chart-line-hitbox" onPointerEnter={setActiveFromPointer} onPointerMove={setActiveFromPointer} />
         {points.map((point, index) => (
           <g key={`${point.date}-${index}`}>
             <circle cx={point.x} cy={point.y} r="4.5" className="item-chart-dot" />
@@ -448,13 +493,16 @@ function ValueHistoryChart({
             ) : null}
           </g>
         ))}
+        <rect
+          x="0"
+          y="0"
+          width={width}
+          height={height}
+          className="item-chart-magnetic-layer"
+          onPointerEnter={setActiveFromPointer}
+          onPointerMove={setActiveFromPointer}
+        />
       </svg>
-      <div className="item-chart-badge">
-        {rising ? <TrendingUp size={15} strokeWidth={2.4} /> : <TrendingDown size={15} strokeWidth={2.4} />}
-        {delta >= 0 ? "+" : ""}
-        {formattedDelta} {valueModes[valueMode].unit} / {delta >= 0 ? "+" : ""}
-        {deltaPercent.toFixed(1)}%
-      </div>
     </div>
   );
 }

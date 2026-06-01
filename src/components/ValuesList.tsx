@@ -15,24 +15,26 @@ type ValueFilter = "all" | "top" | "mid" | "low";
 type SourceFilter = "all" | string;
 type TrendFilter = "all" | ItemTrend;
 
-const trendMeta: Record<ItemTrend, { label: string; className: string }> = {
+const trendMeta: Record<ItemTrend, { label: string; className: string; icon: string }> = {
   rising: {
-    label: "Rising +8%",
+    label: "Rising",
     className: "trend-sigil-rising",
+    icon: "trend-rising",
   },
   stable: {
     label: "Stable",
     className: "trend-sigil-stable",
+    icon: "trend-stable",
   },
   falling: {
-    label: "Falling -6%",
+    label: "Falling",
     className: "trend-sigil-falling",
+    icon: "trend-falling",
   },
 };
 
 const prestigeLabels = ["Open trade", "Low gate", "Mid gate", "High gate"];
 const pageSize = 8;
-const isDevelopment = process.env.NODE_ENV === "development";
 
 const filterBreakpoint = "(max-width: 767px)";
 
@@ -668,7 +670,7 @@ function ValueDetailModal({
           <ValueDetailLine icon="gem" label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
           <ValueDetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
           <ValueDetailLine icon="prestige" label="Prestige" value={`P${item.prestige} / ${prestigeLabels[item.prestige]}`} />
-          <ValueDetailLine icon="trend" label="Trend" value={trendMeta[item.trend].label} />
+          <ValueDetailLine icon={trendMeta[item.trend].icon} label="Trend" value={trendMeta[item.trend].label} />
           <ValueDetailLine icon="source" label="Source" value={getItemSource(item)} />
         </div>
 
@@ -683,20 +685,18 @@ function ValueDetailModal({
         >
           <span>Add to calculator</span>
         </Link>
-        {isDevelopment ? (
-          <Link
-            href={`/items/${item.id}`}
-            className="item-modal-page-link mt-3 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
-          >
-            View trade graph
-          </Link>
-        ) : null}
+        <Link
+          href={`/items/${item.id}`}
+          className="item-modal-page-link mt-3 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
+        >
+          View trade graph
+        </Link>
       </div>
     </div>
   );
 }
 
-function ValueDetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "rank" | "trend" | "source"; label: string; value: string }) {
+function ValueDetailLine({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div className="calculator-detail-line">
       <GemIcon type={icon} className={cn("calculator-detail-image-icon", `trade-icon-${icon}`)} />
@@ -747,6 +747,7 @@ function TrendBadge({ trend }: { trend: ItemTrend }) {
 
   return (
     <span className={cn("trend-sigil", meta.className)}>
+      <GemIcon type={meta.icon} className={cn("trend-sigil-icon", `trade-icon-${meta.icon}`)} />
       {meta.label}
     </span>
   );

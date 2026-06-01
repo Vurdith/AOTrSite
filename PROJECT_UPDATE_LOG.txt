@@ -1,12 +1,12 @@
-AOTR VALUE CENTRAL - PROJECT UPDATE / ADDITION / FEATURE / SYSTEM LOG
-Generated: May 30, 2026
+AOTR VALUES - PROJECT UPDATE / ADDITION / FEATURE / SYSTEM LOG
+Produced by Me: May 30, 2026
 Repository: AOTrSite
 
-This document compiles the known work completed on the AOTR Value Central site across the project conversation, implementation passes, and Git commit history.
+This document compiles the known work completed on the AOTR Value / Trading site across the project conversation, implementation passes, and Git commit history.
 
 The purpose of this document is to give a clear record of the features, systems, design work, backend work, UI improvements, mobile fixes, and future-ready foundations that have gone into the site so far.
 
-This is not a basic static website. It is a custom trading web application with a themed frontend, database-backed item data, an admin panel, trade calculator logic, value history graphs, item pages, filtering systems, responsive layouts, and ongoing infrastructure for future expansion.
+This is not a basic static website. It is a custom trading / values web application with a themed frontend, database-backed item data, an admin panel, trade calculator logic, value history graphs, item pages, filtering systems, responsive layouts, and ongoing infrastructure for future expansion.
 
 
 ============================================================
@@ -995,7 +995,7 @@ A PROJECT_UPDATE_LOG.txt
 
 This document now contains two levels of evidence:
 
-1. A human-readable feature and system summary.
+1. A readable feature and system summary.
 2. A commit-by-commit file-level Git audit trail.
 
 This is the most complete practical project log available from the repository and the current conversation context.

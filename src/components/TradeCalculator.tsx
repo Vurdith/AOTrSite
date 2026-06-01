@@ -19,7 +19,6 @@ type PickerValueFilter = "all" | "top" | "mid" | "low";
 type PickerSourceFilter = "all" | string;
 type PickerTrendFilter = "all" | ItemTrend;
 
-const isDevelopment = process.env.NODE_ENV === "development";
 const filterBreakpoint = "(max-width: 767px)";
 
 function subscribeFilterBreakpoint(onStoreChange: () => void) {
@@ -41,6 +40,12 @@ const trendLabels: Record<ItemTrend, string> = {
   rising: "Rising",
   stable: "Stable",
   falling: "Falling",
+};
+
+const trendIcon: Record<ItemTrend, string> = {
+  rising: "trend-rising",
+  stable: "trend-stable",
+  falling: "trend-falling",
 };
 
 const pickerSortOptions: { id: PickerSortOption; label: string }[] = [
@@ -95,11 +100,13 @@ function formatModeValue(value: number, mode: ValueMode, settings?: ValueCurrenc
 }
 
 function initialYoursSlots(items: ValueItem[]) {
-  return [items[2] ? { item: items[2], quantity: 1 } : null, items[5] ? { item: items[5], quantity: 1 } : null, ...Array<TradeSlot>(7).fill(null)];
+  void items;
+  return Array<TradeSlot>(9).fill(null);
 }
 
 function initialTheirsSlots(items: ValueItem[]) {
-  return [items[1] ? { item: items[1], quantity: 1 } : null, ...Array<TradeSlot>(8).fill(null)];
+  void items;
+  return Array<TradeSlot>(9).fill(null);
 }
 
 function getNextSlotIndex(slots: TradeSlot[], currentIndex: number) {
@@ -170,7 +177,7 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
   const valueModes = useMemo(() => getValueModes(currencySettings), [currencySettings]);
   const [yours, setYours] = useState<TradeSlot[]>(() => initialYoursSlots(items));
   const [theirs, setTheirs] = useState<TradeSlot[]>(() => initialTheirsSlots(items));
-  const [activeSlot, setActiveSlot] = useState<ActiveSlot>({ side: "yours", index: 2 });
+  const [activeSlot, setActiveSlot] = useState<ActiveSlot>({ side: "yours", index: 0 });
   const [pickerOpen, setPickerOpen] = useState(false);
   const [valueMode, setValueMode] = useState<ValueMode>("keys");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
@@ -360,6 +367,7 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
           <div className="calculator-board-head">
             <div>
               <h2 className="font-display text-2xl text-[rgb(var(--ink))] md:text-3xl">Trade slots</h2>
+              <p className="calculator-board-copy">Add your items and the other side&apos;s items to compare value, tax, and demand.</p>
             </div>
             <div className={cn("calculator-verdict-clean", diff >= 0 ? "calculator-verdict-good" : "calculator-verdict-bad")}>
               <span>{favor}</span>
@@ -370,12 +378,9 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
             </div>
           </div>
 
-          <div className="calculator-tax-summary mt-4">
+          <div className="calculator-summary-grid mt-4">
             <StatChip label="Gem Tax" value={gemTaxTotal ? `${gemTaxTotal.toLocaleString()} gems total` : "No gem tax"} icon="gem" />
             <StatChip label="Gold Tax" value="No gold tax listed" icon="gold" />
-          </div>
-
-          <div className="calculator-demand-summary mt-3">
             <StatChip label="Your Median Demand" value={formatDemand(yourMedianDemand)} icon="demand" />
             <StatChip label="Their Median Demand" value={formatDemand(theirMedianDemand)} icon="demand" />
           </div>
@@ -720,7 +725,10 @@ function Offer({
         </div>
       </div>
       <div className="calculator-slot-grid mt-3">
-        {items.map((item, index) => (
+        {[
+          ...items.map((item, index) => ({ index, item })).filter((entry) => entry.item),
+          ...(items.some((slot) => !slot) ? [{ index: items.findIndex((slot) => !slot), item: null }] : []),
+        ].map(({ item, index }) => (
           <TradeCell
             active={activeSlot.side === side && activeSlot.index === index}
             item={item}
@@ -906,7 +914,7 @@ function ItemDetailModal({
           <DetailLine icon="gem" label="Gem Tax" value={`${item.taxGems.toLocaleString()} gems`} />
           <DetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
           <DetailLine icon="prestige" label="Prestige" value={`P${item.prestige}`} />
-          <DetailLine icon="trend" label="Trend" value={trendLabels[item.trend]} />
+          <DetailLine icon={trendIcon[item.trend]} label="Trend" value={trendLabels[item.trend]} />
           <DetailLine icon="source" label="Source" value={getItemSource(item)} />
         </div>
 
@@ -915,20 +923,18 @@ function ItemDetailModal({
           <p>{item.note}</p>
         </div>
 
-        {isDevelopment ? (
-          <Link
-            href={`/items/${item.id}`}
-            className="item-modal-page-link mt-4 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
-          >
-            View trade graph
-          </Link>
-        ) : null}
+        <Link
+          href={`/items/${item.id}`}
+          className="item-modal-page-link mt-4 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
+        >
+          View trade graph
+        </Link>
       </div>
     </div>
   );
 }
 
-function DetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige" | "trend" | "source"; label: string; value: string }) {
+function DetailLine({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div className="calculator-detail-line">
       <DetailIcon type={icon} />
@@ -938,7 +944,7 @@ function DetailLine({ icon, label, value }: { icon: "gem" | "demand" | "prestige
   );
 }
 
-function DetailIcon({ type }: { type: "gem" | "demand" | "prestige" | "trend" | "source" }) {
+function DetailIcon({ type }: { type: string }) {
   return <CalcValueIcon type={type} className={cn("calculator-detail-image-icon", `trade-icon-${type}`)} />;
 }
 

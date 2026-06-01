@@ -2,18 +2,21 @@ import { categories, type ItemTrend, updateLog, valueItems, type ValueItem } fro
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
 
-const trendMeta: Record<ItemTrend, { label: string; className: string }> = {
+const trendMeta: Record<ItemTrend, { label: string; className: string; icon: string }> = {
   rising: {
     label: "Rising +8%",
     className: "trend-sigil-rising",
+    icon: "trend-rising",
   },
   stable: {
     label: "Unchanged",
     className: "update-unchanged-pill",
+    icon: "trend-stable",
   },
   falling: {
     label: "Falling -6%",
     className: "trend-sigil-falling",
+    icon: "trend-falling",
   },
 };
 
@@ -189,7 +192,10 @@ function UpdateRow({ item }: { item: ValueItem }) {
       <UpdateMetric label="Value" value={`${formatNumber(item.value)} keys`} icon="key" tone="updated" />
       <div className="flex min-w-0 items-center lg:block">
         <span className="mr-2 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.62)] lg:hidden">Trend</span>
-        <span className={cn("trend-sigil", trendMeta[item.trend].className)}>{trendMeta[item.trend].label}</span>
+        <span className={cn("trend-sigil", trendMeta[item.trend].className)}>
+          <GemIcon type={trendMeta[item.trend].icon} className={cn("trend-sigil-icon", `trade-icon-${trendMeta[item.trend].icon}`)} />
+          {trendMeta[item.trend].label}
+        </span>
       </div>
       <UpdateMetric label="Gem Tax" value="Same" tone="unchanged" />
       <UpdateMetric label="Demand" value={`${item.demand}/100`} icon="demand" tone="updated" />

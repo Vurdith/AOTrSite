@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
+import { requireAdminSession } from "@/lib/discordAuth";
 import { getFirestoreValueItems, saveValueItem, seedValueItems } from "@/lib/firestoreItems";
 
 function errorResponse(error: unknown) {
@@ -13,6 +14,9 @@ function errorResponse(error: unknown) {
 }
 
 export async function GET() {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const items = await getFirestoreValueItems();
 
@@ -23,6 +27,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const unauthorized = await requireAdminSession();
+  if (unauthorized) return unauthorized;
+
   try {
     const body = await request.json();
 
