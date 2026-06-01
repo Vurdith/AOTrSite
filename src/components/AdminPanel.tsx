@@ -447,7 +447,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     const response = await fetch("/api/admin/items", { cache: "no-store" });
     const data = await response.json();
 
-    if (!response.ok) throw new Error(data.error ?? "Unable to refresh Firestore items.");
+    if (!response.ok) throw new Error(data.error ?? "Unable to refresh database items.");
 
     setItems(data.items);
     return data.items as ValueItem[];
@@ -552,10 +552,10 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     }
   }
 
-  async function seedFirestore() {
+  async function seedDatabase() {
     setSaving(true);
     setStatusTone("success");
-    setStatus("Seeding Firestore from local item data...");
+    setStatus("Seeding Supabase from local item data...");
 
     try {
       const response = await fetch("/api/admin/items", {
@@ -565,13 +565,13 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       });
       const data = await response.json();
 
-      if (!response.ok) throw new Error(data.error ?? "Unable to seed Firestore.");
+      if (!response.ok) throw new Error(data.error ?? "Unable to seed Supabase.");
 
       const freshItems = await refreshItems();
       selectItem(freshItems[0] ?? emptyItem);
       if (logsLoaded) void refreshLogs();
       setStatusTone("success");
-      setStatus(`Seeded ${data.count} items into Firestore.`);
+      setStatus(`Seeded ${data.count} items into Supabase.`);
     } catch (error) {
       setStatusTone("error");
       setStatus(error instanceof Error ? error.message : "Seed failed.");
@@ -796,7 +796,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
           ) : activeView === "logs" ? (
             <LogsPanel currentPage={logPage} logs={logs} loading={logsLoading} onPageChange={setLogPage} refreshLogs={refreshLogs} />
           ) : (
-            <ControlsPanel saving={saving} seedFirestore={seedFirestore} />
+            <ControlsPanel saving={saving} seedDatabase={seedDatabase} />
           )}
         </div>
       </div>
@@ -1150,15 +1150,15 @@ function AdminLogValue({ label, value }: { label: string; value: string | null }
   );
 }
 
-function ControlsPanel({ saving, seedFirestore }: { saving: boolean; seedFirestore: () => void }) {
+function ControlsPanel({ saving, seedDatabase }: { saving: boolean; seedDatabase: () => void }) {
   return (
     <div className="admin-controls-page">
-      <AdminCard icon={<Database size={17} strokeWidth={2.4} />} eyebrow="Database" title="Firestore seed">
-        <p className="admin-card-copy">Populate Firestore from the bundled local item list.</p>
+      <AdminCard icon={<Database size={17} strokeWidth={2.4} />} eyebrow="Database" title="Supabase seed">
+        <p className="admin-card-copy">Populate Supabase from the bundled local item list.</p>
         <div className="admin-controls-actions">
-          <button type="button" className="admin-secondary-action admin-seed-action" onClick={seedFirestore} disabled={saving}>
+          <button type="button" className="admin-secondary-action admin-seed-action" onClick={seedDatabase} disabled={saving}>
             <Database size={15} strokeWidth={2.4} />
-            Seed Firestore
+            Seed Supabase
           </button>
         </div>
       </AdminCard>

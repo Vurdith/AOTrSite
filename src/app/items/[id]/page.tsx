@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { ItemValuePage } from "@/components/ItemValuePage";
-import { getPublicValueCurrencySettings, getPublicValueItems, getValueItem } from "@/lib/firestoreItems";
+import { getPublicValueCurrencySettings, getPublicValueItems, getValueItem } from "@/lib/supabaseItems";
 
 type ItemPageProps = {
   params: Promise<{ id: string }>;

@@ -4,7 +4,7 @@ import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { TradesBoard } from "@/components/TradesBoard";
 import { getDiscordSession } from "@/lib/discordAuth";
-import { getPublicValueItems } from "@/lib/firestoreItems";
+import { getPublicValueItems } from "@/lib/supabaseItems";
 import { getPublicTradeAds } from "@/lib/tradeAds";
 
 export const dynamic = "force-dynamic";

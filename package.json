@@ -6,12 +6,11 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint",
-    "migrate:firestore": "node scripts/migrate-firestore.mjs"
+    "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
     "clsx": "^2.1.1",
-    "firebase-admin": "^13.10.0",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.468.0",
     "next": "16.1.0",

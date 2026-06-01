@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
-import { getValueCurrencySettings, saveValueCurrencySettings } from "@/lib/firestoreItems";
+import { getValueCurrencySettings, saveValueCurrencySettings } from "@/lib/supabaseItems";
 import type { ValueCurrencySettings } from "@/lib/valueCurrency";
 
 const settingChangeLabels: Record<keyof ValueCurrencySettings, string> = {

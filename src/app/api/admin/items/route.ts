@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
-import { getFirestoreValueItems, getValueItem, saveValueItem, seedValueItems } from "@/lib/firestoreItems";
+import { getDatabaseValueItems, getValueItem, saveValueItem, seedValueItems } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
 
 const itemChangeLabels: Partial<Record<keyof ValueItem, string>> = {
@@ -69,7 +69,7 @@ export async function GET() {
   if (unauthorized) return unauthorized;
 
   try {
-    const items = await getFirestoreValueItems();
+    const items = await getDatabaseValueItems();
 
     return NextResponse.json({ items });
   } catch (error) {
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         action: "items_seeded",
         actor: auth.session,
         changes: [{ after: String(count), before: null, field: "seededItems", label: "Seeded Items" }],
-        summary: `Seeded ${count} local items into Firestore.`,
+        summary: `Seeded ${count} local items into Supabase.`,
         targetType: "items",
       });
 

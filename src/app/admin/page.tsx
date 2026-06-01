@@ -2,7 +2,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { getDiscordSession } from "@/lib/discordAuth";
-import { getValueCurrencySettings, getValueItems } from "@/lib/firestoreItems";
+import { getValueCurrencySettings, getValueItems } from "@/lib/supabaseItems";
 
 export const dynamic = "force-dynamic";
 

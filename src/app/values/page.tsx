@@ -1,7 +1,7 @@
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { ValuesList } from "@/components/ValuesList";
-import { getPublicValueCurrencySettings, getPublicValueItems } from "@/lib/firestoreItems";
+import { getPublicValueCurrencySettings, getPublicValueItems } from "@/lib/supabaseItems";
 
 export const revalidate = false;
 

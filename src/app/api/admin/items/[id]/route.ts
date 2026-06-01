@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
-import { deleteValueItem, getValueItem, saveValueItem } from "@/lib/firestoreItems";
+import { deleteValueItem, getValueItem, saveValueItem } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
 
 type ItemRouteProps = {

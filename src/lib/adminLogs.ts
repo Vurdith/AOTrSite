@@ -1,11 +1,9 @@
 import "server-only";
 
-import { FieldValue } from "firebase-admin/firestore";
-
 import type { DiscordSession } from "@/lib/discordAuth";
-import { getFirebaseAdminDb } from "@/lib/firebaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-const collectionName = "adminLogs";
+const adminLogsTable = "admin_logs";
 const defaultLogLimit = 500;
 
 export type AdminLogAction = "item_created" | "item_updated" | "item_deleted" | "items_seeded" | "media_uploaded" | "settings_updated";
@@ -58,32 +56,32 @@ function parseLogChanges(value: unknown): AdminLogChange[] {
     .filter((change): change is AdminLogChange => Boolean(change));
 }
 
-function parseLogDocument(id: string, data: FirebaseFirestore.DocumentData): AdminLog | null {
-  const actor = data.actor;
+function parseLogDocument(data: Record<string, unknown>): AdminLog | null {
+  const actor = data.actor as Record<string, unknown> | null;
 
-  if (!data.action || !data.summary || !data.targetType || !actor?.discordId || !actor?.username) return null;
+  if (!data.action || !data.summary || !data.target_type || !actor?.discordId || !actor?.username) return null;
 
   return {
-    action: data.action,
+    action: String(data.action) as AdminLogAction,
     actor: {
       avatar: typeof actor.avatar === "string" ? actor.avatar : null,
       discordId: String(actor.discordId),
       username: String(actor.username),
     },
     changes: parseLogChanges(data.changes),
-    createdAt: data.createdAt?.toDate?.().toISOString?.() ?? new Date(0).toISOString(),
-    id,
+    createdAt: typeof data.created_at === "string" ? data.created_at : new Date(0).toISOString(),
+    id: String(data.id),
     summary: String(data.summary),
-    targetId: data.targetId ? String(data.targetId) : undefined,
-    targetName: data.targetName ? String(data.targetName) : undefined,
-    targetType: data.targetType,
+    targetId: data.target_id ? String(data.target_id) : undefined,
+    targetName: data.target_name ? String(data.target_name) : undefined,
+    targetType: data.target_type as AdminLog["targetType"],
   };
 }
 
 export async function createAdminLog({ action, actor, changes, summary, targetId, targetName, targetType }: CreateAdminLogInput) {
-  await getFirebaseAdminDb()
-    .collection(collectionName)
-    .add({
+  const response = await getSupabaseAdmin()
+    .from(adminLogsTable)
+    .insert({
       action,
       actor: {
         avatar: actor.avatar,
@@ -91,22 +89,25 @@ export async function createAdminLog({ action, actor, changes, summary, targetId
         username: actor.username,
       },
       changes,
-      createdAt: FieldValue.serverTimestamp(),
       summary,
-      targetId: targetId ?? null,
-      targetName: targetName ?? null,
-      targetType,
+      target_id: targetId ?? null,
+      target_name: targetName ?? null,
+      target_type: targetType,
     });
+
+  if (response.error) throw response.error;
 }
 
 export async function getAdminLogs(limit = defaultLogLimit) {
-  const snapshot = await getFirebaseAdminDb()
-    .collection(collectionName)
-    .orderBy("createdAt", "desc")
-    .limit(Math.min(Math.max(limit, 1), 500))
-    .get();
+  const response = await getSupabaseAdmin()
+    .from(adminLogsTable)
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(Math.min(Math.max(limit, 1), 500));
 
-  return snapshot.docs
-    .map((doc) => parseLogDocument(doc.id, doc.data()))
+  if (response.error) throw response.error;
+
+  return (response.data ?? [])
+    .map((row) => parseLogDocument(row as Record<string, unknown>))
     .filter((log): log is AdminLog => Boolean(log));
 }

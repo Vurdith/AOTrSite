@@ -3,7 +3,7 @@ import Link from "next/link";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { UpdatesList } from "@/components/UpdatesList";
-import { getPublicValueItems } from "@/lib/firestoreItems";
+import { getPublicValueItems } from "@/lib/supabaseItems";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 

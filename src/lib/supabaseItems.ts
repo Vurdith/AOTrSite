@@ -1,25 +1,24 @@
 import "server-only";
 
-import { FieldValue } from "firebase-admin/firestore";
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 
 import { valueItems, type ValueItem } from "@/content/items";
-import { getFirebaseAdminDb } from "@/lib/firebaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { valueItemInputSchema } from "@/lib/valueItemSchema";
 import { defaultValueCurrencySettings, getCurrencyValues, sanitizeCurrencySettings, type ValueCurrencySettings } from "@/lib/valueCurrency";
 
-const collectionName = "items";
-const settingsCollectionName = "settings";
+const valueItemsTable = "value_items";
+const valueSettingsTable = "value_settings";
 const marketSettingsDocumentId = "market";
 const publicReadTimeoutMs = 1800;
 const publicCacheMs = 300_000;
-const firestoreCooldownMs = 10 * 60_000;
+const databaseCooldownMs = 10 * 60_000;
 const valueItemsCacheTag = "value-items";
 const valueSettingsCacheTag = "value-settings";
 
 let cachedItems: { items: ValueItem[]; timestamp: number } | null = null;
 let cachedSettings: { settings: ValueCurrencySettings; timestamp: number } | null = null;
-let firestoreDisabledUntil = 0;
+let databaseDisabledUntil = 0;
 
 function isFresh(timestamp: number) {
   return Date.now() - timestamp < publicCacheMs;
@@ -29,31 +28,33 @@ function getStaticValueItems(settings: ValueCurrencySettings = defaultValueCurre
   return sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
-  if (!timeoutMs) return promise;
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
+  const resolvedPromise = Promise.resolve(promise);
+
+  if (!timeoutMs) return resolvedPromise;
 
   return Promise.race([
-    promise,
+    resolvedPromise,
     new Promise<T>((_, reject) => {
       setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms.`)), timeoutMs);
     }),
   ]);
 }
 
-function isFirestoreCoolingDown() {
-  return Date.now() < firestoreDisabledUntil;
+function isDatabaseCoolingDown() {
+  return Date.now() < databaseDisabledUntil;
 }
 
-function shouldCooldownFirestore(error: unknown) {
+function shouldCooldownDatabase(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   const code = typeof error === "object" && error && "code" in error ? (error as { code?: unknown }).code : null;
 
-  return code === 8 || message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded") || message.includes("timed out");
+  return code === 8 || message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded") || message.includes("rate limit") || message.includes("timed out");
 }
 
-function markFirestoreCooldown(error: unknown) {
-  if (shouldCooldownFirestore(error)) {
-    firestoreDisabledUntil = Date.now() + firestoreCooldownMs;
+function markDatabaseCooldown(error: unknown) {
+  if (shouldCooldownDatabase(error)) {
+    databaseDisabledUntil = Date.now() + databaseCooldownMs;
   }
 }
 
@@ -73,7 +74,7 @@ function sortByValue(items: ValueItem[]) {
   return [...items].sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 }
 
-function toFirestoreData(item: ValueItem) {
+function toSupabaseData(item: ValueItem) {
   return Object.fromEntries(Object.entries(item).filter((entry) => entry[1] !== undefined));
 }
 
@@ -87,7 +88,7 @@ function withCurrencyValues(item: ValueItem, settings: ValueCurrencySettings) {
   };
 }
 
-function parseItemDocument(id: string, data: FirebaseFirestore.DocumentData): ValueItem | null {
+function parseItemDocument(id: string, data: Record<string, unknown>): ValueItem | null {
   const parsed = valueItemInputSchema.safeParse({
     ...data,
     id: data.id ?? id,
@@ -112,16 +113,17 @@ function withRecordedValueHistory(item: ValueItem, previous?: ValueItem | null) 
   };
 }
 
-export async function getFirestoreValueItems(options: { timeoutMs?: number } = {}) {
-  const db = getFirebaseAdminDb();
-  const [settings, snapshot] = await Promise.all([
+export async function getDatabaseValueItems(options: { timeoutMs?: number } = {}) {
+  const [settings, response] = await Promise.all([
     getValueCurrencySettings(options),
-    withTimeout(db.collection(collectionName).get(), options.timeoutMs ?? 0, "Firestore items read"),
+    withTimeout(getSupabaseAdmin().from(valueItemsTable).select("id,data"), options.timeoutMs ?? 0, "Supabase items read"),
   ]);
 
+  if (response.error) throw response.error;
+
   return sortByValue(
-    snapshot.docs
-      .map((doc) => parseItemDocument(doc.id, doc.data()))
+    (response.data ?? [])
+      .map((row) => parseItemDocument(String(row.id), (row.data ?? {}) as Record<string, unknown>))
       .filter((item): item is ValueItem => Boolean(item)),
   ).map((item) => withCurrencyValues(item, settings));
 }
@@ -131,7 +133,7 @@ export async function getValueItems() {
     return cachedItems.items;
   }
 
-  if (isFirestoreCoolingDown()) {
+  if (isDatabaseCoolingDown()) {
     const settings = await getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs });
     const fallbackItems = getStaticValueItems(settings);
     cachedItems = { items: fallbackItems, timestamp: Date.now() };
@@ -139,7 +141,7 @@ export async function getValueItems() {
   }
 
   try {
-    const items = await getFirestoreValueItems({ timeoutMs: publicReadTimeoutMs });
+    const items = await getDatabaseValueItems({ timeoutMs: publicReadTimeoutMs });
 
     if (items.length) {
       cachedItems = { items, timestamp: Date.now() };
@@ -151,8 +153,8 @@ export async function getValueItems() {
     cachedItems = { items: fallbackItems, timestamp: Date.now() };
     return fallbackItems;
   } catch (error) {
-    markFirestoreCooldown(error);
-    console.warn("Using local value items because Firestore items could not be loaded.", error);
+    markDatabaseCooldown(error);
+    console.warn("Using local value items because Supabase items could not be loaded.", error);
     const settings = await getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs });
     const fallbackItems = getStaticValueItems(settings);
     cachedItems = { items: fallbackItems, timestamp: Date.now() };
@@ -176,19 +178,23 @@ export async function getValueItem(id: string) {
   if (cachedItem) return cachedItem;
 
   try {
-    if (isFirestoreCoolingDown()) {
-      throw new Error("Firestore public reads are cooling down after quota errors.");
+    if (isDatabaseCoolingDown()) {
+      throw new Error("Supabase public reads are cooling down after database errors.");
     }
 
-    const db = getFirebaseAdminDb();
-    const [settings, doc] = await Promise.all([getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }), withTimeout(db.collection(collectionName).doc(id).get(), publicReadTimeoutMs, "Firestore item read")]);
+    const [settings, response] = await Promise.all([
+      getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }),
+      withTimeout(getSupabaseAdmin().from(valueItemsTable).select("id,data").eq("id", id).maybeSingle(), publicReadTimeoutMs, "Supabase item read"),
+    ]);
 
-    if (doc.exists) {
-      const item = parseItemDocument(doc.id, doc.data() ?? {});
+    if (response.error) throw response.error;
+
+    if (response.data) {
+      const item = parseItemDocument(String(response.data.id), (response.data.data ?? {}) as Record<string, unknown>);
       if (item) return withCurrencyValues(item, settings);
     }
   } catch (error) {
-    markFirestoreCooldown(error);
+    markDatabaseCooldown(error);
     console.warn(`Using local item fallback for ${id}.`, error);
   }
 
@@ -200,17 +206,20 @@ export async function getValueItem(id: string) {
 
 export async function saveValueItem(input: unknown) {
   const parsedItem = valueItemInputSchema.parse(input);
-  const db = getFirebaseAdminDb();
   const settings = await getValueCurrencySettings({ timeoutMs: 0 });
-  const ref = db.collection(collectionName).doc(parsedItem.id);
-  const existing = await ref.get();
-  const previous = existing.exists ? parseItemDocument(existing.id, existing.data() ?? {}) : null;
-  const item = withRecordedValueHistory(withCurrencyValues(parsedItem, settings), previous);
+  const existing = await getSupabaseAdmin().from(valueItemsTable).select("id,data").eq("id", parsedItem.id).maybeSingle();
 
-  await ref.set({
-    ...toFirestoreData(item),
-    updatedAt: FieldValue.serverTimestamp(),
+  if (existing.error) throw existing.error;
+
+  const previous = existing.data ? parseItemDocument(String(existing.data.id), (existing.data.data ?? {}) as Record<string, unknown>) : null;
+  const item = withRecordedValueHistory(withCurrencyValues(parsedItem, settings), previous);
+  const response = await getSupabaseAdmin().from(valueItemsTable).upsert({
+    data: toSupabaseData(item),
+    id: item.id,
+    updated_at: new Date().toISOString(),
   });
+
+  if (response.error) throw response.error;
 
   cachedItems = null;
   invalidatePublicValueCache(item.id);
@@ -218,26 +227,29 @@ export async function saveValueItem(input: unknown) {
 }
 
 export async function deleteValueItem(id: string) {
-  await getFirebaseAdminDb().collection(collectionName).doc(id).delete();
+  const response = await getSupabaseAdmin().from(valueItemsTable).delete().eq("id", id);
+
+  if (response.error) throw response.error;
+
   cachedItems = null;
   invalidatePublicValueCache(id);
 }
 
 export async function seedValueItems() {
-  const db = getFirebaseAdminDb();
   const settings = await getValueCurrencySettings({ timeoutMs: 0 });
-  const batch = db.batch();
-
-  valueItems.forEach((item) => {
-    const ref = db.collection(collectionName).doc(item.id);
+  const rows = valueItems.map((item) => {
     const parsedItem = valueItemInputSchema.parse(withCurrencyValues(item, settings));
-    batch.set(ref, {
-      ...toFirestoreData(withRecordedValueHistory(parsedItem)),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-  });
+    const recordedItem = withRecordedValueHistory(parsedItem);
 
-  await batch.commit();
+    return {
+      data: toSupabaseData(recordedItem),
+      id: recordedItem.id,
+      updated_at: new Date().toISOString(),
+    };
+  });
+  const response = await getSupabaseAdmin().from(valueItemsTable).upsert(rows);
+
+  if (response.error) throw response.error;
 
   cachedItems = null;
   invalidatePublicValueCache();
@@ -249,21 +261,27 @@ export async function getValueCurrencySettings(options: { timeoutMs?: number } =
     return cachedSettings.settings;
   }
 
-  if (options.timeoutMs !== 0 && isFirestoreCoolingDown()) {
+  if (options.timeoutMs !== 0 && isDatabaseCoolingDown()) {
     const settings = cachedSettings?.settings ?? defaultValueCurrencySettings;
     cachedSettings = { settings, timestamp: Date.now() };
     return settings;
   }
 
   try {
-    const doc = await withTimeout(getFirebaseAdminDb().collection(settingsCollectionName).doc(marketSettingsDocumentId).get(), options.timeoutMs ?? publicReadTimeoutMs, "Firestore settings read");
+    const response = await withTimeout(
+      getSupabaseAdmin().from(valueSettingsTable).select("data").eq("id", marketSettingsDocumentId).maybeSingle(),
+      options.timeoutMs ?? publicReadTimeoutMs,
+      "Supabase settings read",
+    );
 
-    const settings = sanitizeCurrencySettings(doc.exists ? doc.data() : defaultValueCurrencySettings);
+    if (response.error) throw response.error;
+
+    const settings = sanitizeCurrencySettings((response.data?.data ?? defaultValueCurrencySettings) as Partial<ValueCurrencySettings>);
     cachedSettings = { settings, timestamp: Date.now() };
     return settings;
   } catch (error) {
-    markFirestoreCooldown(error);
-    console.warn("Using default value currency settings because Firestore settings could not be loaded.", error);
+    markDatabaseCooldown(error);
+    console.warn("Using default value currency settings because Supabase settings could not be loaded.", error);
     cachedSettings = { settings: defaultValueCurrencySettings, timestamp: Date.now() };
     return defaultValueCurrencySettings;
   }
@@ -280,14 +298,13 @@ export async function getPublicValueCurrencySettings() {
 
 export async function saveValueCurrencySettings(input: unknown) {
   const settings = sanitizeCurrencySettings(input as Partial<ValueCurrencySettings>);
+  const response = await getSupabaseAdmin().from(valueSettingsTable).upsert({
+    data: settings,
+    id: marketSettingsDocumentId,
+    updated_at: new Date().toISOString(),
+  });
 
-  await getFirebaseAdminDb()
-    .collection(settingsCollectionName)
-    .doc(marketSettingsDocumentId)
-    .set({
-      ...settings,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+  if (response.error) throw response.error;
 
   cachedSettings = { settings, timestamp: Date.now() };
   cachedItems = null;

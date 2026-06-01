@@ -1,49 +1,50 @@
 import "server-only";
 
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { z } from "zod";
 
 import type { DiscordSession } from "@/lib/discordAuth";
-import { getFirebaseAdminDb } from "@/lib/firebaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-const collectionName = "tradeAds";
+const tradeAdsTable = "trade_ads";
 const maxTradeAds = 80;
 const tradeAdsCacheTag = "trade-ads";
 const tradeAdsReadTimeoutMs = 1200;
 const tradeAdsMemoryCacheMs = 30_000;
-const tradeAdsFirestoreCooldownMs = 10 * 60_000;
+const tradeAdsDatabaseCooldownMs = 10 * 60_000;
 
 let cachedTradeAds: { ads: TradeAd[]; timestamp: number } | null = null;
-let tradeAdsFirestoreDisabledUntil = 0;
+let tradeAdsDatabaseDisabledUntil = 0;
 
 function isFresh(timestamp: number) {
   return Date.now() - timestamp < tradeAdsMemoryCacheMs;
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string) {
+  const resolvedPromise = Promise.resolve(promise);
+
   return Promise.race([
-    promise,
+    resolvedPromise,
     new Promise<T>((_, reject) => {
       setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms.`)), timeoutMs);
     }),
   ]);
 }
 
-function isTradeAdsFirestoreCoolingDown() {
-  return Date.now() < tradeAdsFirestoreDisabledUntil;
+function isTradeAdsDatabaseCoolingDown() {
+  return Date.now() < tradeAdsDatabaseDisabledUntil;
 }
 
-function shouldCooldownFirestore(error: unknown) {
+function shouldCooldownDatabase(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   const code = typeof error === "object" && error && "code" in error ? (error as { code?: unknown }).code : null;
 
-  return code === 8 || message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded") || message.includes("timed out");
+  return code === 8 || message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded") || message.includes("rate limit") || message.includes("timed out");
 }
 
-function markTradeAdsFirestoreCooldown(error: unknown) {
-  if (shouldCooldownFirestore(error)) {
-    tradeAdsFirestoreDisabledUntil = Date.now() + tradeAdsFirestoreCooldownMs;
+function markTradeAdsDatabaseCooldown(error: unknown) {
+  if (shouldCooldownDatabase(error)) {
+    tradeAdsDatabaseDisabledUntil = Date.now() + tradeAdsDatabaseCooldownMs;
   }
 }
 
@@ -84,30 +85,22 @@ export type TradeAd = TradeAdInput & {
   };
 };
 
-function toIsoDate(value: unknown) {
-  if (value instanceof Timestamp) return value.toDate().toISOString();
-  if (value instanceof Date) return value.toISOString();
-  if (typeof value === "string") return value;
-
-  return new Date().toISOString();
-}
-
-function parseTradeAdDocument(id: string, data: FirebaseFirestore.DocumentData): TradeAd | null {
+function parseTradeAdDocument(data: Record<string, unknown>): TradeAd | null {
   const parsed = tradeAdInputSchema.safeParse({
     ...data,
     offering: data.offering ?? "",
-    offeringItems: data.offeringItems ?? [],
+    offeringItems: data.offering_items ?? [],
     wants: data.wants ?? "",
-    wantsItems: data.wantsItems ?? [],
+    wantsItems: data.wants_items ?? [],
   });
-  const poster = data.poster;
+  const poster = data.poster as Record<string, unknown> | null;
 
   if (!parsed.success || !poster?.discordId || !poster?.username) return null;
 
   return {
     ...parsed.data,
-    createdAt: toIsoDate(data.createdAt),
-    id,
+    createdAt: typeof data.created_at === "string" ? data.created_at : new Date().toISOString(),
+    id: String(data.id),
     poster: {
       avatar: typeof poster.avatar === "string" ? poster.avatar : null,
       discordId: String(poster.discordId),
@@ -121,30 +114,32 @@ export async function getTradeAds() {
     return cachedTradeAds.ads;
   }
 
-  if (isTradeAdsFirestoreCoolingDown()) {
+  if (isTradeAdsDatabaseCoolingDown()) {
     return cachedTradeAds?.ads ?? [];
   }
 
   try {
-    const snapshot = await withTimeout(
-      getFirebaseAdminDb()
-        .collection(collectionName)
-        .orderBy("createdAt", "desc")
-        .limit(maxTradeAds)
-        .get(),
+    const response = await withTimeout(
+      getSupabaseAdmin()
+        .from(tradeAdsTable)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(maxTradeAds),
       tradeAdsReadTimeoutMs,
-      "Firestore trade ads read",
+      "Supabase trade ads read",
     );
 
-    const ads = snapshot.docs
-      .map((doc) => parseTradeAdDocument(doc.id, doc.data()))
+    if (response.error) throw response.error;
+
+    const ads = (response.data ?? [])
+      .map((row) => parseTradeAdDocument(row as Record<string, unknown>))
       .filter((ad): ad is TradeAd => Boolean(ad));
 
     cachedTradeAds = { ads, timestamp: Date.now() };
     return ads;
   } catch (error) {
-    markTradeAdsFirestoreCooldown(error);
-    console.warn("Using empty trade ads fallback because Firestore trade ads could not be loaded.", error);
+    markTradeAdsDatabaseCooldown(error);
+    console.warn("Using empty trade ads fallback because Supabase trade ads could not be loaded.", error);
     return cachedTradeAds?.ads ?? [];
   }
 }
@@ -160,24 +155,27 @@ export async function getPublicTradeAds() {
 
 export async function createTradeAd(input: unknown, session: DiscordSession) {
   const parsed = tradeAdInputSchema.parse(input);
-  const ref = getFirebaseAdminDb().collection(collectionName).doc();
   const ad = {
-    ...parsed,
-    createdAt: FieldValue.serverTimestamp(),
+    notes: parsed.notes,
+    offering: parsed.offering,
+    offering_items: parsed.offeringItems,
     poster: {
       avatar: session.avatar,
       discordId: session.id,
       username: session.username,
     },
+    wants: parsed.wants,
+    wants_items: parsed.wantsItems,
   };
+  const response = await getSupabaseAdmin().from(tradeAdsTable).insert(ad).select("*").single();
 
-  await ref.set(ad);
+  if (response.error) throw response.error;
+
   invalidateTradeAdsCache();
 
-  return {
-    ...parsed,
-    createdAt: new Date().toISOString(),
-    id: ref.id,
-    poster: ad.poster,
-  } satisfies TradeAd;
+  const createdAd = parseTradeAdDocument(response.data as Record<string, unknown>);
+
+  if (!createdAd) throw new Error("Unable to parse created trade ad.");
+
+  return createdAd;
 }
