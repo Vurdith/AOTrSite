@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
-import { BarChart3, Database, Eye, History, ImageIcon, PackageSearch, Plus, Save, Search, Settings2, SlidersHorizontal, Tag, Trash2, TrendingUp } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { BarChart3, ChevronDown, Database, Eye, History, ImageIcon, PackageSearch, Plus, Save, Search, Settings2, SlidersHorizontal, Tag, Trash2, TrendingUp } from "lucide-react";
 
 import { categories, type ItemCategory, type ItemRarity, type ItemTrend, type ValueItem, type ValueHistoryPoint } from "@/content/items";
 import { cn } from "@/lib/cn";
@@ -9,9 +9,45 @@ import { getCurrencyValues, sanitizeCurrencySettings, type ValueCurrencySettings
 
 type AdminView = "items" | "rates" | "stats" | "controls";
 type AdminStatusTone = "success" | "danger" | "error";
+type AdminSortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
+type AdminDemandFilter = "all" | "high" | "medium" | "low";
+type AdminValueFilter = "all" | "top" | "mid" | "low";
+type AdminSourceFilter = "all" | string;
+type AdminTrendFilter = "all" | ItemTrend;
 
 const rarityOptions: ItemRarity[] = ["mythic", "legendary", "epic", "rare", "uncommon", "common", "event"];
-const trendOptions: ItemTrend[] = ["rising", "stable", "falling"];
+const itemTrendOptions: ItemTrend[] = ["rising", "stable", "falling"];
+const adminPageSize = 8;
+const filterBreakpoint = "(max-width: 767px)";
+const adminSortOptions: { id: AdminSortOption; label: string }[] = [
+  { id: "value-desc", label: "Value high-low" },
+  { id: "value-asc", label: "Value low-high" },
+  { id: "demand-desc", label: "Demand high-low" },
+  { id: "demand-asc", label: "Demand low-high" },
+  { id: "tax-desc", label: "Gem tax high-low" },
+  { id: "tax-asc", label: "Gem tax low-high" },
+  { id: "prestige-desc", label: "Prestige high-low" },
+  { id: "prestige-asc", label: "Prestige low-high" },
+  { id: "name-asc", label: "Name A-Z" },
+];
+const adminTrendOptions: { id: AdminTrendFilter; label: string }[] = [
+  { id: "all", label: "Any trend" },
+  { id: "rising", label: "Rising" },
+  { id: "stable", label: "Stable" },
+  { id: "falling", label: "Falling" },
+];
+const adminDemandOptions: { id: AdminDemandFilter; label: string }[] = [
+  { id: "all", label: "Any demand" },
+  { id: "high", label: "High 70+" },
+  { id: "medium", label: "Medium 35-69" },
+  { id: "low", label: "Low <35" },
+];
+const adminValueRangeOptions: { id: AdminValueFilter; label: string }[] = [
+  { id: "all", label: "Any value" },
+  { id: "top", label: "Top 10k+" },
+  { id: "mid", label: "Mid 1k-9.9k" },
+  { id: "low", label: "Low <1k" },
+];
 const rarityStatStyles: Record<ItemRarity, { background: string; border: string; color: string }> = {
   mythic: {
     background: "linear-gradient(90deg, rgba(153, 27, 27, 0.34), rgba(69, 10, 10, 0.18) 46%, rgba(0, 0, 0, 0.12))",
@@ -129,11 +165,84 @@ function formatNumber(value: number) {
   }).format(value);
 }
 
+function subscribeFilterBreakpoint(onStoreChange: () => void) {
+  const query = window.matchMedia(filterBreakpoint);
+  query.addEventListener("change", onStoreChange);
+
+  return () => query.removeEventListener("change", onStoreChange);
+}
+
+function getFilterBreakpointSnapshot() {
+  return typeof window !== "undefined" && window.matchMedia(filterBreakpoint).matches;
+}
+
+function getFilterBreakpointServerSnapshot() {
+  return false;
+}
+
+function getAdminItemSource(item: ValueItem) {
+  return item.source || item.owners || "Unknown";
+}
+
+function matchesAdminDemandFilter(item: ValueItem, filter: AdminDemandFilter) {
+  if (filter === "all") return true;
+  if (filter === "high") return item.demand >= 70;
+  if (filter === "medium") return item.demand >= 35 && item.demand < 70;
+  return item.demand < 35;
+}
+
+function matchesAdminValueFilter(item: ValueItem, filter: AdminValueFilter) {
+  const value = item.valueKeys ?? item.value;
+  if (filter === "all") return true;
+  if (filter === "top") return value >= 10000;
+  if (filter === "mid") return value >= 1000 && value < 10000;
+  return value < 1000;
+}
+
+function sortAdminItems(items: ValueItem[], sortOption: AdminSortOption) {
+  return [...items].sort((a, b) => {
+    const aValue = a.valueKeys ?? a.value;
+    const bValue = b.valueKeys ?? b.value;
+
+    switch (sortOption) {
+      case "value-asc":
+        return aValue - bValue;
+      case "demand-desc":
+        return b.demand - a.demand || bValue - aValue;
+      case "demand-asc":
+        return a.demand - b.demand || bValue - aValue;
+      case "tax-desc":
+        return b.taxGems - a.taxGems || bValue - aValue;
+      case "tax-asc":
+        return a.taxGems - b.taxGems || bValue - aValue;
+      case "prestige-desc":
+        return b.prestige - a.prestige || bValue - aValue;
+      case "prestige-asc":
+        return a.prestige - b.prestige || bValue - aValue;
+      case "name-asc":
+        return a.name.localeCompare(b.name);
+      case "value-desc":
+      default:
+        return bValue - aValue;
+    }
+  });
+}
+
 export function AdminPanel({ initialCurrencySettings, initialItems }: { initialCurrencySettings: ValueCurrencySettings; initialItems: ValueItem[] }) {
   const [activeView, setActiveView] = useState<AdminView>("items");
   const [items, setItems] = useState(initialItems);
   const [currencySettings, setCurrencySettings] = useState(sanitizeCurrencySettings(initialCurrencySettings));
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<"all" | ItemCategory>("all");
+  const [sortOption, setSortOption] = useState<AdminSortOption>("value-desc");
+  const [trendFilter, setTrendFilter] = useState<AdminTrendFilter>("all");
+  const [demandFilter, setDemandFilter] = useState<AdminDemandFilter>("all");
+  const [sourceFilter, setSourceFilter] = useState<AdminSourceFilter>("all");
+  const [valueFilter, setValueFilter] = useState<AdminValueFilter>("all");
+  const isCompactFilterLayout = useSyncExternalStore(subscribeFilterBreakpoint, getFilterBreakpointSnapshot, getFilterBreakpointServerSnapshot);
+  const [manualFiltersExpanded, setManualFiltersExpanded] = useState<boolean | null>(null);
+  const filtersExpanded = manualFiltersExpanded ?? !isCompactFilterLayout;
+  const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState(initialItems[0]?.id ?? "");
   const [draft, setDraft] = useState<ValueItem>(initialItems[0] ?? emptyItem);
   const [historyDraft, setHistoryDraft] = useState(formatHistory(initialItems[0]?.valueHistory));
@@ -144,10 +253,25 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
 
-    if (!needle) return items;
+    const matches = items.filter((item) => {
+      const matchesCategory = category === "all" || item.category === category;
+      const matchesQuery = !needle || [item.name, item.id, item.category, item.rarity, item.source, item.owners].filter(Boolean).some((value) => String(value).toLowerCase().includes(needle));
+      const matchesTrend = trendFilter === "all" || item.trend === trendFilter;
+      const matchesSource = sourceFilter === "all" || getAdminItemSource(item) === sourceFilter;
 
-    return items.filter((item) => [item.name, item.id, item.category, item.rarity, item.source, item.owners].filter(Boolean).some((value) => String(value).toLowerCase().includes(needle)));
-  }, [items, query]);
+      return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesAdminDemandFilter(item, demandFilter) && matchesAdminValueFilter(item, valueFilter);
+    });
+
+    return sortAdminItems(matches, sortOption);
+  }, [category, demandFilter, items, query, sortOption, sourceFilter, trendFilter, valueFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / adminPageSize));
+  const currentPage = Math.min(page, totalPages);
+  const firstItemIndex = (currentPage - 1) * adminPageSize;
+  const pagedItems = filtered.slice(firstItemIndex, firstItemIndex + adminPageSize);
+  const visibleCategories = categories.filter((item) => item.id === "all" || items.some((value) => value.category === item.id));
+  const sourceOptions = useMemo(() => ["all", ...Array.from(new Set(items.map(getAdminItemSource))).sort()] as AdminSourceFilter[], [items]);
+  const activeFilterCount = [category !== "all", sortOption !== "value-desc", trendFilter !== "all", demandFilter !== "all", sourceFilter !== "all", valueFilter !== "all"].filter(Boolean).length;
 
   const itemStats = useMemo(() => {
     const moving = items.filter((item) => item.trend !== "stable").length;
@@ -171,6 +295,20 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     setDraft(item);
     setHistoryDraft(formatHistory(item.valueHistory));
     setActiveView("items");
+  }
+
+  function resetPage() {
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setCategory("all");
+    setSortOption("value-desc");
+    setTrendFilter("all");
+    setDemandFilter("all");
+    setSourceFilter("all");
+    setValueFilter("all");
+    setPage(1);
   }
 
   function updateDraft<K extends keyof ValueItem>(key: K, value: ValueItem[K]) {
@@ -382,7 +520,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
                 <div className="admin-panel-head">
                   <div>
                     <span>Item records</span>
-                    <strong>{items.length} records</strong>
+                    <strong>{filtered.length} records</strong>
                   </div>
                   <button type="button" className="admin-icon-button" onClick={newItem} aria-label="Create new item">
                     <Plus size={16} strokeWidth={2.5} />
@@ -392,11 +530,99 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
                 <label className="admin-search">
                   <Search size={15} strokeWidth={2.4} />
                   <span className="sr-only">Search admin items</span>
-                  <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search names, IDs, sources" />
+                  <input
+                    value={query}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="Search names, IDs, sources"
+                  />
                 </label>
 
+                <div className="advanced-filter-panel admin-record-filter-panel" aria-label="Advanced admin item filters">
+                  <div className="advanced-filter-head">
+                    <div>
+                      <button
+                        type="button"
+                        className="advanced-filter-toggle"
+                        aria-expanded={filtersExpanded}
+                        aria-controls="admin-record-filter-controls"
+                        onClick={() => setManualFiltersExpanded(!filtersExpanded)}
+                      >
+                        <span>Advanced filters</span>
+                        <ChevronDown size={15} strokeWidth={2.5} />
+                      </button>
+                      <strong>{filtered.length} items</strong>
+                    </div>
+                    <button type="button" className="advanced-filter-clear" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear admin item filters">
+                      Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
+                    </button>
+                  </div>
+
+                  <div id="admin-record-filter-controls" className={cn("advanced-filter-grid admin-record-filter-grid", filtersExpanded && "advanced-filter-grid-open")}>
+                    <AdminFilterSelect
+                      label="Sort"
+                      value={sortOption}
+                      onChange={(value) => {
+                        setSortOption(value as AdminSortOption);
+                        resetPage();
+                      }}
+                      options={adminSortOptions.map((option) => ({ value: option.id, label: option.label }))}
+                    />
+                    <AdminFilterSelect
+                      label="Category"
+                      value={category}
+                      onChange={(value) => {
+                        setCategory(value as "all" | ItemCategory);
+                        resetPage();
+                      }}
+                      options={visibleCategories.map((item) => ({
+                        value: item.id,
+                        label: `${item.label} (${item.id === "all" ? items.length : items.filter((value) => value.category === item.id).length})`,
+                      }))}
+                    />
+                    <AdminFilterSelect
+                      label="Demand"
+                      value={demandFilter}
+                      onChange={(value) => {
+                        setDemandFilter(value as AdminDemandFilter);
+                        resetPage();
+                      }}
+                      options={adminDemandOptions.map((option) => ({ value: option.id, label: option.label }))}
+                    />
+                    <AdminFilterSelect
+                      label="Trend"
+                      value={trendFilter}
+                      onChange={(value) => {
+                        setTrendFilter(value as AdminTrendFilter);
+                        resetPage();
+                      }}
+                      options={adminTrendOptions.map((option) => ({ value: option.id, label: option.label }))}
+                    />
+                    <AdminFilterSelect
+                      label="Value"
+                      value={valueFilter}
+                      onChange={(value) => {
+                        setValueFilter(value as AdminValueFilter);
+                        resetPage();
+                      }}
+                      options={adminValueRangeOptions.map((option) => ({ value: option.id, label: option.label }))}
+                    />
+                    <AdminFilterSelect
+                      label="Source"
+                      value={sourceFilter}
+                      onChange={(value) => {
+                        setSourceFilter(value);
+                        resetPage();
+                      }}
+                      options={sourceOptions.map((source) => ({ value: source, label: source === "all" ? "Any source" : source }))}
+                    />
+                  </div>
+                </div>
+
                 <div className="admin-item-list">
-                  {filtered.map((item) => (
+                  {pagedItems.map((item) => (
                     <button key={item.id} type="button" className={cn("admin-item-button", `admin-item-rarity-${item.rarity}`, selectedId === item.id && "admin-item-button-active")} onClick={() => selectItem(item)}>
                       <span className="admin-item-thumb">
                         {item.iconUrl ? (
@@ -413,6 +639,17 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
                   ))}
                   {!filtered.length ? <p className="admin-empty">No matching items.</p> : null}
                 </div>
+
+                {filtered.length > adminPageSize ? (
+                  <AdminPagination
+                    currentPage={currentPage}
+                    firstItemIndex={firstItemIndex}
+                    itemCount={filtered.length}
+                    onPageChange={setPage}
+                    pageSize={adminPageSize}
+                    totalPages={totalPages}
+                  />
+                ) : null}
               </aside>
 
               <ItemEditor
@@ -526,7 +763,7 @@ function ItemEditor({
               <AdminInput label="Value Vizards" type="number" value={String(draft.valueMasks ?? getCurrencyValues(draft.value, currencySettings).valueMasks)} onChange={(value) => updateDraftValueMasks(Number(value))} />
               <AdminInput label="Value Scrolls" type="number" value={String(draft.valueScrolls ?? getCurrencyValues(draft.value, currencySettings).valueScrolls)} onChange={(value) => updateDraftValueScrolls(Number(value))} />
               <AdminInput label="Demand" type="number" value={String(draft.demand)} onChange={(value) => updateDraft("demand", Number(value))} />
-              <AdminSelect label="Trend" value={draft.trend} onChange={(value) => updateDraft("trend", value as ItemTrend)} options={trendOptions} />
+              <AdminSelect label="Trend" value={draft.trend} onChange={(value) => updateDraft("trend", value as ItemTrend)} options={itemTrendOptions} />
               <AdminInput label="Gem Tax" type="number" value={String(draft.taxGems)} onChange={(value) => updateDraft("taxGems", Number(value))} />
               <AdminInput label="Prestige" type="number" value={String(draft.prestige)} onChange={(value) => updateDraft("prestige", Number(value))} />
             </div>
@@ -709,6 +946,69 @@ function AdminTradeIcon({ className, type }: { className?: string; type: keyof t
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={tradeIconPaths[type]} alt="" className="h-full w-full object-contain" draggable={false} />
     </span>
+  );
+}
+
+function AdminFilterSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  value: string;
+}) {
+  return (
+    <label className="advanced-filter-field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function AdminPagination({
+  currentPage,
+  firstItemIndex,
+  itemCount,
+  onPageChange,
+  pageSize,
+  totalPages,
+}: {
+  currentPage: number;
+  firstItemIndex: number;
+  itemCount: number;
+  onPageChange: (page: number) => void;
+  pageSize: number;
+  totalPages: number;
+}) {
+  const firstVisible = firstItemIndex + 1;
+  const lastVisible = Math.min(firstItemIndex + pageSize, itemCount);
+
+  return (
+    <div className="ledger-pagination admin-record-pagination">
+      <span>
+        Showing {firstVisible}-{lastVisible} of {itemCount}
+      </span>
+      <div>
+        <button type="button" onClick={() => onPageChange(Math.max(1, currentPage - 1))} disabled={currentPage === 1}>
+          Previous
+        </button>
+        <strong>
+          {currentPage} / {totalPages}
+        </strong>
+        <button type="button" onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}>
+          Next
+        </button>
+      </div>
+    </div>
   );
 }
 

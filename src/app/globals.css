@@ -5967,14 +5967,15 @@
   .admin-sidebar {
     display: grid;
     gap: 0.7rem;
+    overflow: visible;
     padding: 0.85rem;
   }
 
   @media (min-width: 980px) {
     .admin-sidebar {
-      position: sticky;
-      top: 6rem;
-      max-height: calc(100vh - 7rem);
+      position: relative;
+      top: auto;
+      max-height: none;
     }
   }
 
@@ -6100,10 +6101,39 @@
     outline: none;
   }
 
+  .admin-record-filter-panel {
+    margin-top: 0;
+    border-radius: 12px 4px 12px 4px;
+    padding: 0.62rem;
+  }
+
+  .admin-record-filter-panel .advanced-filter-head {
+    gap: 0.55rem;
+  }
+
+  .admin-record-filter-panel .advanced-filter-head > div {
+    min-width: 0;
+  }
+
+  .admin-record-filter-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.52rem;
+  }
+
+  .admin-record-filter-grid .advanced-filter-field select {
+    height: 2.32rem;
+    padding-left: 0.72rem;
+    font-size: 0.67rem;
+  }
+
+  .admin-record-pagination {
+    margin-top: 0.15rem;
+    padding: 0.62rem 0;
+  }
+
   .admin-item-list {
     display: grid;
     gap: 0.25rem;
-    overflow: auto;
     padding-right: 0.15rem;
   }
 
