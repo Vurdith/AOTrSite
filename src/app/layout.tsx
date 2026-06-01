@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Rajdhani, Unbounded } from "next/font/google";
 
+import { UiSoundLayer } from "@/components/UiSoundLayer";
+
 import "./globals.css";
 
 const display = Unbounded({
@@ -25,7 +27,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
-      <body>{children}</body>
+      <body>
+        <UiSoundLayer />
+        {children}
+      </body>
     </html>
   );
 }

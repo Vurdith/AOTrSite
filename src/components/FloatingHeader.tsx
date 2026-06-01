@@ -117,8 +117,7 @@ export function FloatingHeader() {
         style={{
           opacity: headerHidden ? 0 : 1,
           pointerEvents: headerHidden ? "none" : "auto",
-          transform: `translateY(${headerHidden ? "-92px" : "0px"})`,
-          transition: "transform 280ms ease, opacity 220ms ease",
+          transition: "opacity 240ms ease",
         }}
       >
         <nav className="site-header-shell relative flex h-[3.9rem] w-full max-w-[1060px] items-center justify-center px-3 py-2">
