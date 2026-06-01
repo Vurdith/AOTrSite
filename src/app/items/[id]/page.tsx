@@ -9,7 +9,7 @@ type ItemPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export const revalidate = 300;
+export const revalidate = false;
 
 export async function generateStaticParams() {
   const items = await getPublicValueItems();

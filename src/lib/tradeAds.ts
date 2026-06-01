@@ -21,14 +21,6 @@ function isFresh(timestamp: number) {
   return Date.now() - timestamp < tradeAdsMemoryCacheMs;
 }
 
-export function isTradeAdsStaticMode() {
-  const mode = process.env.FIRESTORE_PUBLIC_STATIC_MODE?.toLowerCase();
-
-  if (mode) return ["1", "true", "yes", "on"].includes(mode);
-
-  return process.env.NODE_ENV === "production";
-}
-
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
   return Promise.race([
     promise,
@@ -158,15 +150,11 @@ export async function getTradeAds() {
 }
 
 const getCachedTradeAds = unstable_cache(getTradeAds, ["public-trade-ads"], {
-  revalidate: 30,
+  revalidate: false,
   tags: [tradeAdsCacheTag],
 });
 
 export async function getPublicTradeAds() {
-  if (isTradeAdsStaticMode()) {
-    return [];
-  }
-
   return getCachedTradeAds();
 }
 

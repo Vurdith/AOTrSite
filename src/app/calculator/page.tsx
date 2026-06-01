@@ -3,7 +3,7 @@ import { PageHero } from "@/components/PageHero";
 import { TradeCalculator } from "@/components/TradeCalculator";
 import { getPublicValueCurrencySettings, getPublicValueItems } from "@/lib/firestoreItems";
 
-export const revalidate = 300;
+export const revalidate = false;
 
 export default async function CalculatorPage() {
   const [items, currencySettings] = await Promise.all([getPublicValueItems(), getPublicValueCurrencySettings()]);

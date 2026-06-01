@@ -25,14 +25,6 @@ function isFresh(timestamp: number) {
   return Date.now() - timestamp < publicCacheMs;
 }
 
-function isPublicStaticMode() {
-  const mode = process.env.FIRESTORE_PUBLIC_STATIC_MODE?.toLowerCase();
-
-  if (mode) return ["1", "true", "yes", "on"].includes(mode);
-
-  return process.env.NODE_ENV === "production";
-}
-
 function getStaticValueItems(settings: ValueCurrencySettings = defaultValueCurrencySettings) {
   return sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
 }
@@ -169,15 +161,11 @@ export async function getValueItems() {
 }
 
 const getCachedValueItems = unstable_cache(getValueItems, ["public-value-items"], {
-  revalidate: 300,
+  revalidate: false,
   tags: [valueItemsCacheTag, valueSettingsCacheTag],
 });
 
 export async function getPublicValueItems() {
-  if (isPublicStaticMode()) {
-    return getStaticValueItems();
-  }
-
   return getCachedValueItems();
 }
 
@@ -186,12 +174,6 @@ export async function getValueItem(id: string) {
   const cachedItem = cachedList.find((item) => item.id === id);
 
   if (cachedItem) return cachedItem;
-
-  if (isPublicStaticMode()) {
-    const localItem = valueItems.find((item) => item.id === id) ?? null;
-
-    return localItem ? withCurrencyValues(localItem, defaultValueCurrencySettings) : null;
-  }
 
   try {
     if (isFirestoreCoolingDown()) {
@@ -288,15 +270,11 @@ export async function getValueCurrencySettings(options: { timeoutMs?: number } =
 }
 
 const getCachedValueCurrencySettings = unstable_cache(() => getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }), ["public-value-currency-settings"], {
-  revalidate: 300,
+  revalidate: false,
   tags: [valueSettingsCacheTag],
 });
 
 export async function getPublicValueCurrencySettings() {
-  if (isPublicStaticMode()) {
-    return defaultValueCurrencySettings;
-  }
-
   return getCachedValueCurrencySettings();
 }
 

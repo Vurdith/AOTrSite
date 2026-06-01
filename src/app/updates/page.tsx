@@ -7,7 +7,7 @@ import { getPublicValueItems } from "@/lib/firestoreItems";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
-export const revalidate = 300;
+export const revalidate = false;
 
 export default async function UpdatesPage() {
   if (!isDevelopment) {

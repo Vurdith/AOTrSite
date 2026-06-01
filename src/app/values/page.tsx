@@ -3,7 +3,7 @@ import { PageHero } from "@/components/PageHero";
 import { ValuesList } from "@/components/ValuesList";
 import { getPublicValueCurrencySettings, getPublicValueItems } from "@/lib/firestoreItems";
 
-export const revalidate = 300;
+export const revalidate = false;
 
 export default async function ValuesPage() {
   const [items, currencySettings] = await Promise.all([getPublicValueItems(), getPublicValueCurrencySettings()]);

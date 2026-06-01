@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { getDiscordSession } from "@/lib/discordAuth";
-import { createTradeAd, getPublicTradeAds, isTradeAdsStaticMode } from "@/lib/tradeAds";
+import { createTradeAd, getPublicTradeAds } from "@/lib/tradeAds";
 
 const postWindowMs = 60_000;
 const maxPostsPerWindow = 3;
@@ -41,10 +41,6 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (isTradeAdsStaticMode()) {
-    return NextResponse.json({ error: "Trade ads are temporarily unavailable." }, { status: 503 });
-  }
-
   const session = await getDiscordSession();
 
   if (!session) {
