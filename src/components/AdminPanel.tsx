@@ -181,7 +181,7 @@ function getFilterBreakpointServerSnapshot() {
 }
 
 function getAdminItemSource(item: ValueItem) {
-  return item.source || item.owners || "Unknown";
+  return item.source?.trim() || "Unknown";
 }
 
 function matchesAdminDemandFilter(item: ValueItem, filter: AdminDemandFilter) {

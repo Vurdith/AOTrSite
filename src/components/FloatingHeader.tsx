@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 import { Calculator, Gem, Hammer, LogOut, Menu, Newspaper, ShieldCheck, X } from "lucide-react";
 
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
@@ -14,6 +13,7 @@ const publicNav = [
   { href: "/calculator", label: "Calculator", icon: Calculator },
   ...(process.env.NODE_ENV === "development" ? [{ href: "/updates", label: "Updates", icon: Newspaper }] : []),
 ];
+const scrollDownIntentThreshold = 2;
 
 type HeaderSession = {
   avatar: string | null;
@@ -26,14 +26,42 @@ export function FloatingHeader() {
   const pathname = usePathname();
   const homeActive = pathname === "/";
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
   const [session, setSession] = useState<HeaderSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
-  const { scrollY } = useScroll();
-  const y = useSpring(useTransform(scrollY, [0, 180], [0, -5]), { stiffness: 420, damping: 42 });
-  const opacity = useSpring(useTransform(scrollY, [0, 180], [1, 0.95]), { stiffness: 420, damping: 42 });
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const latest = window.scrollY;
+      const delta = latest - lastScrollY.current;
+      lastScrollY.current = latest;
+
+      if (mobileNavOpen || latest <= 0) {
+        setHeaderHidden(false);
+        return;
+      }
+
+      if (delta > scrollDownIntentThreshold) {
+        setHeaderHidden(true);
+      }
+    };
+
+    lastScrollY.current = window.scrollY;
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
+    lastScrollY.current = 0;
+    setHeaderHidden(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
+
+    setHeaderHidden(false);
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -84,12 +112,14 @@ export function FloatingHeader() {
 
   return (
     <>
-      <motion.header
+      <header
         className="fixed inset-x-0 top-4 z-50 flex justify-center px-3"
-        style={{ y, opacity }}
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
+        style={{
+          opacity: headerHidden ? 0 : 1,
+          pointerEvents: headerHidden ? "none" : "auto",
+          transform: `translateY(${headerHidden ? "-92px" : "0px"})`,
+          transition: "transform 280ms ease, opacity 220ms ease",
+        }}
       >
         <nav className="site-header-shell relative flex h-[3.9rem] w-full max-w-[1060px] items-center justify-center px-3 py-2">
           <span className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-[rgb(var(--bright-gold)/.34)] to-transparent" />
@@ -147,7 +177,7 @@ export function FloatingHeader() {
             <Menu size={18} strokeWidth={2.4} />
           </button>
         </nav>
-      </motion.header>
+      </header>
 
       <div
         className={cn("mobile-sidebar-backdrop", mobileNavOpen && "mobile-sidebar-backdrop-open")}
