@@ -38,3 +38,8 @@ create table if not exists public.admin_logs (
 );
 
 create index if not exists admin_logs_created_at_idx on public.admin_logs (created_at desc);
+
+alter table public.value_items enable row level security;
+alter table public.value_settings enable row level security;
+alter table public.trade_ads enable row level security;
+alter table public.admin_logs enable row level security;

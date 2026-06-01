@@ -1,14 +1,13 @@
 import "server-only";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 
 import { valueItems, type ValueItem } from "@/content/items";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { prisma } from "@/lib/prisma";
 import { valueItemInputSchema } from "@/lib/valueItemSchema";
 import { defaultValueCurrencySettings, getCurrencyValues, sanitizeCurrencySettings, type ValueCurrencySettings } from "@/lib/valueCurrency";
 
-const valueItemsTable = "value_items";
-const valueSettingsTable = "value_settings";
 const marketSettingsDocumentId = "market";
 const publicReadTimeoutMs = 1800;
 const publicCacheMs = 300_000;
@@ -75,7 +74,7 @@ function sortByValue(items: ValueItem[]) {
 }
 
 function toSupabaseData(item: ValueItem) {
-  return Object.fromEntries(Object.entries(item).filter((entry) => entry[1] !== undefined));
+  return Object.fromEntries(Object.entries(item).filter((entry) => entry[1] !== undefined)) as Prisma.InputJsonObject;
 }
 
 function withCurrencyValues(item: ValueItem, settings: ValueCurrencySettings) {
@@ -114,16 +113,14 @@ function withRecordedValueHistory(item: ValueItem, previous?: ValueItem | null) 
 }
 
 export async function getDatabaseValueItems(options: { timeoutMs?: number } = {}) {
-  const [settings, response] = await Promise.all([
+  const [settings, rows] = await Promise.all([
     getValueCurrencySettings(options),
-    withTimeout(getSupabaseAdmin().from(valueItemsTable).select("id,data"), options.timeoutMs ?? 0, "Supabase items read"),
+    withTimeout(prisma.valueItem.findMany({ select: { data: true, id: true } }), options.timeoutMs ?? 0, "Supabase items read"),
   ]);
 
-  if (response.error) throw response.error;
-
   return sortByValue(
-    (response.data ?? [])
-      .map((row) => parseItemDocument(String(row.id), (row.data ?? {}) as Record<string, unknown>))
+    rows
+      .map((row) => parseItemDocument(row.id, (row.data ?? {}) as Record<string, unknown>))
       .filter((item): item is ValueItem => Boolean(item)),
   ).map((item) => withCurrencyValues(item, settings));
 }
@@ -182,15 +179,13 @@ export async function getValueItem(id: string) {
       throw new Error("Supabase public reads are cooling down after database errors.");
     }
 
-    const [settings, response] = await Promise.all([
+    const [settings, row] = await Promise.all([
       getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }),
-      withTimeout(getSupabaseAdmin().from(valueItemsTable).select("id,data").eq("id", id).maybeSingle(), publicReadTimeoutMs, "Supabase item read"),
+      withTimeout(prisma.valueItem.findUnique({ select: { data: true, id: true }, where: { id } }), publicReadTimeoutMs, "Supabase item read"),
     ]);
 
-    if (response.error) throw response.error;
-
-    if (response.data) {
-      const item = parseItemDocument(String(response.data.id), (response.data.data ?? {}) as Record<string, unknown>);
+    if (row) {
+      const item = parseItemDocument(row.id, (row.data ?? {}) as Record<string, unknown>);
       if (item) return withCurrencyValues(item, settings);
     }
   } catch (error) {
@@ -207,19 +202,15 @@ export async function getValueItem(id: string) {
 export async function saveValueItem(input: unknown) {
   const parsedItem = valueItemInputSchema.parse(input);
   const settings = await getValueCurrencySettings({ timeoutMs: 0 });
-  const existing = await getSupabaseAdmin().from(valueItemsTable).select("id,data").eq("id", parsedItem.id).maybeSingle();
-
-  if (existing.error) throw existing.error;
-
-  const previous = existing.data ? parseItemDocument(String(existing.data.id), (existing.data.data ?? {}) as Record<string, unknown>) : null;
+  const existing = await prisma.valueItem.findUnique({ select: { data: true, id: true }, where: { id: parsedItem.id } });
+  const previous = existing ? parseItemDocument(existing.id, (existing.data ?? {}) as Record<string, unknown>) : null;
   const item = withRecordedValueHistory(withCurrencyValues(parsedItem, settings), previous);
-  const response = await getSupabaseAdmin().from(valueItemsTable).upsert({
-    data: toSupabaseData(item),
-    id: item.id,
-    updated_at: new Date().toISOString(),
-  });
 
-  if (response.error) throw response.error;
+  await prisma.valueItem.upsert({
+    create: { data: toSupabaseData(item), id: item.id },
+    update: { data: toSupabaseData(item) },
+    where: { id: item.id },
+  });
 
   cachedItems = null;
   invalidatePublicValueCache(item.id);
@@ -227,9 +218,7 @@ export async function saveValueItem(input: unknown) {
 }
 
 export async function deleteValueItem(id: string) {
-  const response = await getSupabaseAdmin().from(valueItemsTable).delete().eq("id", id);
-
-  if (response.error) throw response.error;
+  await prisma.valueItem.deleteMany({ where: { id } });
 
   cachedItems = null;
   invalidatePublicValueCache(id);
@@ -244,12 +233,18 @@ export async function seedValueItems() {
     return {
       data: toSupabaseData(recordedItem),
       id: recordedItem.id,
-      updated_at: new Date().toISOString(),
     };
   });
-  const response = await getSupabaseAdmin().from(valueItemsTable).upsert(rows);
 
-  if (response.error) throw response.error;
+  await prisma.$transaction(
+    rows.map((row) =>
+      prisma.valueItem.upsert({
+        create: row,
+        update: { data: row.data },
+        where: { id: row.id },
+      }),
+    ),
+  );
 
   cachedItems = null;
   invalidatePublicValueCache();
@@ -268,15 +263,13 @@ export async function getValueCurrencySettings(options: { timeoutMs?: number } =
   }
 
   try {
-    const response = await withTimeout(
-      getSupabaseAdmin().from(valueSettingsTable).select("data").eq("id", marketSettingsDocumentId).maybeSingle(),
+    const row = await withTimeout(
+      prisma.valueSetting.findUnique({ select: { data: true }, where: { id: marketSettingsDocumentId } }),
       options.timeoutMs ?? publicReadTimeoutMs,
       "Supabase settings read",
     );
 
-    if (response.error) throw response.error;
-
-    const settings = sanitizeCurrencySettings((response.data?.data ?? defaultValueCurrencySettings) as Partial<ValueCurrencySettings>);
+    const settings = sanitizeCurrencySettings((row?.data ?? defaultValueCurrencySettings) as Partial<ValueCurrencySettings>);
     cachedSettings = { settings, timestamp: Date.now() };
     return settings;
   } catch (error) {
@@ -298,13 +291,12 @@ export async function getPublicValueCurrencySettings() {
 
 export async function saveValueCurrencySettings(input: unknown) {
   const settings = sanitizeCurrencySettings(input as Partial<ValueCurrencySettings>);
-  const response = await getSupabaseAdmin().from(valueSettingsTable).upsert({
-    data: settings,
-    id: marketSettingsDocumentId,
-    updated_at: new Date().toISOString(),
-  });
 
-  if (response.error) throw response.error;
+  await prisma.valueSetting.upsert({
+    create: { data: settings, id: marketSettingsDocumentId },
+    update: { data: settings },
+    where: { id: marketSettingsDocumentId },
+  });
 
   cachedSettings = { settings, timestamp: Date.now() };
   cachedItems = null;

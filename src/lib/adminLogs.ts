@@ -1,9 +1,8 @@
 import "server-only";
 
 import type { DiscordSession } from "@/lib/discordAuth";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { prisma } from "@/lib/prisma";
 
-const adminLogsTable = "admin_logs";
 const defaultLogLimit = 500;
 
 export type AdminLogAction = "item_created" | "item_updated" | "item_deleted" | "items_seeded" | "media_uploaded" | "settings_updated";
@@ -59,7 +58,7 @@ function parseLogChanges(value: unknown): AdminLogChange[] {
 function parseLogDocument(data: Record<string, unknown>): AdminLog | null {
   const actor = data.actor as Record<string, unknown> | null;
 
-  if (!data.action || !data.summary || !data.target_type || !actor?.discordId || !actor?.username) return null;
+  if (!data.action || !data.summary || !(data.targetType ?? data.target_type) || !actor?.discordId || !actor?.username) return null;
 
   return {
     action: String(data.action) as AdminLogAction,
@@ -69,19 +68,18 @@ function parseLogDocument(data: Record<string, unknown>): AdminLog | null {
       username: String(actor.username),
     },
     changes: parseLogChanges(data.changes),
-    createdAt: typeof data.created_at === "string" ? data.created_at : new Date(0).toISOString(),
+    createdAt: data.createdAt instanceof Date ? data.createdAt.toISOString() : typeof data.createdAt === "string" ? data.createdAt : typeof data.created_at === "string" ? data.created_at : new Date(0).toISOString(),
     id: String(data.id),
     summary: String(data.summary),
-    targetId: data.target_id ? String(data.target_id) : undefined,
-    targetName: data.target_name ? String(data.target_name) : undefined,
-    targetType: data.target_type as AdminLog["targetType"],
+    targetId: data.targetId ? String(data.targetId) : data.target_id ? String(data.target_id) : undefined,
+    targetName: data.targetName ? String(data.targetName) : data.target_name ? String(data.target_name) : undefined,
+    targetType: (data.targetType ?? data.target_type) as AdminLog["targetType"],
   };
 }
 
 export async function createAdminLog({ action, actor, changes, summary, targetId, targetName, targetType }: CreateAdminLogInput) {
-  const response = await getSupabaseAdmin()
-    .from(adminLogsTable)
-    .insert({
+  await prisma.adminLog.create({
+    data: {
       action,
       actor: {
         avatar: actor.avatar,
@@ -90,24 +88,20 @@ export async function createAdminLog({ action, actor, changes, summary, targetId
       },
       changes,
       summary,
-      target_id: targetId ?? null,
-      target_name: targetName ?? null,
-      target_type: targetType,
-    });
-
-  if (response.error) throw response.error;
+      targetId: targetId ?? null,
+      targetName: targetName ?? null,
+      targetType,
+    },
+  });
 }
 
 export async function getAdminLogs(limit = defaultLogLimit) {
-  const response = await getSupabaseAdmin()
-    .from(adminLogsTable)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(Math.min(Math.max(limit, 1), 500));
+  const rows = await prisma.adminLog.findMany({
+    orderBy: { createdAt: "desc" },
+    take: Math.min(Math.max(limit, 1), 500),
+  });
 
-  if (response.error) throw response.error;
-
-  return (response.data ?? [])
+  return rows
     .map((row) => parseLogDocument(row as Record<string, unknown>))
     .filter((log): log is AdminLog => Boolean(log));
 }

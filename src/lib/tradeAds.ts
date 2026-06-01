@@ -4,9 +4,8 @@ import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 import { z } from "zod";
 
 import type { DiscordSession } from "@/lib/discordAuth";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { prisma } from "@/lib/prisma";
 
-const tradeAdsTable = "trade_ads";
 const maxTradeAds = 80;
 const tradeAdsCacheTag = "trade-ads";
 const tradeAdsReadTimeoutMs = 1200;
@@ -89,9 +88,9 @@ function parseTradeAdDocument(data: Record<string, unknown>): TradeAd | null {
   const parsed = tradeAdInputSchema.safeParse({
     ...data,
     offering: data.offering ?? "",
-    offeringItems: data.offering_items ?? [],
+    offeringItems: data.offeringItems ?? data.offering_items ?? [],
     wants: data.wants ?? "",
-    wantsItems: data.wants_items ?? [],
+    wantsItems: data.wantsItems ?? data.wants_items ?? [],
   });
   const poster = data.poster as Record<string, unknown> | null;
 
@@ -99,7 +98,7 @@ function parseTradeAdDocument(data: Record<string, unknown>): TradeAd | null {
 
   return {
     ...parsed.data,
-    createdAt: typeof data.created_at === "string" ? data.created_at : new Date().toISOString(),
+    createdAt: data.createdAt instanceof Date ? data.createdAt.toISOString() : typeof data.createdAt === "string" ? data.createdAt : typeof data.created_at === "string" ? data.created_at : new Date().toISOString(),
     id: String(data.id),
     poster: {
       avatar: typeof poster.avatar === "string" ? poster.avatar : null,
@@ -119,19 +118,16 @@ export async function getTradeAds() {
   }
 
   try {
-    const response = await withTimeout(
-      getSupabaseAdmin()
-        .from(tradeAdsTable)
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(maxTradeAds),
+    const rows = await withTimeout(
+      prisma.tradeAd.findMany({
+        orderBy: { createdAt: "desc" },
+        take: maxTradeAds,
+      }),
       tradeAdsReadTimeoutMs,
       "Supabase trade ads read",
     );
 
-    if (response.error) throw response.error;
-
-    const ads = (response.data ?? [])
+    const ads = rows
       .map((row) => parseTradeAdDocument(row as Record<string, unknown>))
       .filter((ad): ad is TradeAd => Boolean(ad));
 
@@ -158,22 +154,20 @@ export async function createTradeAd(input: unknown, session: DiscordSession) {
   const ad = {
     notes: parsed.notes,
     offering: parsed.offering,
-    offering_items: parsed.offeringItems,
+    offeringItems: parsed.offeringItems,
     poster: {
       avatar: session.avatar,
       discordId: session.id,
       username: session.username,
     },
     wants: parsed.wants,
-    wants_items: parsed.wantsItems,
+    wantsItems: parsed.wantsItems,
   };
-  const response = await getSupabaseAdmin().from(tradeAdsTable).insert(ad).select("*").single();
-
-  if (response.error) throw response.error;
+  const row = await prisma.tradeAd.create({ data: ad });
 
   invalidateTradeAdsCache();
 
-  const createdAd = parseTradeAdDocument(response.data as Record<string, unknown>);
+  const createdAd = parseTradeAdDocument(row as Record<string, unknown>);
 
   if (!createdAd) throw new Error("Unable to parse created trade ad.");
 

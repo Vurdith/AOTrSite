@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model ValueItem {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("value_items")
+}
+
+model ValueSetting {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("value_settings")
+}
+
+model TradeAd {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  offering      String   @default("")
+  offeringItems Json     @default("[]") @map("offering_items")
+  wants         String   @default("")
+  wantsItems    Json     @default("[]") @map("wants_items")
+  notes         String   @default("")
+  poster        Json
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@map("trade_ads")
+}
+
+model AdminLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  action     String
+  actor      Json
+  changes    Json     @default("[]")
+  summary    String
+  targetId   String?  @map("target_id")
+  targetName String?  @map("target_name")
+  targetType String   @map("target_type")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@map("admin_logs")
+}
