@@ -25,6 +25,18 @@ function isFresh(timestamp: number) {
   return Date.now() - timestamp < publicCacheMs;
 }
 
+function isPublicStaticMode() {
+  const mode = process.env.FIRESTORE_PUBLIC_STATIC_MODE?.toLowerCase();
+
+  if (mode) return ["1", "true", "yes", "on"].includes(mode);
+
+  return process.env.NODE_ENV === "production";
+}
+
+function getStaticValueItems(settings: ValueCurrencySettings = defaultValueCurrencySettings) {
+  return sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
+}
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
   if (!timeoutMs) return promise;
 
@@ -129,7 +141,7 @@ export async function getValueItems() {
 
   if (isFirestoreCoolingDown()) {
     const settings = await getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs });
-    const fallbackItems = sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
+    const fallbackItems = getStaticValueItems(settings);
     cachedItems = { items: fallbackItems, timestamp: Date.now() };
     return fallbackItems;
   }
@@ -143,14 +155,14 @@ export async function getValueItems() {
     }
 
     const settings = await getValueCurrencySettings();
-    const fallbackItems = sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
+    const fallbackItems = getStaticValueItems(settings);
     cachedItems = { items: fallbackItems, timestamp: Date.now() };
     return fallbackItems;
   } catch (error) {
     markFirestoreCooldown(error);
     console.warn("Using local value items because Firestore items could not be loaded.", error);
     const settings = await getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs });
-    const fallbackItems = sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
+    const fallbackItems = getStaticValueItems(settings);
     cachedItems = { items: fallbackItems, timestamp: Date.now() };
     return fallbackItems;
   }
@@ -162,6 +174,10 @@ const getCachedValueItems = unstable_cache(getValueItems, ["public-value-items"]
 });
 
 export async function getPublicValueItems() {
+  if (isPublicStaticMode()) {
+    return getStaticValueItems();
+  }
+
   return getCachedValueItems();
 }
 
@@ -170,6 +186,12 @@ export async function getValueItem(id: string) {
   const cachedItem = cachedList.find((item) => item.id === id);
 
   if (cachedItem) return cachedItem;
+
+  if (isPublicStaticMode()) {
+    const localItem = valueItems.find((item) => item.id === id) ?? null;
+
+    return localItem ? withCurrencyValues(localItem, defaultValueCurrencySettings) : null;
+  }
 
   try {
     if (isFirestoreCoolingDown()) {
@@ -271,6 +293,10 @@ const getCachedValueCurrencySettings = unstable_cache(() => getValueCurrencySett
 });
 
 export async function getPublicValueCurrencySettings() {
+  if (isPublicStaticMode()) {
+    return defaultValueCurrencySettings;
+  }
+
   return getCachedValueCurrencySettings();
 }
 
