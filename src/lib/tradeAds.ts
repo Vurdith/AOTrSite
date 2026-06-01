@@ -12,8 +12,10 @@ const maxTradeAds = 80;
 const tradeAdsCacheTag = "trade-ads";
 const tradeAdsReadTimeoutMs = 1200;
 const tradeAdsMemoryCacheMs = 30_000;
+const tradeAdsFirestoreCooldownMs = 10 * 60_000;
 
 let cachedTradeAds: { ads: TradeAd[]; timestamp: number } | null = null;
+let tradeAdsFirestoreDisabledUntil = 0;
 
 function isFresh(timestamp: number) {
   return Date.now() - timestamp < tradeAdsMemoryCacheMs;
@@ -26,6 +28,23 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
       setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms.`)), timeoutMs);
     }),
   ]);
+}
+
+function isTradeAdsFirestoreCoolingDown() {
+  return Date.now() < tradeAdsFirestoreDisabledUntil;
+}
+
+function shouldCooldownFirestore(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const code = typeof error === "object" && error && "code" in error ? (error as { code?: unknown }).code : null;
+
+  return code === 8 || message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded") || message.includes("timed out");
+}
+
+function markTradeAdsFirestoreCooldown(error: unknown) {
+  if (shouldCooldownFirestore(error)) {
+    tradeAdsFirestoreDisabledUntil = Date.now() + tradeAdsFirestoreCooldownMs;
+  }
 }
 
 function invalidateTradeAdsCache() {
@@ -102,6 +121,10 @@ export async function getTradeAds() {
     return cachedTradeAds.ads;
   }
 
+  if (isTradeAdsFirestoreCoolingDown()) {
+    return cachedTradeAds?.ads ?? [];
+  }
+
   try {
     const snapshot = await withTimeout(
       getFirebaseAdminDb()
@@ -120,6 +143,7 @@ export async function getTradeAds() {
     cachedTradeAds = { ads, timestamp: Date.now() };
     return ads;
   } catch (error) {
+    markTradeAdsFirestoreCooldown(error);
     console.warn("Using empty trade ads fallback because Firestore trade ads could not be loaded.", error);
     return cachedTradeAds?.ads ?? [];
   }

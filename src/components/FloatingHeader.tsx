@@ -11,8 +11,12 @@ import { cn } from "@/lib/cn";
 const publicNav = [
   { href: "/values", label: "Values", icon: Gem },
   { href: "/calculator", label: "Calculator", icon: Calculator },
-  { href: "/trades", label: "Trades", icon: Handshake },
-  ...(process.env.NODE_ENV === "development" ? [{ href: "/updates", label: "Updates", icon: Newspaper }] : []),
+  ...(process.env.NODE_ENV === "development"
+    ? [
+        { href: "/trades", label: "Trades", icon: Handshake },
+        { href: "/updates", label: "Updates", icon: Newspaper },
+      ]
+    : []),
 ];
 const adminSections = [
   { href: "/admin?tab=items", id: "items", label: "Items", icon: PackageSearch },

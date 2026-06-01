@@ -13,11 +13,13 @@ const settingsCollectionName = "settings";
 const marketSettingsDocumentId = "market";
 const publicReadTimeoutMs = 1800;
 const publicCacheMs = 300_000;
+const firestoreCooldownMs = 10 * 60_000;
 const valueItemsCacheTag = "value-items";
 const valueSettingsCacheTag = "value-settings";
 
 let cachedItems: { items: ValueItem[]; timestamp: number } | null = null;
 let cachedSettings: { settings: ValueCurrencySettings; timestamp: number } | null = null;
+let firestoreDisabledUntil = 0;
 
 function isFresh(timestamp: number) {
   return Date.now() - timestamp < publicCacheMs;
@@ -32,6 +34,23 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
       setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms.`)), timeoutMs);
     }),
   ]);
+}
+
+function isFirestoreCoolingDown() {
+  return Date.now() < firestoreDisabledUntil;
+}
+
+function shouldCooldownFirestore(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  const code = typeof error === "object" && error && "code" in error ? (error as { code?: unknown }).code : null;
+
+  return code === 8 || message.includes("RESOURCE_EXHAUSTED") || message.includes("Quota exceeded") || message.includes("timed out");
+}
+
+function markFirestoreCooldown(error: unknown) {
+  if (shouldCooldownFirestore(error)) {
+    firestoreDisabledUntil = Date.now() + firestoreCooldownMs;
+  }
 }
 
 function invalidatePublicValueCache(itemId?: string) {
@@ -108,6 +127,13 @@ export async function getValueItems() {
     return cachedItems.items;
   }
 
+  if (isFirestoreCoolingDown()) {
+    const settings = await getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs });
+    const fallbackItems = sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
+    cachedItems = { items: fallbackItems, timestamp: Date.now() };
+    return fallbackItems;
+  }
+
   try {
     const items = await getFirestoreValueItems({ timeoutMs: publicReadTimeoutMs });
 
@@ -121,6 +147,7 @@ export async function getValueItems() {
     cachedItems = { items: fallbackItems, timestamp: Date.now() };
     return fallbackItems;
   } catch (error) {
+    markFirestoreCooldown(error);
     console.warn("Using local value items because Firestore items could not be loaded.", error);
     const settings = await getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs });
     const fallbackItems = sortByValue(valueItems.map((item) => withCurrencyValues(item, settings)));
@@ -145,6 +172,10 @@ export async function getValueItem(id: string) {
   if (cachedItem) return cachedItem;
 
   try {
+    if (isFirestoreCoolingDown()) {
+      throw new Error("Firestore public reads are cooling down after quota errors.");
+    }
+
     const db = getFirebaseAdminDb();
     const [settings, doc] = await Promise.all([getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }), withTimeout(db.collection(collectionName).doc(id).get(), publicReadTimeoutMs, "Firestore item read")]);
 
@@ -153,6 +184,7 @@ export async function getValueItem(id: string) {
       if (item) return withCurrencyValues(item, settings);
     }
   } catch (error) {
+    markFirestoreCooldown(error);
     console.warn(`Using local item fallback for ${id}.`, error);
   }
 
@@ -213,6 +245,12 @@ export async function getValueCurrencySettings(options: { timeoutMs?: number } =
     return cachedSettings.settings;
   }
 
+  if (options.timeoutMs !== 0 && isFirestoreCoolingDown()) {
+    const settings = cachedSettings?.settings ?? defaultValueCurrencySettings;
+    cachedSettings = { settings, timestamp: Date.now() };
+    return settings;
+  }
+
   try {
     const doc = await withTimeout(getFirebaseAdminDb().collection(settingsCollectionName).doc(marketSettingsDocumentId).get(), options.timeoutMs ?? publicReadTimeoutMs, "Firestore settings read");
 
@@ -220,6 +258,7 @@ export async function getValueCurrencySettings(options: { timeoutMs?: number } =
     cachedSettings = { settings, timestamp: Date.now() };
     return settings;
   } catch (error) {
+    markFirestoreCooldown(error);
     console.warn("Using default value currency settings because Firestore settings could not be loaded.", error);
     cachedSettings = { settings: defaultValueCurrencySettings, timestamp: Date.now() };
     return defaultValueCurrencySettings;
