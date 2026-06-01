@@ -1,23 +1,46 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
-import { BarChart3, ChevronDown, Database, Eye, History, ImageIcon, PackageSearch, Plus, Save, Search, Settings2, SlidersHorizontal, Tag, Trash2, TrendingUp } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
+import { BarChart3, ChevronDown, Database, Eye, History, ImageIcon, ListChecks, PackageSearch, Plus, RefreshCw, Save, Search, SlidersHorizontal, Tag, Trash2, TrendingUp } from "lucide-react";
 
 import { categories, type ItemCategory, type ItemRarity, type ItemTrend, type ValueItem, type ValueHistoryPoint } from "@/content/items";
 import { cn } from "@/lib/cn";
+import { rarityStyles } from "@/lib/rarityStyles";
 import { getCurrencyValues, sanitizeCurrencySettings, type ValueCurrencySettings } from "@/lib/valueCurrency";
 
-type AdminView = "items" | "rates" | "stats" | "controls";
+type AdminView = "items" | "rates" | "stats" | "logs" | "controls";
 type AdminStatusTone = "success" | "danger" | "error";
 type AdminSortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
 type AdminDemandFilter = "all" | "high" | "medium" | "low";
 type AdminValueFilter = "all" | "top" | "mid" | "low";
 type AdminSourceFilter = "all" | string;
 type AdminTrendFilter = "all" | ItemTrend;
+type AdminLog = {
+  id: string;
+  action: "item_created" | "item_updated" | "item_deleted" | "items_seeded" | "media_uploaded" | "settings_updated";
+  actor: {
+    avatar: string | null;
+    discordId: string;
+    username: string;
+  };
+  createdAt: string;
+  summary: string;
+  targetId?: string;
+  targetName?: string;
+  targetType: "item" | "items" | "media" | "settings";
+  changes: AdminLogChange[];
+};
+type AdminLogChange = {
+  after: string | null;
+  before: string | null;
+  field: string;
+  label: string;
+};
 
 const rarityOptions: ItemRarity[] = ["mythic", "legendary", "epic", "rare", "uncommon", "common", "event"];
 const itemTrendOptions: ItemTrend[] = ["rising", "stable", "falling"];
 const adminPageSize = 8;
+const adminLogPageSize = 8;
 const filterBreakpoint = "(max-width: 767px)";
 const adminSortOptions: { id: AdminSortOption; label: string }[] = [
   { id: "value-desc", label: "Value high-low" },
@@ -165,6 +188,30 @@ function formatNumber(value: number) {
   }).format(value);
 }
 
+function formatLogDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getLogActionLabel(action: AdminLog["action"]) {
+  const labels: Record<AdminLog["action"], string> = {
+    item_created: "Created",
+    item_deleted: "Deleted",
+    item_updated: "Updated",
+    items_seeded: "Seeded",
+    media_uploaded: "Uploaded",
+    settings_updated: "Settings",
+  };
+
+  return labels[action];
+}
+
 function subscribeFilterBreakpoint(onStoreChange: () => void) {
   const query = window.matchMedia(filterBreakpoint);
   query.addEventListener("change", onStoreChange);
@@ -249,6 +296,11 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   const [status, setStatus] = useState("");
   const [statusTone, setStatusTone] = useState<AdminStatusTone>("success");
   const [saving, setSaving] = useState(false);
+  const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [logsLoaded, setLogsLoaded] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logPage, setLogPage] = useState(1);
+  const [uploadingIcon, setUploadingIcon] = useState(false);
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -310,6 +362,53 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     setValueFilter("all");
     setPage(1);
   }
+
+  const refreshLogs = useCallback(async () => {
+    setLogsLoading(true);
+
+    try {
+      const response = await fetch("/api/admin/logs", { cache: "no-store" });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error ?? "Unable to load admin logs.");
+
+      setLogs(data.logs);
+      setLogsLoaded(true);
+      setLogPage(1);
+    } catch (error) {
+      setStatusTone("error");
+      setStatus(error instanceof Error ? error.message : "Log refresh failed.");
+    } finally {
+      setLogsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeView === "logs" && !logsLoaded && !logsLoading) {
+      void refreshLogs();
+    }
+  }, [activeView, logsLoaded, logsLoading, refreshLogs]);
+
+  useEffect(() => {
+    const adminViews: AdminView[] = ["items", "rates", "stats", "logs", "controls"];
+    const updateFromUrl = () => {
+      const tab = new URLSearchParams(window.location.search).get("tab") as AdminView | null;
+      setActiveView(tab && adminViews.includes(tab) ? tab : "items");
+    };
+    const updateFromEvent = (event: Event) => {
+      const tab = (event as CustomEvent<string>).detail as AdminView;
+      if (adminViews.includes(tab)) setActiveView(tab);
+    };
+
+    updateFromUrl();
+    window.addEventListener("popstate", updateFromUrl);
+    window.addEventListener("admin-tab-change", updateFromEvent);
+
+    return () => {
+      window.removeEventListener("popstate", updateFromUrl);
+      window.removeEventListener("admin-tab-change", updateFromEvent);
+    };
+  }, []);
 
   function updateDraft<K extends keyof ValueItem>(key: K, value: ValueItem[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -379,6 +478,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       const freshItems = await refreshItems();
       const saved = freshItems.find((item) => item.id === data.item.id) ?? data.item;
       selectItem(saved);
+      if (logsLoaded) void refreshLogs();
       setStatusTone("success");
       setStatus(`Saved ${saved.name}.`);
     } catch (error) {
@@ -410,6 +510,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       const current = freshItems.find((item) => item.id === selectedId) ?? freshItems[0] ?? emptyItem;
       selectItem(current);
       setActiveView("rates");
+      if (logsLoaded) void refreshLogs();
       setStatusTone("success");
       setStatus("Saved conversion rates. Item displays now use the updated rates.");
     } catch (error) {
@@ -440,6 +541,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       const freshItems = await refreshItems();
       const next = freshItems[0] ?? emptyItem;
       selectItem(next);
+      if (logsLoaded) void refreshLogs();
       setStatusTone("danger");
       setStatus(`Deleted ${draft.name}.`);
     } catch (error) {
@@ -467,6 +569,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
 
       const freshItems = await refreshItems();
       selectItem(freshItems[0] ?? emptyItem);
+      if (logsLoaded) void refreshLogs();
       setStatusTone("success");
       setStatus(`Seeded ${data.count} items into Firestore.`);
     } catch (error) {
@@ -474,6 +577,36 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       setStatus(error instanceof Error ? error.message : "Seed failed.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadItemIcon(file: File) {
+    setUploadingIcon(true);
+    setStatusTone("success");
+    setStatus(`Uploading ${file.name}...`);
+
+    try {
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("itemId", draft.id || slugify(draft.name) || "item");
+
+      const response = await fetch("/api/admin/media/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error ?? "Unable to upload icon.");
+
+      updateDraft("iconUrl", data.url);
+      if (logsLoaded) void refreshLogs();
+      setStatusTone("success");
+      setStatus("Uploaded icon. Save the item to keep this icon URL on the record.");
+    } catch (error) {
+      setStatusTone("error");
+      setStatus(error instanceof Error ? error.message : "Icon upload failed.");
+    } finally {
+      setUploadingIcon(false);
     }
   }
 
@@ -485,26 +618,6 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
             <div>
               <span>Admin system</span>
               <h2 className="font-display">Market Control</h2>
-            </div>
-            <div className="admin-console-controls">
-              <div className="admin-view-tabs" aria-label="Admin sections">
-                <button type="button" className={cn("admin-view-tab", activeView === "items" && "admin-view-tab-active")} onClick={() => setActiveView("items")}>
-                  <PackageSearch size={16} strokeWidth={2.4} />
-                  Items
-                </button>
-                <button type="button" className={cn("admin-view-tab", activeView === "rates" && "admin-view-tab-active")} onClick={() => setActiveView("rates")}>
-                  <SlidersHorizontal size={16} strokeWidth={2.4} />
-                  Conversion
-                </button>
-                <button type="button" className={cn("admin-view-tab", activeView === "stats" && "admin-view-tab-active")} onClick={() => setActiveView("stats")}>
-                  <BarChart3 size={16} strokeWidth={2.4} />
-                  Stats
-                </button>
-                <button type="button" className={cn("admin-view-tab", activeView === "controls" && "admin-view-tab-active")} onClick={() => setActiveView("controls")}>
-                  <Settings2 size={16} strokeWidth={2.4} />
-                  Controls
-                </button>
-              </div>
             </div>
           </div>
 
@@ -624,7 +737,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
                 <div className="admin-item-list">
                   {pagedItems.map((item) => (
                     <button key={item.id} type="button" className={cn("admin-item-button", `admin-item-rarity-${item.rarity}`, selectedId === item.id && "admin-item-button-active")} onClick={() => selectItem(item)}>
-                      <span className="admin-item-thumb">
+                      <span className={cn("item-crest admin-item-thumb", rarityStyles[item.rarity].crest)}>
                         {item.iconUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={item.iconUrl} alt="" />
@@ -661,6 +774,8 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
                 saveItem={saveItem}
                 saving={saving}
                 setHistoryDraft={setHistoryDraft}
+                uploadItemIcon={uploadItemIcon}
+                uploadingIcon={uploadingIcon}
                 updateDraft={updateDraft}
                 updateDraftValueKeys={updateDraftValueKeys}
                 updateDraftValueMasks={updateDraftValueMasks}
@@ -678,6 +793,8 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
             />
           ) : activeView === "stats" ? (
             <StatsPanel itemStats={itemStats} filteredCount={filtered.length} itemCount={items.length} />
+          ) : activeView === "logs" ? (
+            <LogsPanel currentPage={logPage} logs={logs} loading={logsLoading} onPageChange={setLogPage} refreshLogs={refreshLogs} />
           ) : (
             <ControlsPanel saving={saving} seedFirestore={seedFirestore} />
           )}
@@ -696,6 +813,8 @@ function ItemEditor({
   saveItem,
   saving,
   setHistoryDraft,
+  uploadItemIcon,
+  uploadingIcon,
   updateDraft,
   updateDraftValueKeys,
   updateDraftValueMasks,
@@ -709,6 +828,8 @@ function ItemEditor({
   saveItem: () => void;
   saving: boolean;
   setHistoryDraft: (value: string) => void;
+  uploadItemIcon: (file: File) => void;
+  uploadingIcon: boolean;
   updateDraft: <K extends keyof ValueItem>(key: K, value: ValueItem[K]) => void;
   updateDraftValueKeys: (value: number) => void;
   updateDraftValueMasks: (value: number) => void;
@@ -770,9 +891,12 @@ function ItemEditor({
           </AdminCard>
 
           <AdminCard icon={<ImageIcon size={17} strokeWidth={2.4} />} eyebrow="Presentation" title="Media and notes">
-            <div className="admin-form-grid">
-              <AdminInput label="Icon URL" value={draft.iconUrl ?? ""} onChange={(value) => updateDraft("iconUrl", value)} placeholder="/icons/items/example.png" />
-              <AdminTextarea label="Note" value={draft.note} onChange={(value) => updateDraft("note", value)} />
+            <div className="admin-media-grid">
+              <div className="admin-media-fields">
+                <AdminInput label="Icon URL" value={draft.iconUrl ?? ""} onChange={(value) => updateDraft("iconUrl", value)} placeholder="https://pub-...r2.dev/items/example.png" />
+                <AdminTextarea label="Note" value={draft.note} onChange={(value) => updateDraft("note", value)} />
+              </div>
+              <AdminIconUploader draft={draft} uploadItemIcon={uploadItemIcon} uploadingIcon={uploadingIcon} />
             </div>
           </AdminCard>
 
@@ -783,6 +907,38 @@ function ItemEditor({
         </div>
 
       </div>
+    </div>
+  );
+}
+
+function AdminIconUploader({ draft, uploadItemIcon, uploadingIcon }: { draft: ValueItem; uploadItemIcon: (file: File) => void; uploadingIcon: boolean }) {
+  return (
+    <div className="admin-icon-uploader">
+      <span className={cn("item-crest admin-icon-preview", rarityStyles[draft.rarity].crest)}>
+        {draft.iconUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={draft.iconUrl} alt="" />
+        ) : (
+          <ImageIcon size={30} strokeWidth={2.1} />
+        )}
+      </span>
+      <div className="admin-icon-upload-copy">
+        <strong>{draft.name || "New item"}</strong>
+      </div>
+      <label className={cn("admin-secondary-action admin-icon-upload-action", uploadingIcon && "admin-icon-upload-action-disabled")}>
+        <ImageIcon size={15} strokeWidth={2.4} />
+        {uploadingIcon ? "Uploading..." : "Upload Icon"}
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif"
+          disabled={uploadingIcon}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) uploadItemIcon(file);
+            event.target.value = "";
+          }}
+        />
+      </label>
     </div>
   );
 }
@@ -884,6 +1040,112 @@ function StatsPanel({
           </div>
         </AdminCard>
       </div>
+    </div>
+  );
+}
+
+function LogsPanel({
+  currentPage,
+  loading,
+  logs,
+  onPageChange,
+  refreshLogs,
+}: {
+  currentPage: number;
+  loading: boolean;
+  logs: AdminLog[];
+  onPageChange: (page: number) => void;
+  refreshLogs: () => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(logs.length / adminLogPageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const firstLogIndex = (safePage - 1) * adminLogPageSize;
+  const pagedLogs = logs.slice(firstLogIndex, firstLogIndex + adminLogPageSize);
+
+  return (
+    <div className="admin-logs-page">
+      <div className="admin-rates-hero">
+        <div>
+          <span>Audit trail</span>
+          <h2 className="font-display">Change Logs</h2>
+          <p>Every admin save, delete, settings update, and database seed is recorded with the Discord admin that made the change.</p>
+        </div>
+        <div className="admin-editor-actions">
+          <button type="button" className="admin-secondary-action" onClick={refreshLogs} disabled={loading}>
+            <RefreshCw size={15} strokeWidth={2.4} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <AdminCard icon={<ListChecks size={17} strokeWidth={2.4} />} eyebrow="Recent activity" title="Latest changes">
+        <div className="admin-log-list">
+          {loading && !logs.length ? <p className="admin-empty">Loading admin logs...</p> : null}
+          {!loading && !logs.length ? <p className="admin-empty">No admin changes have been logged yet.</p> : null}
+          {pagedLogs.map((log) => (
+            <article key={log.id} className={cn("admin-log-row", `admin-log-${log.action}`)}>
+              <div className="admin-log-actor">
+                <span className="admin-log-avatar">
+                  {log.actor.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={log.actor.avatar} alt="" />
+                  ) : (
+                    log.actor.username.slice(0, 1).toUpperCase()
+                  )}
+                </span>
+                <div>
+                  <strong>{log.actor.username}</strong>
+                  <small>{formatLogDate(log.createdAt)}</small>
+                </div>
+              </div>
+              <div className="admin-log-main">
+                <span>{getLogActionLabel(log.action)}</span>
+                <p>{log.summary}</p>
+                {log.targetName || log.targetId ? <small>{[log.targetName, log.targetId].filter(Boolean).join(" / ")}</small> : null}
+              </div>
+              {log.changes.length ? <AdminLogChanges changes={log.changes} /> : null}
+            </article>
+          ))}
+        </div>
+        {logs.length > adminLogPageSize ? (
+          <AdminPagination
+            currentPage={safePage}
+            firstItemIndex={firstLogIndex}
+            itemCount={logs.length}
+            onPageChange={onPageChange}
+            pageSize={adminLogPageSize}
+            totalPages={totalPages}
+          />
+        ) : null}
+      </AdminCard>
+    </div>
+  );
+}
+
+function AdminLogChanges({ changes }: { changes: AdminLogChange[] }) {
+  return (
+    <details className="admin-log-details">
+      <summary>{changes.length} field {changes.length === 1 ? "change" : "changes"}</summary>
+      <div className="admin-log-change-list">
+        {changes.map((change) => (
+          <div key={`${change.field}-${change.label}`} className="admin-log-change">
+            <strong>{change.label}</strong>
+            <div className="admin-log-change-values">
+              <AdminLogValue label="Before" value={change.before} />
+              <AdminLogValue label="After" value={change.after} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function AdminLogValue({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="admin-log-value">
+      <span>{label}</span>
+      <pre>{value ?? "Empty"}</pre>
     </div>
   );
 }

@@ -1,12 +1,12 @@
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { ValuesList } from "@/components/ValuesList";
-import { getValueCurrencySettings, getValueItems } from "@/lib/firestoreItems";
+import { getPublicValueCurrencySettings, getPublicValueItems } from "@/lib/firestoreItems";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function ValuesPage() {
-  const [items, currencySettings] = await Promise.all([getValueItems(), getValueCurrencySettings()]);
+  const [items, currencySettings] = await Promise.all([getPublicValueItems(), getPublicValueCurrencySettings()]);
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">

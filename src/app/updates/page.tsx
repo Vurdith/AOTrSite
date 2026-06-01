@@ -3,18 +3,18 @@ import Link from "next/link";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { UpdatesList } from "@/components/UpdatesList";
-import { getValueItems } from "@/lib/firestoreItems";
+import { getPublicValueItems } from "@/lib/firestoreItems";
 
 const isDevelopment = process.env.NODE_ENV === "development";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function UpdatesPage() {
   if (!isDevelopment) {
     return <UpdatesUnderConstruction />;
   }
 
-  const items = await getValueItems();
+  const items = await getPublicValueItems();
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">

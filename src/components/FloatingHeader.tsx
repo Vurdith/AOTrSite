@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calculator, Gem, Hammer, LogOut, Menu, Newspaper, ShieldCheck, X } from "lucide-react";
+import { BarChart3, Calculator, Gem, Hammer, Handshake, ListChecks, LogOut, Menu, Newspaper, PackageSearch, Settings2, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { cn } from "@/lib/cn";
@@ -11,7 +11,15 @@ import { cn } from "@/lib/cn";
 const publicNav = [
   { href: "/values", label: "Values", icon: Gem },
   { href: "/calculator", label: "Calculator", icon: Calculator },
+  { href: "/trades", label: "Trades", icon: Handshake },
   ...(process.env.NODE_ENV === "development" ? [{ href: "/updates", label: "Updates", icon: Newspaper }] : []),
+];
+const adminSections = [
+  { href: "/admin?tab=items", id: "items", label: "Items", icon: PackageSearch },
+  { href: "/admin?tab=rates", id: "rates", label: "Conversion", icon: SlidersHorizontal },
+  { href: "/admin?tab=stats", id: "stats", label: "Stats", icon: BarChart3 },
+  { href: "/admin?tab=logs", id: "logs", label: "Logs", icon: ListChecks },
+  { href: "/admin?tab=controls", id: "controls", label: "Controls", icon: Settings2 },
 ];
 const scrollDownIntentThreshold = 2;
 
@@ -25,7 +33,11 @@ type HeaderSession = {
 export function FloatingHeader() {
   const pathname = usePathname();
   const homeActive = pathname === "/";
+  const [activeAdminTab, setActiveAdminTab] = useState("items");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [mobileAdminOpen, setMobileAdminOpen] = useState(false);
+  const [desktopAdminOpen, setDesktopAdminOpen] = useState(false);
+  const [desktopAdminSuppressed, setDesktopAdminSuppressed] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
   const [session, setSession] = useState<HeaderSession | null>(null);
   const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -57,6 +69,36 @@ export function FloatingHeader() {
     lastScrollY.current = 0;
     setHeaderHidden(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const updateActiveAdminTab = () => {
+      const tab = new URLSearchParams(window.location.search).get("tab");
+      setActiveAdminTab(tab || "items");
+    };
+
+    updateActiveAdminTab();
+    window.addEventListener("popstate", updateActiveAdminTab);
+
+    return () => window.removeEventListener("popstate", updateActiveAdminTab);
+  }, [pathname]);
+
+  function selectAdminTab(tab: string) {
+    setActiveAdminTab(tab);
+    setDesktopAdminOpen(false);
+    setDesktopAdminSuppressed(true);
+    window.dispatchEvent(new CustomEvent("admin-tab-change", { detail: tab }));
+  }
+
+  function openDesktopAdminMenu() {
+    if (!desktopAdminSuppressed) {
+      setDesktopAdminOpen(true);
+    }
+  }
+
+  function resetDesktopAdminMenu() {
+    setDesktopAdminOpen(false);
+    setDesktopAdminSuppressed(false);
+  }
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -108,7 +150,7 @@ export function FloatingHeader() {
   }, []);
 
   const loginHref = `/api/auth/discord/login?next=${encodeURIComponent(pathname || "/")}`;
-  const nav = sessionLoaded && session?.isAdmin ? [...publicNav.slice(0, 2), { href: "/admin", label: "Admin", icon: Hammer }, ...publicNav.slice(2)] : publicNav;
+  const nav = sessionLoaded && session?.isAdmin ? [...publicNav.slice(0, 3), { href: "/admin", label: "Admin", icon: Hammer }, ...publicNav.slice(3)] : publicNav;
 
   return (
     <>
@@ -141,10 +183,60 @@ export function FloatingHeader() {
             </span>
           </Link>
 
-          <div className={cn("desktop-nav-grid grid w-full min-w-0 gap-1.5", nav.length === 4 ? "max-w-[560px] grid-cols-4" : nav.length === 3 ? "max-w-[440px] grid-cols-3" : "max-w-[300px] grid-cols-2")}>
+          <div
+            className={cn(
+              "desktop-nav-grid grid w-full min-w-0 gap-1.5",
+              nav.length === 5
+                ? "max-w-[680px] grid-cols-5"
+                : nav.length === 4
+                  ? "max-w-[560px] grid-cols-4"
+                  : nav.length === 3
+                    ? "max-w-[440px] grid-cols-3"
+                    : "max-w-[300px] grid-cols-2",
+            )}
+          >
             {nav.map((item) => {
               const active = pathname === item.href;
               const Icon = item.icon;
+              if (item.href === "/admin") {
+                return (
+                  <div key={item.href} className={cn("site-admin-nav", desktopAdminOpen && "site-admin-nav-open")} onMouseEnter={openDesktopAdminMenu} onMouseLeave={resetDesktopAdminMenu}>
+                    <Link
+                      href="/admin?tab=items"
+                      onClick={(event) => {
+                        selectAdminTab("items");
+                        event.currentTarget.blur();
+                      }}
+                      onFocus={openDesktopAdminMenu}
+                      className={cn("site-nav-link site-admin-trigger", active && "site-nav-link-active")}
+                      aria-expanded={desktopAdminOpen}
+                    >
+                      <Icon className="site-nav-icon" size={14} strokeWidth={2.5} aria-hidden="true" />
+                      <span className="truncate text-center">{item.label}</span>
+                    </Link>
+                    <div className="site-admin-menu" aria-label="Admin sections">
+                      {adminSections.map((section) => {
+                        const SectionIcon = section.icon;
+
+                        return (
+                          <Link
+                            key={section.id}
+                            href={section.href}
+                            onClick={(event) => {
+                              selectAdminTab(section.id);
+                              event.currentTarget.blur();
+                            }}
+                            className={cn("site-admin-menu-link", active && activeAdminTab === section.id && "site-admin-menu-link-active")}
+                          >
+                            <SectionIcon size={14} strokeWidth={2.4} aria-hidden="true" />
+                            <span>{section.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <Link
                   key={item.href}
@@ -204,6 +296,54 @@ export function FloatingHeader() {
           {nav.map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
+            if (item.href === "/admin") {
+              return (
+                <div key={item.href} className="mobile-admin-nav">
+                  <Link
+                    href="/admin?tab=items"
+                    onClick={() => {
+                      selectAdminTab("items");
+                      setMobileNavOpen(false);
+                    }}
+                    className={cn("mobile-sidebar-link", active && "mobile-sidebar-link-active")}
+                  >
+                    <Icon className="mobile-sidebar-link-icon" size={17} strokeWidth={2.4} aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    className={cn("mobile-admin-toggle", mobileAdminOpen && "mobile-admin-toggle-open")}
+                    onClick={() => setMobileAdminOpen((open) => !open)}
+                    aria-label="Toggle admin sections"
+                    aria-expanded={mobileAdminOpen}
+                  >
+                    <span />
+                  </button>
+                  {mobileAdminOpen ? (
+                    <div className="mobile-admin-subnav" aria-label="Admin sections">
+                      {adminSections.map((section) => {
+                        const SectionIcon = section.icon;
+
+                        return (
+                          <Link
+                            key={section.id}
+                            href={section.href}
+                            onClick={() => {
+                              selectAdminTab(section.id);
+                              setMobileNavOpen(false);
+                            }}
+                            className={cn("mobile-admin-subnav-link", active && activeAdminTab === section.id && "mobile-admin-subnav-link-active")}
+                          >
+                            <SectionIcon size={15} strokeWidth={2.4} aria-hidden="true" />
+                            <span>{section.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            }
             return (
               <Link
                 key={item.href}

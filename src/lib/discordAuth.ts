@@ -236,3 +236,17 @@ export async function requireAdminSession() {
 
   return null;
 }
+
+export async function requireAdminSessionWithUser() {
+  const session = await getDiscordSession();
+
+  if (!session) {
+    return { response: Response.json({ error: "Discord login required." }, { status: 401 }) };
+  }
+
+  if (!session.isAdmin) {
+    return { response: Response.json({ error: "Discord account is not on the admin whitelist." }, { status: 403 }) };
+  }
+
+  return { session };
+}

@@ -47,7 +47,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 5625,
     "prestige": 3,
-    "iconUrl": "/icons/items/toji.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/toji.png",
     "owners": "Legendary",
     "note": "High interest item with reliable trade activity."
   },
@@ -61,7 +61,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 5625,
     "prestige": 3,
-    "iconUrl": "/icons/items/primera.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/primera.png",
     "owners": "Legendary",
     "note": "Steady market interest with usable liquidity."
   },
@@ -75,7 +75,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 2,
-    "iconUrl": "/icons/items/captain.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/captain.png",
     "owners": "Epic",
     "note": "High interest item with reliable trade activity."
   },
@@ -89,7 +89,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 2,
-    "iconUrl": "/icons/items/quincy.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/quincy.png",
     "owners": "Epic",
     "note": "Steady market interest with usable liquidity."
   },
@@ -103,7 +103,7 @@ export const valueItems: ValueItem[] = [
     "trend": "falling",
     "taxGems": 15000,
     "prestige": 1,
-    "iconUrl": "/icons/items/bunny-girl.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/bunny-girl.png",
     "owners": "Mythic",
     "note": "Recent listings are pulling the value down."
   },
@@ -117,7 +117,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 1,
-    "iconUrl": "/icons/items/geto.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/geto.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -131,7 +131,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 300,
     "prestige": 1,
-    "iconUrl": "/icons/items/ulquiorra.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/ulquiorra.png",
     "owners": "Rare",
     "note": "High interest item with reliable trade activity."
   },
@@ -145,7 +145,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 150,
     "prestige": 1,
-    "iconUrl": "/icons/items/soul-reaper.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/soul-reaper.png",
     "owners": "Uncommon",
     "note": "High interest item with reliable trade activity."
   },
@@ -159,7 +159,7 @@ export const valueItems: ValueItem[] = [
     "trend": "falling",
     "taxGems": 5625,
     "prestige": 1,
-    "iconUrl": "/icons/items/shadow.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/shadow.png",
     "owners": "Legendary",
     "note": "Current listings are above fair trade value."
   },
@@ -173,7 +173,7 @@ export const valueItems: ValueItem[] = [
     "trend": "falling",
     "taxGems": 5625,
     "prestige": 1,
-    "iconUrl": "/icons/items/berserker.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/berserker.png",
     "owners": "Legendary",
     "note": "Current listings are above fair trade value."
   },
@@ -187,7 +187,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 5625,
     "prestige": 1,
-    "iconUrl": "/icons/items/madara.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/madara.png",
     "owners": "Legendary",
     "note": "Steady market interest with usable liquidity."
   },
@@ -201,7 +201,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 300,
     "prestige": 1,
-    "iconUrl": "/icons/items/sorcerer.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/sorcerer.png",
     "owners": "Rare",
     "note": "Steady market interest with usable liquidity."
   },
@@ -215,7 +215,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 300,
     "prestige": 1,
-    "iconUrl": "/icons/items/kisuke.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/kisuke.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -229,7 +229,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 4500,
     "prestige": 1,
-    "iconUrl": "/icons/items/maid.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/maid.png",
     "owners": "Legendary",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -243,7 +243,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 5625,
     "prestige": 1,
-    "iconUrl": "/icons/items/gilgamesh.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/gilgamesh.png",
     "owners": "Legendary",
     "note": "Steady market interest with usable liquidity."
   },
@@ -257,7 +257,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 4500,
     "prestige": 1,
-    "iconUrl": "/icons/items/shogun.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/shogun.png",
     "owners": "Legendary",
     "note": "Steady market interest with usable liquidity."
   },
@@ -271,7 +271,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 5625,
     "prestige": 1,
-    "iconUrl": "/icons/items/giyuu.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/giyuu.png",
     "owners": "Legendary",
     "note": "Steady market interest with usable liquidity."
   },
@@ -285,7 +285,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 5625,
     "prestige": 1,
-    "iconUrl": "/icons/items/tengen.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/tengen.png",
     "owners": "Legendary",
     "note": "Steady market interest with usable liquidity."
   },
@@ -299,7 +299,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 150,
     "prestige": 1,
-    "iconUrl": "/icons/items/utahime.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/utahime.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -313,7 +313,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 0,
     "prestige": 1,
-    "iconUrl": "/icons/items/military.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/military.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -327,7 +327,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1200,
     "prestige": 0,
-    "iconUrl": "/icons/items/maiden.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/maiden.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -341,7 +341,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 0,
-    "iconUrl": "/icons/items/akatsuki.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/akatsuki.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -355,7 +355,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 0,
-    "iconUrl": "/icons/items/sasuke.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/sasuke.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -369,7 +369,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 0,
-    "iconUrl": "/icons/items/astolfo-2.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/astolfo-2.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -383,7 +383,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 0,
-    "iconUrl": "/icons/items/astolfo.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/astolfo.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -397,7 +397,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 0,
-    "iconUrl": "/icons/items/archer.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/archer.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -411,7 +411,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1200,
     "prestige": 0,
-    "iconUrl": "/icons/items/pirate.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/pirate.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -425,7 +425,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1500,
     "prestige": 0,
-    "iconUrl": "/icons/items/rengoku.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/rengoku.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -439,7 +439,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1200,
     "prestige": 0,
-    "iconUrl": "/icons/items/steampunk.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/steampunk.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -453,7 +453,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 1200,
     "prestige": 0,
-    "iconUrl": "/icons/items/kenny.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/kenny.png",
     "owners": "Epic",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -467,7 +467,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 120,
     "prestige": 0,
-    "iconUrl": "/icons/items/detective.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/detective.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -481,7 +481,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 120,
     "prestige": 0,
-    "iconUrl": "/icons/items/jolly-mascot.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/jolly-mascot.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -495,7 +495,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 240,
     "prestige": 0,
-    "iconUrl": "/icons/items/pajama.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/pajama.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -509,7 +509,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 0,
     "prestige": 0,
-    "iconUrl": "/icons/items/santa.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/santa.png",
     "owners": "Events",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -523,7 +523,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 240,
     "prestige": 0,
-    "iconUrl": "/icons/items/cowboy.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/cowboy.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -537,7 +537,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 300,
     "prestige": 0,
-    "iconUrl": "/icons/items/miku.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/miku.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -551,7 +551,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 300,
     "prestige": 0,
-    "iconUrl": "/icons/items/naruto.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/naruto.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -565,7 +565,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 300,
     "prestige": 0,
-    "iconUrl": "/icons/items/saber.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/saber.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -579,7 +579,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 150,
     "prestige": 0,
-    "iconUrl": "/icons/items/saitama.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/saitama.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -593,7 +593,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 300,
     "prestige": 0,
-    "iconUrl": "/icons/items/tanjiro.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/tanjiro.png",
     "owners": "Rare",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -607,7 +607,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 120,
     "prestige": 0,
-    "iconUrl": "/icons/items/banana.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/banana.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -621,7 +621,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 120,
     "prestige": 0,
-    "iconUrl": "/icons/items/chef.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/chef.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -635,7 +635,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 150,
     "prestige": 0,
-    "iconUrl": "/icons/items/hinata.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/hinata.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -649,7 +649,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 150,
     "prestige": 0,
-    "iconUrl": "/icons/items/ninja-war.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/ninja-war.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -663,7 +663,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 120,
     "prestige": 0,
-    "iconUrl": "/icons/items/ninja.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/ninja.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -677,7 +677,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 150,
     "prestige": 0,
-    "iconUrl": "/icons/items/shinobu.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/shinobu.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -691,7 +691,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 150,
     "prestige": 0,
-    "iconUrl": "/icons/items/bikini.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/bikini.png",
     "owners": "Uncommon",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -705,7 +705,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 37,
     "prestige": 0,
-    "iconUrl": "/icons/items/goku.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/goku.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -719,7 +719,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 37,
     "prestige": 0,
-    "iconUrl": "/icons/items/idol.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/idol.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -733,7 +733,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 30,
     "prestige": 0,
-    "iconUrl": "/icons/items/monk.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/monk.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -747,7 +747,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 37,
     "prestige": 0,
-    "iconUrl": "/icons/items/rock-lee.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/rock-lee.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -761,7 +761,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 37,
     "prestige": 0,
-    "iconUrl": "/icons/items/priest.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/priest.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -775,7 +775,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 37,
     "prestige": 0,
-    "iconUrl": "/icons/items/scathach.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/scathach.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -789,7 +789,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 37,
     "prestige": 0,
-    "iconUrl": "/icons/items/slayer-f.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/slayer-f.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -803,7 +803,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 37,
     "prestige": 0,
-    "iconUrl": "/icons/items/slayer-m.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/slayer-m.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   },
@@ -817,7 +817,7 @@ export const valueItems: ValueItem[] = [
     "trend": "stable",
     "taxGems": 30,
     "prestige": 0,
-    "iconUrl": "/icons/items/citizen.png",
+    "iconUrl": "https://pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev/items/citizen.png",
     "owners": "Common",
     "note": "Low-volume cosmetic, best checked against recent offers."
   }

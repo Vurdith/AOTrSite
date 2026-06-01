@@ -6,6 +6,15 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: projectRoot,
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "pub-d0c3b53d48004380bf4f8c053c4de0a4.r2.dev",
+        pathname: "/items/**",
+      },
+    ],
+  },
   async headers() {
     const staticAssetHeaders = [
       {

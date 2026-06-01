@@ -254,6 +254,15 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
 
     const timer = window.setTimeout(() => {
       setYours((current) => {
+        const existingIndex = current.findIndex((slot) => slot?.item.id === item.id);
+
+        if (existingIndex !== -1) {
+          const nextSlot = { side: "yours" as const, index: existingIndex };
+          setActiveSlot(nextSlot);
+          setSlotCue(nextSlot);
+          return current.map((slot, slotIndex) => (slot && slotIndex === existingIndex ? { ...slot, quantity: Math.min(100, slot.quantity + 1) } : slot));
+        }
+
         const emptyIndex = current.findIndex((slot) => !slot);
         const targetIndex = emptyIndex === -1 ? 0 : emptyIndex;
         const nextIndex = getNextSlotIndex(current, targetIndex);
@@ -288,14 +297,34 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
     const setter = activeSlot.side === "yours" ? setYours : setTheirs;
     const slots = activeSlot.side === "yours" ? yours : theirs;
     const nextIndex = getNextSlotIndex(slots, activeSlot.index);
+    const existingIndex = slots.findIndex((slot, slotIndex) => slotIndex !== activeSlot.index && slot?.item.id === item.id);
 
-    setter((current) =>
-      current.map((slot, slotIndex) =>
-        slotIndex === activeSlot.index
-          ? { item, quantity: slot?.quantity ?? 1 }
-          : slot,
-      ),
-    );
+    if (existingIndex !== -1) {
+      const existingSlot = { side: activeSlot.side, index: existingIndex };
+
+      setter((current) =>
+        current.map((slot, slotIndex) => {
+          if (slot && slotIndex === existingIndex) return { ...slot, quantity: Math.min(100, slot.quantity + 1) };
+          if (slotIndex === activeSlot.index) return null;
+          return slot;
+        }),
+      );
+      setQuery("");
+      setSlotCue(existingSlot);
+      setPickerOpen(false);
+
+      if (pickerReopenTimer.current) {
+        window.clearTimeout(pickerReopenTimer.current);
+      }
+
+      pickerReopenTimer.current = window.setTimeout(() => {
+        setPickerOpen(true);
+        pickerReopenTimer.current = null;
+      }, 950);
+      return;
+    }
+
+    setter((current) => current.map((slot, slotIndex) => (slotIndex === activeSlot.index ? { item, quantity: slot?.quantity ?? 1 } : slot)));
     setQuery("");
     if (nextIndex === -1) {
       setPickerOpen(false);

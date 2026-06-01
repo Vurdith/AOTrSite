@@ -3,23 +3,24 @@ import { notFound } from "next/navigation";
 
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { ItemValuePage } from "@/components/ItemValuePage";
-import { getValueCurrencySettings, getValueItem, getValueItems } from "@/lib/firestoreItems";
+import { getPublicValueCurrencySettings, getPublicValueItems, getValueItem } from "@/lib/firestoreItems";
 
 type ItemPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export async function generateStaticParams() {
-  const items = await getValueItems();
+  const items = await getPublicValueItems();
 
   return items.map((item) => ({ id: item.id }));
 }
 
 export async function generateMetadata({ params }: ItemPageProps): Promise<Metadata> {
   const { id } = await params;
-  const item = await getValueItem(id);
+  const items = await getPublicValueItems();
+  const item = items.find((value) => value.id === id) ?? null;
 
   if (!item) {
     return {
@@ -35,7 +36,8 @@ export async function generateMetadata({ params }: ItemPageProps): Promise<Metad
 
 export default async function ItemPage({ params }: ItemPageProps) {
   const { id } = await params;
-  const [item, currencySettings] = await Promise.all([getValueItem(id), getValueCurrencySettings()]);
+  const [items, currencySettings] = await Promise.all([getPublicValueItems(), getPublicValueCurrencySettings()]);
+  const item = items.find((value) => value.id === id) ?? (await getValueItem(id));
 
   if (!item) notFound();
 

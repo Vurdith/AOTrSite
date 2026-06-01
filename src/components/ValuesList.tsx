@@ -669,7 +669,7 @@ function ValueDetailModal({
           <ValueDetailLine icon="rank" label="Value Rank" value={`#${valueRank} by value`} />
           <ValueDetailLine icon="gem" label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
           <ValueDetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
-          <ValueDetailLine icon="prestige" label="Prestige" value={`P${item.prestige} / ${prestigeLabels[item.prestige]}`} />
+          <ValueDetailLine icon="prestige" label="Prestige" value={`P${item.prestige}`} />
           <ValueDetailLine icon={trendMeta[item.trend].icon} label="Trend" value={trendMeta[item.trend].label} />
           <ValueDetailLine icon="source" label="Source" value={getItemSource(item)} />
         </div>
