@@ -1,4 +1,5 @@
 import { FloatingHeader } from "@/components/FloatingHeader";
+import { MarketFreshnessWatcher } from "@/components/MarketFreshnessWatcher";
 import { PageHero } from "@/components/PageHero";
 import { TradeCalculator } from "@/components/TradeCalculator";
 import { getPublicValueMarketData } from "@/lib/supabaseItems";
@@ -11,6 +12,7 @@ export default async function CalculatorPage() {
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
       <FloatingHeader />
+      <MarketFreshnessWatcher />
       <PageHero
         kicker="Trade calculator"
         title="Calculate Your Trade"

@@ -1,4 +1,5 @@
 import { FloatingHeader } from "@/components/FloatingHeader";
+import { MarketFreshnessWatcher } from "@/components/MarketFreshnessWatcher";
 import { PageHero } from "@/components/PageHero";
 import { ValuesList } from "@/components/ValuesList";
 import { getPublicValueMarketData } from "@/lib/supabaseItems";
@@ -11,6 +12,7 @@ export default async function ValuesPage() {
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
       <FloatingHeader />
+      <MarketFreshnessWatcher />
       <PageHero
         kicker="Value board"
         title="AoT:R Item Values"

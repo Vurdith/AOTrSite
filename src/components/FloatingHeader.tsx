@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, Calculator, Gem, Hammer, Handshake, ListChecks, LogOut, Menu, Newspaper, PackageSearch, Settings2, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
@@ -26,6 +26,7 @@ const adminSections = [
   { href: "/admin?tab=controls", id: "controls", label: "Controls", icon: Settings2 },
 ];
 const scrollDownIntentThreshold = 2;
+let adminWarmupPromise: Promise<unknown> | null = null;
 
 type HeaderSession = {
   avatar: string | null;
@@ -105,11 +106,19 @@ export function FloatingHeader() {
     setDesktopAdminSuppressed(false);
   }
 
-  function warmAdminRoute() {
+  const warmAdminRoute = useCallback(() => {
     if (!session?.isAdmin) return;
 
     router.prefetch("/admin?tab=items");
-  }
+
+    adminWarmupPromise ??= Promise.allSettled([
+      import("@/components/AdminPanel"),
+      fetch("/admin?tab=items", {
+        cache: "no-store",
+        credentials: "include",
+      }).then((response) => response.text()),
+    ]);
+  }, [router, session?.isAdmin]);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -163,8 +172,8 @@ export function FloatingHeader() {
   useEffect(() => {
     if (!sessionLoaded || !session?.isAdmin) return;
 
-    router.prefetch("/admin?tab=items");
-  }, [router, session?.isAdmin, sessionLoaded]);
+    warmAdminRoute();
+  }, [session?.isAdmin, sessionLoaded, warmAdminRoute]);
 
   const loginHref = `/api/auth/discord/login?next=${encodeURIComponent(pathname || "/")}`;
   const nav = sessionLoaded && session?.isAdmin ? [...publicNav.slice(0, 3), { href: "/admin", label: "Admin", icon: Hammer }, ...publicNav.slice(3)] : publicNav;

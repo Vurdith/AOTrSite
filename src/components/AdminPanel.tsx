@@ -5,6 +5,7 @@ import { BarChart3, ChevronDown, Database, Eye, History, ImageIcon, ListChecks, 
 
 import { categories, type ItemCategory, type ItemRarity, type ItemTrend, type ValueItem, type ValueHistoryPoint } from "@/content/items";
 import { cn } from "@/lib/cn";
+import { markMarketDataChanged } from "@/lib/marketFreshness";
 import { rarityStyles } from "@/lib/rarityStyles";
 import { getCurrencyValues, sanitizeCurrencySettings, type ValueCurrencySettings } from "@/lib/valueCurrency";
 
@@ -478,6 +479,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       const freshItems = await refreshItems();
       const saved = freshItems.find((item) => item.id === data.item.id) ?? data.item;
       selectItem(saved);
+      markMarketDataChanged();
       if (logsLoaded) void refreshLogs();
       setStatusTone("success");
       setStatus(`Saved ${saved.name}.`);
@@ -509,6 +511,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       const freshItems = await refreshItems();
       const current = freshItems.find((item) => item.id === selectedId) ?? freshItems[0] ?? emptyItem;
       selectItem(current);
+      markMarketDataChanged();
       setActiveView("rates");
       if (logsLoaded) void refreshLogs();
       setStatusTone("success");
@@ -541,6 +544,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       const freshItems = await refreshItems();
       const next = freshItems[0] ?? emptyItem;
       selectItem(next);
+      markMarketDataChanged();
       if (logsLoaded) void refreshLogs();
       setStatusTone("danger");
       setStatus(`Deleted ${draft.name}.`);
@@ -569,6 +573,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
 
       const freshItems = await refreshItems();
       selectItem(freshItems[0] ?? emptyItem);
+      markMarketDataChanged();
       if (logsLoaded) void refreshLogs();
       setStatusTone("success");
       setStatus(`Seeded ${data.count} items into Supabase.`);
