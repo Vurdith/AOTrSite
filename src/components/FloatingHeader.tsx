@@ -11,9 +11,9 @@ import { cn } from "@/lib/cn";
 const publicNav = [
   { href: "/values", label: "Values", icon: Gem },
   { href: "/calculator", label: "Calculator", icon: Calculator },
-  { href: "/trades", label: "Trades", icon: Handshake },
   ...(process.env.NODE_ENV === "development"
     ? [
+        { href: "/trades", label: "Trades", icon: Handshake },
         { href: "/updates", label: "Updates", icon: Newspaper },
       ]
     : []),

@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { TradesBoard } from "@/components/TradesBoard";
@@ -8,6 +10,10 @@ import { getPublicTradeAds } from "@/lib/tradeAds";
 export const dynamic = "force-dynamic";
 
 export default async function TradesPage() {
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
+
   const [ads, items, session] = await Promise.all([getPublicTradeAds(), getPublicValueItems(), getDiscordSession()]);
 
   return (
