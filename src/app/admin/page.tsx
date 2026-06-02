@@ -2,7 +2,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { getDiscordSession } from "@/lib/discordAuth";
-import { getValueCurrencySettings, getValueItems } from "@/lib/supabaseItems";
+import { getPublicValueMarketData } from "@/lib/supabaseItems";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +53,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  const [items, currencySettings] = await Promise.all([getValueItems(), getValueCurrencySettings()]);
+  const { currencySettings, items } = await getPublicValueMarketData();
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">

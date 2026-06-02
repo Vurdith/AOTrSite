@@ -105,6 +105,12 @@ export function FloatingHeader() {
     setDesktopAdminSuppressed(false);
   }
 
+  function warmAdminRoute() {
+    if (!session?.isAdmin) return;
+
+    router.prefetch("/admin?tab=items");
+  }
+
   useEffect(() => {
     if (!mobileNavOpen) return;
 
@@ -218,7 +224,11 @@ export function FloatingHeader() {
                         selectAdminTab("items");
                         event.currentTarget.blur();
                       }}
-                      onFocus={openDesktopAdminMenu}
+                      onFocus={() => {
+                        openDesktopAdminMenu();
+                        warmAdminRoute();
+                      }}
+                      onPointerEnter={warmAdminRoute}
                       className={cn("site-nav-link site-admin-trigger", active && "site-nav-link-active")}
                       aria-expanded={desktopAdminOpen}
                     >
@@ -237,6 +247,8 @@ export function FloatingHeader() {
                               selectAdminTab(section.id);
                               event.currentTarget.blur();
                             }}
+                            onFocus={warmAdminRoute}
+                            onPointerEnter={warmAdminRoute}
                             className={cn("site-admin-menu-link", active && activeAdminTab === section.id && "site-admin-menu-link-active")}
                           >
                             <SectionIcon size={14} strokeWidth={2.4} aria-hidden="true" />
