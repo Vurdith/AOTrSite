@@ -21,6 +21,21 @@ const userPostWindowMs = 60_000;
 const userPostsPerWindow = 2;
 const ipPostWindowMs = 60_000;
 const ipPostsPerWindow = 30;
+const safeImageUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .refine((value) => {
+    if (!value) return true;
+    if (value.startsWith("/")) return !value.startsWith("//") && /^\/[a-zA-Z0-9/_\-.%]+$/.test(value);
+
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Use a safe relative path or HTTPS image URL.");
 
 let cachedTradeAds: { ads: TradeAd[]; timestamp: number } | null = null;
 let tradeAdsDatabaseDisabledUntil = 0;
@@ -84,7 +99,7 @@ export class TradePostLimitError extends Error {
 }
 
 const tradeAdItemSchema = z.object({
-  iconUrl: z.string().optional(),
+  iconUrl: safeImageUrlSchema.optional(),
   id: z.string().trim().min(1).max(120),
   name: z.string().trim().min(1).max(120),
   quantity: z.number().int().min(1).max(99).default(1),

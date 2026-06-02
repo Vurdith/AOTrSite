@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
+import { readJsonRequest, rejectCrossOriginMutation, requestValidationResponse } from "@/lib/security";
 import { deleteValueItem, getValueItem, saveValueItemWithPrevious } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
 
 type ItemRouteProps = {
   params: Promise<{ id: string }>;
 };
+
+const adminItemRequestMaxBytes = 128 * 1024;
 
 const itemChangeLabels: Partial<Record<keyof ValueItem, string>> = {
   category: "Category",
@@ -65,12 +69,16 @@ export async function GET(_request: Request, { params }: ItemRouteProps) {
 }
 
 export async function PUT(request: Request, { params }: ItemRouteProps) {
+  const forbidden = rejectCrossOriginMutation(request);
+  if (forbidden) return forbidden;
+
   const auth = await requireAdminSessionWithUser();
   if ("response" in auth) return auth.response;
 
   try {
     const { id } = await params;
-    const { item, previous } = await saveValueItemWithPrevious({ ...(await request.json()), id });
+    const body = await readJsonRequest(request, adminItemRequestMaxBytes);
+    const { item, previous } = await saveValueItemWithPrevious({ ...(typeof body === "object" && body ? body : {}), id });
     const changes = getItemChanges(previous, item);
     await createAdminLog({
       action: "item_updated",
@@ -84,28 +92,42 @@ export async function PUT(request: Request, { params }: ItemRouteProps) {
 
     return NextResponse.json({ item });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to update item.";
+    const requestError = requestValidationResponse(error);
+    if (requestError) return requestError;
 
-    return NextResponse.json({ error: message }, { status: 400 });
+    if (error instanceof ZodError) {
+      return NextResponse.json({ error: "Invalid item data.", issues: error.issues }, { status: 400 });
+    }
+
+    console.error("Unable to update admin item.", error);
+    return NextResponse.json({ error: "Unable to update item." }, { status: 500 });
   }
 }
 
-export async function DELETE(_request: Request, { params }: ItemRouteProps) {
+export async function DELETE(request: Request, { params }: ItemRouteProps) {
+  const forbidden = rejectCrossOriginMutation(request);
+  if (forbidden) return forbidden;
+
   const auth = await requireAdminSessionWithUser();
   if ("response" in auth) return auth.response;
 
-  const { id } = await params;
-  const item = await getValueItem(id);
-  await deleteValueItem(id);
-  await createAdminLog({
-    action: "item_deleted",
-    actor: auth.session,
-    changes: getItemChanges(item, null),
-    summary: `Deleted ${item?.name ?? id}.`,
-    targetId: id,
-    targetName: item?.name ?? id,
-    targetType: "item",
-  });
+  try {
+    const { id } = await params;
+    const item = await getValueItem(id);
+    await deleteValueItem(id);
+    await createAdminLog({
+      action: "item_deleted",
+      actor: auth.session,
+      changes: getItemChanges(item, null),
+      summary: `Deleted ${item?.name ?? id}.`,
+      targetId: id,
+      targetName: item?.name ?? id,
+      targetType: "item",
+    });
 
-  return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Unable to delete admin item.", error);
+    return NextResponse.json({ error: "Unable to delete item." }, { status: 500 });
+  }
 }

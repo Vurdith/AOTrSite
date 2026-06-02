@@ -12,8 +12,8 @@ export async function GET() {
 
     return NextResponse.json({ logs });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to load admin logs.";
+    console.error("Unable to load admin logs.", error);
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to load admin logs." }, { status: 500 });
   }
 }

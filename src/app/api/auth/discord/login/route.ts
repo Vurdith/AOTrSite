@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { getDiscordLoginUrl, setDiscordOAuthState } from "@/lib/discordAuth";
+import { getDiscordLoginUrl, sanitizeReturnTo, setDiscordOAuthState } from "@/lib/discordAuth";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const returnTo = requestUrl.searchParams.get("next") ?? "/";
+  const returnTo = sanitizeReturnTo(requestUrl.searchParams.get("next"));
 
   try {
     const { state, url } = getDiscordLoginUrl();
@@ -13,11 +13,11 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(url);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Discord login is not configured.";
     const setupUrl = new URL(returnTo, request.url);
 
     setupUrl.searchParams.set("auth", "setup");
-    setupUrl.searchParams.set("message", message);
+    setupUrl.searchParams.set("message", "Discord login is not configured.");
+    console.error("Discord login setup failed.", error);
 
     return NextResponse.redirect(setupUrl);
   }

@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
+import { readJsonRequest, rejectCrossOriginMutation, requestValidationResponse } from "@/lib/security";
 import { getValueCurrencySettings, saveValueCurrencySettings } from "@/lib/supabaseItems";
 import type { ValueCurrencySettings } from "@/lib/valueCurrency";
+
+const adminSettingsRequestMaxBytes = 8 * 1024;
 
 const settingChangeLabels: Record<keyof ValueCurrencySettings, string> = {
   maskToKeys: "1 Vizard = Keys",
@@ -31,12 +34,15 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const forbidden = rejectCrossOriginMutation(request);
+  if (forbidden) return forbidden;
+
   const auth = await requireAdminSessionWithUser();
   if ("response" in auth) return auth.response;
 
   try {
     const previous = await getValueCurrencySettings({ timeoutMs: 0 });
-    const settings = await saveValueCurrencySettings(await request.json());
+    const settings = await saveValueCurrencySettings(await readJsonRequest(request, adminSettingsRequestMaxBytes));
     const changes = getSettingChanges(previous, settings);
 
     await createAdminLog({
@@ -50,8 +56,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ settings });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to save settings.";
+    const requestError = requestValidationResponse(error);
+    if (requestError) return requestError;
 
-    return NextResponse.json({ error: message }, { status: 400 });
+    console.error("Unable to save admin settings.", error);
+    return NextResponse.json({ error: "Unable to save settings." }, { status: 400 });
   }
 }

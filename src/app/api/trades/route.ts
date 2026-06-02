@@ -2,14 +2,10 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { getDiscordSession } from "@/lib/discordAuth";
+import { getClientIp, readJsonRequest, rejectCrossOriginMutation, requestValidationResponse } from "@/lib/security";
 import { assertTradePostAllowed, createTradeAd, getPublicTradeAds, TradePostLimitError } from "@/lib/tradeAds";
 
-function getClientIp(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const realIp = request.headers.get("x-real-ip")?.trim();
-
-  return forwardedFor || realIp || "unknown";
-}
+const tradeRequestMaxBytes = 24 * 1024;
 
 export async function GET() {
   const ads = await getPublicTradeAds();
@@ -25,6 +21,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const forbidden = rejectCrossOriginMutation(request);
+  if (forbidden) return forbidden;
+
   const session = await getDiscordSession();
 
   if (!session) {
@@ -34,10 +33,13 @@ export async function POST(request: Request) {
   try {
     await assertTradePostAllowed(session, getClientIp(request));
 
-    const ad = await createTradeAd(await request.json(), session);
+    const ad = await createTradeAd(await readJsonRequest(request, tradeRequestMaxBytes), session);
 
     return NextResponse.json({ ad }, { status: 201 });
   } catch (error) {
+    const requestError = requestValidationResponse(error);
+    if (requestError) return requestError;
+
     if (error instanceof ZodError) {
       return NextResponse.json({ error: error.issues[0]?.message ?? "Invalid trade ad." }, { status: 400 });
     }

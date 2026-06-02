@@ -16,10 +16,20 @@ export const valueModeIcon: Record<ValueMode, string> = {
   scrolls: "scroll",
 };
 
+function sanitizeRate(value: unknown, fallback: number) {
+  const rate = Number(value);
+
+  if (!Number.isFinite(rate) || rate <= 0 || rate > 1_000_000) {
+    return fallback;
+  }
+
+  return rate;
+}
+
 export function sanitizeCurrencySettings(settings?: Partial<ValueCurrencySettings> | null): ValueCurrencySettings {
   return {
-    maskToKeys: Number(settings?.maskToKeys) > 0 ? Number(settings?.maskToKeys) : defaultValueCurrencySettings.maskToKeys,
-    scrollToKeys: Number(settings?.scrollToKeys) > 0 ? Number(settings?.scrollToKeys) : defaultValueCurrencySettings.scrollToKeys,
+    maskToKeys: sanitizeRate(settings?.maskToKeys, defaultValueCurrencySettings.maskToKeys),
+    scrollToKeys: sanitizeRate(settings?.scrollToKeys, defaultValueCurrencySettings.scrollToKeys),
   };
 }
 

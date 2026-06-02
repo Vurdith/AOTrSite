@@ -36,7 +36,15 @@ function getRequiredEnv(name: string) {
 }
 
 function getSessionSecret() {
-  return process.env.DISCORD_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET || process.env.DISCORD_CLIENT_SECRET || "";
+  const explicitSecret = process.env.DISCORD_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET;
+
+  if (explicitSecret) return explicitSecret;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Missing DISCORD_SESSION_SECRET or ADMIN_SESSION_SECRET environment variable.");
+  }
+
+  return process.env.DISCORD_CLIENT_SECRET || "";
 }
 
 function base64url(value: string | Buffer) {
@@ -62,12 +70,23 @@ function getWhitelistedDiscordIds() {
   );
 }
 
-function sanitizeReturnTo(value: string | null) {
+export function sanitizeReturnTo(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/";
   }
 
-  return value;
+  try {
+    const baseUrl = "https://aotr.local";
+    const parsed = new URL(value, baseUrl);
+
+    if (parsed.origin !== baseUrl) {
+      return "/";
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return "/";
+  }
 }
 
 export function isWhitelistedDiscordUser(discordId: string) {

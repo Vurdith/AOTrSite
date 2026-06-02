@@ -60,3 +60,48 @@ alter table public.value_settings enable row level security;
 alter table public.trade_ads enable row level security;
 alter table public.admin_logs enable row level security;
 alter table public.trade_post_limits enable row level security;
+
+drop policy if exists deny_direct_api_access on public.value_items;
+drop policy if exists deny_direct_api_access on public.value_settings;
+drop policy if exists deny_direct_api_access on public.trade_ads;
+drop policy if exists deny_direct_api_access on public.trade_post_limits;
+drop policy if exists deny_direct_api_access on public.admin_logs;
+
+create policy deny_direct_api_access on public.value_items
+  for all to anon, authenticated
+  using (false)
+  with check (false);
+
+create policy deny_direct_api_access on public.value_settings
+  for all to anon, authenticated
+  using (false)
+  with check (false);
+
+create policy deny_direct_api_access on public.trade_ads
+  for all to anon, authenticated
+  using (false)
+  with check (false);
+
+create policy deny_direct_api_access on public.trade_post_limits
+  for all to anon, authenticated
+  using (false)
+  with check (false);
+
+create policy deny_direct_api_access on public.admin_logs
+  for all to anon, authenticated
+  using (false)
+  with check (false);
+
+revoke usage on schema public from anon, authenticated;
+revoke all on all tables in schema public from anon, authenticated;
+revoke all on all sequences in schema public from anon, authenticated;
+revoke all on all functions in schema public from public;
+
+alter default privileges for role postgres in schema public
+  revoke all on tables from anon, authenticated;
+
+alter default privileges for role postgres in schema public
+  revoke all on sequences from anon, authenticated;
+
+alter default privileges for role postgres in schema public
+  revoke execute on functions from public;

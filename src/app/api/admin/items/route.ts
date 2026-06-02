@@ -3,8 +3,11 @@ import { ZodError } from "zod";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
+import { readJsonRequest, rejectCrossOriginMutation, requestValidationResponse } from "@/lib/security";
 import { getDatabaseValueItems, saveValueItemWithPrevious, seedValueItems } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
+
+const adminItemRequestMaxBytes = 128 * 1024;
 
 const itemChangeLabels: Partial<Record<keyof ValueItem, string>> = {
   category: "Category",
@@ -27,12 +30,15 @@ const itemChangeLabels: Partial<Record<keyof ValueItem, string>> = {
 };
 
 function errorResponse(error: unknown) {
+  const requestError = requestValidationResponse(error);
+  if (requestError) return requestError;
+
   if (error instanceof ZodError) {
     return NextResponse.json({ error: "Invalid item data.", issues: error.issues }, { status: 400 });
   }
 
-  const message = error instanceof Error ? error.message : "Unexpected admin API error.";
-  return NextResponse.json({ error: message }, { status: 500 });
+  console.error("Unexpected admin items API error.", error);
+  return NextResponse.json({ error: "Unexpected admin API error." }, { status: 500 });
 }
 
 function formatLogValue(value: unknown) {
@@ -78,13 +84,16 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const forbidden = rejectCrossOriginMutation(request);
+  if (forbidden) return forbidden;
+
   const auth = await requireAdminSessionWithUser();
   if ("response" in auth) return auth.response;
 
   try {
-    const body = await request.json();
+    const body = await readJsonRequest(request, adminItemRequestMaxBytes);
 
-    if (body?.action === "seed") {
+    if (typeof body === "object" && body && "action" in body && body.action === "seed") {
       const count = await seedValueItems();
       await createAdminLog({
         action: "items_seeded",
