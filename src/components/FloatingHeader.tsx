@@ -199,7 +199,7 @@ export function FloatingHeader() {
     runAfterLoad(prefetchCoreRoutes, 1400);
 
     if (session?.isAdmin) {
-      runAfterLoad(warmAdminRoute, 9000);
+      runAfterLoad(warmAdminRoute, 600);
     }
   }, [prefetchCoreRoutes, session?.isAdmin, sessionLoaded, warmAdminRoute]);
 
