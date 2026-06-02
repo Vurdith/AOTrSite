@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Rajdhani, Unbounded } from "next/font/google";
 
+import { FloatingHeader } from "@/components/FloatingHeader";
 import { UiSoundLayer } from "@/components/UiSoundLayer";
 
 import "./globals.css";
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
         <UiSoundLayer />
+        <FloatingHeader />
         {children}
       </body>
     </html>

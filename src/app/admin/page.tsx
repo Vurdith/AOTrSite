@@ -1,5 +1,4 @@
 import { AdminPanel } from "@/components/AdminPanel";
-import { FloatingHeader } from "@/components/FloatingHeader";
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { getDiscordSession } from "@/lib/discordAuth";
 import { getPublicValueMarketData } from "@/lib/supabaseItems";
@@ -47,7 +46,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   if (!session?.isAdmin) {
     return (
       <main className="aurora-page grain min-h-screen overflow-hidden">
-        <FloatingHeader />
         <AdminAccessScreen auth={auth} message={message} signedIn={session?.username} />
       </main>
     );
@@ -57,7 +55,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
-      <FloatingHeader />
       <AdminPanel initialItems={items} initialCurrencySettings={currencySettings} />
     </main>
   );

@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { UpdatesList } from "@/components/UpdatesList";
 import { getPublicValueItems } from "@/lib/supabaseItems";
@@ -18,7 +17,6 @@ export default async function UpdatesPage() {
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
-      <FloatingHeader />
       <PageHero
         kicker="Market updates"
         title="Value changes and board notes."
@@ -33,7 +31,6 @@ export default async function UpdatesPage() {
 function UpdatesUnderConstruction() {
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
-      <FloatingHeader />
       <PageHero
         kicker="Market updates"
         title="Update ledger is being forged."

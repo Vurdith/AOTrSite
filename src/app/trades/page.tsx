@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 
-import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { TradesBoard } from "@/components/TradesBoard";
 import { getDiscordSession } from "@/lib/discordAuth";
@@ -18,7 +17,6 @@ export default async function TradesPage() {
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
-      <FloatingHeader />
       <PageHero
         kicker="Trade board"
         title="Player Trade Ads"

@@ -1,6 +1,5 @@
 import Image from "next/image";
 
-import { FloatingHeader } from "@/components/FloatingHeader";
 import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { LoadingScene } from "@/components/LoadingScene";
 
@@ -34,7 +33,6 @@ export default function Home() {
   return (
     <main className="grain min-h-screen overflow-hidden">
       <LoadingScene />
-      <FloatingHeader />
 
       <section className="home-hero relative min-h-[100dvh] overflow-hidden border-b border-[rgb(var(--gold)/.14)]">
         <HeroBackdrop />

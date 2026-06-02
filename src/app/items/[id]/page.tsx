@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { FloatingHeader } from "@/components/FloatingHeader";
 import { ItemValuePage } from "@/components/ItemValuePage";
 import { MarketFreshnessWatcher } from "@/components/MarketFreshnessWatcher";
 import { getPublicValueItems, getPublicValueMarketData, getValueItem } from "@/lib/supabaseItems";
@@ -44,7 +43,6 @@ export default async function ItemPage({ params }: ItemPageProps) {
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">
-      <FloatingHeader />
       <MarketFreshnessWatcher />
       <ItemValuePage item={item} currencySettings={currencySettings} />
     </main>
