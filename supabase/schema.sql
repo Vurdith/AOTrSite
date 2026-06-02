@@ -39,6 +39,8 @@ create table if not exists public.trade_post_limits (
   updated_at timestamptz not null default now()
 );
 
+create index if not exists trade_post_limits_reset_at_idx on public.trade_post_limits (reset_at);
+
 create table if not exists public.admin_logs (
   id uuid primary key default gen_random_uuid(),
   action text not null,

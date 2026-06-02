@@ -48,6 +48,7 @@ model TradePostLimit {
   resetAt   DateTime @map("reset_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  @@index([resetAt])
   @@map("trade_post_limits")
 }
 

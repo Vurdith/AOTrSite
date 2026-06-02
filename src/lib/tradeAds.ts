@@ -12,9 +12,11 @@ const tradeAdLifetimeMs = 24 * 60 * 60 * 1000;
 const tradeAdsCacheTag = "trade-ads";
 const tradeAdsReadTimeoutMs = 1200;
 const tradeAdsMemoryCacheMs = 30_000;
+const tradeAdsCacheRevalidateSeconds = 300;
 const tradeAdsDatabaseCooldownMs = 10 * 60_000;
 const tradeAdsRevalidateThrottleMs = 15_000;
 const expiredTradeAdPruneIntervalMs = 60 * 60_000;
+const postLimitPruneIntervalMs = 60 * 60_000;
 const userPostWindowMs = 60_000;
 const userPostsPerWindow = 2;
 const ipPostWindowMs = 60_000;
@@ -24,6 +26,7 @@ let cachedTradeAds: { ads: TradeAd[]; timestamp: number } | null = null;
 let tradeAdsDatabaseDisabledUntil = 0;
 let lastTradeAdsRevalidatedAt = 0;
 let lastExpiredTradeAdPrunedAt = 0;
+let lastPostLimitPrunedAt = 0;
 
 function isFresh(timestamp: number) {
   return Date.now() - timestamp < tradeAdsMemoryCacheMs;
@@ -171,7 +174,7 @@ export async function getTradeAds() {
 }
 
 const getCachedTradeAds = unstable_cache(getTradeAds, ["public-trade-ads"], {
-  revalidate: false,
+  revalidate: tradeAdsCacheRevalidateSeconds,
   tags: [tradeAdsCacheTag],
 });
 
@@ -229,9 +232,28 @@ async function pruneExpiredTradeAds() {
   }
 }
 
+async function pruneExpiredPostLimits() {
+  const now = Date.now();
+
+  if (now - lastPostLimitPrunedAt < postLimitPruneIntervalMs) return;
+
+  lastPostLimitPrunedAt = now;
+
+  try {
+    await prisma.tradePostLimit.deleteMany({
+      where: {
+        resetAt: { lt: new Date(Date.now() - postLimitPruneIntervalMs) },
+      },
+    });
+  } catch (error) {
+    markTradeAdsDatabaseCooldown(error);
+    console.warn("Unable to prune old trade post limits.", error);
+  }
+}
+
 export async function createTradeAd(input: unknown, session: DiscordSession) {
   const parsed = tradeAdInputSchema.parse(input);
-  await pruneExpiredTradeAds();
+  await Promise.all([pruneExpiredTradeAds(), pruneExpiredPostLimits()]);
   const activeAdCount = await prisma.tradeAd.count({
     where: {
       expiresAt: { gt: new Date() },
