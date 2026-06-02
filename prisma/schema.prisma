@@ -32,10 +32,23 @@ model TradeAd {
   wantsItems    Json     @default("[]") @map("wants_items")
   notes         String   @default("")
   poster        Json
+  posterDiscordId String? @map("poster_discord_id")
   createdAt     DateTime @default(now()) @map("created_at")
+  expiresAt      DateTime @default(dbgenerated("(now() + '24:00:00'::interval)")) @map("expires_at")
 
   @@index([createdAt(sort: Desc)])
+  @@index([expiresAt(sort: Desc), createdAt(sort: Desc)])
+  @@index([posterDiscordId, expiresAt])
   @@map("trade_ads")
+}
+
+model TradePostLimit {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime @map("reset_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("trade_post_limits")
 }
 
 model AdminLog {

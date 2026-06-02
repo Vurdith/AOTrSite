@@ -7,13 +7,23 @@ import type { DiscordSession } from "@/lib/discordAuth";
 import { prisma } from "@/lib/prisma";
 
 const maxTradeAds = 80;
+const maxActiveTradeAdsPerUser = 3;
+const tradeAdLifetimeMs = 24 * 60 * 60 * 1000;
 const tradeAdsCacheTag = "trade-ads";
 const tradeAdsReadTimeoutMs = 1200;
 const tradeAdsMemoryCacheMs = 30_000;
 const tradeAdsDatabaseCooldownMs = 10 * 60_000;
+const tradeAdsRevalidateThrottleMs = 15_000;
+const expiredTradeAdPruneIntervalMs = 60 * 60_000;
+const userPostWindowMs = 60_000;
+const userPostsPerWindow = 2;
+const ipPostWindowMs = 60_000;
+const ipPostsPerWindow = 30;
 
 let cachedTradeAds: { ads: TradeAd[]; timestamp: number } | null = null;
 let tradeAdsDatabaseDisabledUntil = 0;
+let lastTradeAdsRevalidatedAt = 0;
+let lastExpiredTradeAdPrunedAt = 0;
 
 function isFresh(timestamp: number) {
   return Date.now() - timestamp < tradeAdsMemoryCacheMs;
@@ -49,8 +59,25 @@ function markTradeAdsDatabaseCooldown(error: unknown) {
 
 function invalidateTradeAdsCache() {
   cachedTradeAds = null;
+  const now = Date.now();
+
+  if (now - lastTradeAdsRevalidatedAt < tradeAdsRevalidateThrottleMs) return;
+
+  lastTradeAdsRevalidatedAt = now;
   revalidateTag(tradeAdsCacheTag, "max");
   revalidatePath("/trades");
+}
+
+export class TradePostLimitError extends Error {
+  retryAfterSeconds: number;
+  status: number;
+
+  constructor(message: string, retryAfterSeconds: number, status = 429) {
+    super(message);
+    this.name = "TradePostLimitError";
+    this.retryAfterSeconds = retryAfterSeconds;
+    this.status = status;
+  }
 }
 
 const tradeAdItemSchema = z.object({
@@ -76,6 +103,7 @@ export type TradeAdItem = z.infer<typeof tradeAdItemSchema>;
 
 export type TradeAd = TradeAdInput & {
   createdAt: string;
+  expiresAt: string;
   id: string;
   poster: {
     avatar: string | null;
@@ -99,6 +127,7 @@ function parseTradeAdDocument(data: Record<string, unknown>): TradeAd | null {
   return {
     ...parsed.data,
     createdAt: data.createdAt instanceof Date ? data.createdAt.toISOString() : typeof data.createdAt === "string" ? data.createdAt : typeof data.created_at === "string" ? data.created_at : new Date().toISOString(),
+    expiresAt: data.expiresAt instanceof Date ? data.expiresAt.toISOString() : typeof data.expiresAt === "string" ? data.expiresAt : typeof data.expires_at === "string" ? data.expires_at : new Date(Date.now() + tradeAdLifetimeMs).toISOString(),
     id: String(data.id),
     poster: {
       avatar: typeof poster.avatar === "string" ? poster.avatar : null,
@@ -120,6 +149,7 @@ export async function getTradeAds() {
   try {
     const rows = await withTimeout(
       prisma.tradeAd.findMany({
+        where: { expiresAt: { gt: new Date() } },
         orderBy: { createdAt: "desc" },
         take: maxTradeAds,
       }),
@@ -149,9 +179,72 @@ export async function getPublicTradeAds() {
   return getCachedTradeAds();
 }
 
+function getRetryAfterSeconds(resetAt: Date) {
+  return Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
+}
+
+async function consumeTradePostLimit(key: string, maxPosts: number, windowMs: number) {
+  const resetAt = new Date(Date.now() + windowMs);
+  const rows = await prisma.$queryRaw<{ count: number; reset_at: Date }[]>`
+    insert into trade_post_limits (key, count, reset_at, updated_at)
+    values (${key}, 1, ${resetAt}, now())
+    on conflict (key) do update set
+      count = case
+        when trade_post_limits.reset_at <= now() then 1
+        else trade_post_limits.count + 1
+      end,
+      reset_at = case
+        when trade_post_limits.reset_at <= now() then ${resetAt}
+        else trade_post_limits.reset_at
+      end,
+      updated_at = now()
+    returning count, reset_at
+  `;
+  const row = rows[0];
+
+  if (row && row.count > maxPosts) {
+    throw new TradePostLimitError("You're posting too quickly. Try again shortly.", getRetryAfterSeconds(row.reset_at));
+  }
+}
+
+export async function assertTradePostAllowed(session: DiscordSession, clientIp: string) {
+  await Promise.all([
+    consumeTradePostLimit(`user:${session.id}`, userPostsPerWindow, userPostWindowMs),
+    consumeTradePostLimit(`ip:${clientIp}`, ipPostsPerWindow, ipPostWindowMs),
+  ]);
+}
+
+async function pruneExpiredTradeAds() {
+  const now = Date.now();
+
+  if (now - lastExpiredTradeAdPrunedAt < expiredTradeAdPruneIntervalMs) return;
+
+  lastExpiredTradeAdPrunedAt = now;
+
+  try {
+    await prisma.tradeAd.deleteMany({ where: { expiresAt: { lte: new Date() } } });
+  } catch (error) {
+    markTradeAdsDatabaseCooldown(error);
+    console.warn("Unable to prune expired trade ads.", error);
+  }
+}
+
 export async function createTradeAd(input: unknown, session: DiscordSession) {
   const parsed = tradeAdInputSchema.parse(input);
+  await pruneExpiredTradeAds();
+  const activeAdCount = await prisma.tradeAd.count({
+    where: {
+      expiresAt: { gt: new Date() },
+      posterDiscordId: session.id,
+    },
+  });
+
+  if (activeAdCount >= maxActiveTradeAdsPerUser) {
+    throw new TradePostLimitError(`You can have up to ${maxActiveTradeAdsPerUser} active trade ads at once.`, 0, 409);
+  }
+
   const ad = {
+    expiresAt: new Date(Date.now() + tradeAdLifetimeMs),
     notes: parsed.notes,
     offering: parsed.offering,
     offeringItems: parsed.offeringItems,
@@ -160,6 +253,7 @@ export async function createTradeAd(input: unknown, session: DiscordSession) {
       discordId: session.id,
       username: session.username,
     },
+    posterDiscordId: session.id,
     wants: parsed.wants,
     wantsItems: parsed.wantsItems,
   };
