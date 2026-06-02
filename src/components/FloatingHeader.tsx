@@ -27,6 +27,19 @@ const adminSections = [
 ];
 const scrollDownIntentThreshold = 2;
 let adminWarmupPromise: Promise<unknown> | null = null;
+let routePrefetchScheduled = false;
+
+function runAfterLoad(callback: () => void, delay: number) {
+  if (typeof window === "undefined") return;
+
+  const schedule = () => window.setTimeout(callback, delay);
+
+  if (document.readyState === "complete") {
+    schedule();
+  } else {
+    window.addEventListener("load", schedule, { once: true });
+  }
+}
 
 type HeaderSession = {
   avatar: string | null;
@@ -120,6 +133,17 @@ export function FloatingHeader() {
     ]);
   }, [router, session?.isAdmin]);
 
+  const prefetchCoreRoutes = useCallback(() => {
+    if (routePrefetchScheduled) return;
+
+    routePrefetchScheduled = true;
+    ["/", ...publicNav.map((item) => item.href)].forEach((href) => {
+      if (href !== pathname) {
+        router.prefetch(href);
+      }
+    });
+  }, [pathname, router]);
+
   useEffect(() => {
     if (!mobileNavOpen) return;
 
@@ -170,10 +194,14 @@ export function FloatingHeader() {
   }, []);
 
   useEffect(() => {
-    if (!sessionLoaded || !session?.isAdmin) return;
+    if (!sessionLoaded) return;
 
-    warmAdminRoute();
-  }, [session?.isAdmin, sessionLoaded, warmAdminRoute]);
+    runAfterLoad(prefetchCoreRoutes, 1400);
+
+    if (session?.isAdmin) {
+      runAfterLoad(warmAdminRoute, 9000);
+    }
+  }, [prefetchCoreRoutes, session?.isAdmin, sessionLoaded, warmAdminRoute]);
 
   const loginHref = `/api/auth/discord/login?next=${encodeURIComponent(pathname || "/")}`;
   const nav = sessionLoaded && session?.isAdmin ? [...publicNav.slice(0, 3), { href: "/admin", label: "Admin", icon: Hammer }, ...publicNav.slice(3)] : publicNav;
