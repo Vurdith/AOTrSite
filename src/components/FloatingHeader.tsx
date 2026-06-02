@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, Calculator, Gem, Hammer, Handshake, ListChecks, LogOut, Menu, Newspaper, PackageSearch, Settings2, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
@@ -36,6 +36,7 @@ type HeaderSession = {
 
 export function FloatingHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const homeActive = pathname === "/";
   const [activeAdminTab, setActiveAdminTab] = useState("items");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -152,6 +153,12 @@ export function FloatingHeader() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!sessionLoaded || !session?.isAdmin) return;
+
+    router.prefetch("/admin?tab=items");
+  }, [router, session?.isAdmin, sessionLoaded]);
 
   const loginHref = `/api/auth/discord/login?next=${encodeURIComponent(pathname || "/")}`;
   const nav = sessionLoaded && session?.isAdmin ? [...publicNav.slice(0, 3), { href: "/admin", label: "Admin", icon: Hammer }, ...publicNav.slice(3)] : publicNav;
