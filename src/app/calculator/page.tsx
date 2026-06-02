@@ -1,12 +1,12 @@
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { PageHero } from "@/components/PageHero";
 import { TradeCalculator } from "@/components/TradeCalculator";
-import { getPublicValueCurrencySettings, getPublicValueItems } from "@/lib/supabaseItems";
+import { getPublicValueMarketData } from "@/lib/supabaseItems";
 
 export const revalidate = false;
 
 export default async function CalculatorPage() {
-  const [items, currencySettings] = await Promise.all([getPublicValueItems(), getPublicValueCurrencySettings()]);
+  const { currencySettings, items } = await getPublicValueMarketData();
 
   return (
     <main className="aurora-page grain min-h-screen overflow-hidden">

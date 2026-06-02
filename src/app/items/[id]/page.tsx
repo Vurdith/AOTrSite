@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { FloatingHeader } from "@/components/FloatingHeader";
 import { ItemValuePage } from "@/components/ItemValuePage";
-import { getPublicValueCurrencySettings, getPublicValueItems, getValueItem } from "@/lib/supabaseItems";
+import { getPublicValueItems, getPublicValueMarketData, getValueItem } from "@/lib/supabaseItems";
 
 type ItemPageProps = {
   params: Promise<{ id: string }>;
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: ItemPageProps): Promise<Metad
 
 export default async function ItemPage({ params }: ItemPageProps) {
   const { id } = await params;
-  const [items, currencySettings] = await Promise.all([getPublicValueItems(), getPublicValueCurrencySettings()]);
+  const { currencySettings, items } = await getPublicValueMarketData();
   const item = items.find((value) => value.id === id) ?? (await getValueItem(id));
 
   if (!item) notFound();

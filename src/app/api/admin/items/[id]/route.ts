@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
-import { deleteValueItem, getValueItem, saveValueItem } from "@/lib/supabaseItems";
+import { deleteValueItem, getValueItem, saveValueItemWithPrevious } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
 
 type ItemRouteProps = {
@@ -70,8 +70,7 @@ export async function PUT(request: Request, { params }: ItemRouteProps) {
 
   try {
     const { id } = await params;
-    const previous = await getValueItem(id);
-    const item = await saveValueItem({ ...(await request.json()), id });
+    const { item, previous } = await saveValueItemWithPrevious({ ...(await request.json()), id });
     const changes = getItemChanges(previous, item);
     await createAdminLog({
       action: "item_updated",

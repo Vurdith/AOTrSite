@@ -3,7 +3,7 @@ import { ZodError } from "zod";
 
 import { createAdminLog } from "@/lib/adminLogs";
 import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
-import { getDatabaseValueItems, getValueItem, saveValueItem, seedValueItems } from "@/lib/supabaseItems";
+import { getDatabaseValueItems, saveValueItemWithPrevious, seedValueItems } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
 
 const itemChangeLabels: Partial<Record<keyof ValueItem, string>> = {
@@ -97,9 +97,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ count });
     }
 
-    const id = body?.id ? String(body.id) : "";
-    const previous = id ? await getValueItem(id) : null;
-    const item = await saveValueItem(body);
+    const { item, previous } = await saveValueItemWithPrevious(body);
     const changes = getItemChanges(previous, item);
     await createAdminLog({
       action: previous ? "item_updated" : "item_created",

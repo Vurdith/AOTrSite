@@ -19,6 +19,11 @@ let cachedItems: { items: ValueItem[]; timestamp: number } | null = null;
 let cachedSettings: { settings: ValueCurrencySettings; timestamp: number } | null = null;
 let databaseDisabledUntil = 0;
 
+export type ValueMarketData = {
+  currencySettings: ValueCurrencySettings;
+  items: ValueItem[];
+};
+
 function isFresh(timestamp: number) {
   return Date.now() - timestamp < publicCacheMs;
 }
@@ -159,13 +164,54 @@ export async function getValueItems() {
   }
 }
 
-const getCachedValueItems = unstable_cache(getValueItems, ["public-value-items"], {
+async function getValueMarketData(): Promise<ValueMarketData> {
+  if (isDatabaseCoolingDown()) {
+    const currencySettings = cachedSettings?.settings ?? defaultValueCurrencySettings;
+    const items = cachedItems?.items ?? getStaticValueItems(currencySettings);
+
+    cachedSettings = { settings: currencySettings, timestamp: Date.now() };
+    cachedItems = { items, timestamp: Date.now() };
+    return { currencySettings, items };
+  }
+
+  try {
+    const [currencySettings, rows] = await Promise.all([
+      getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }),
+      withTimeout(prisma.valueItem.findMany({ select: { data: true, id: true } }), publicReadTimeoutMs, "Supabase market items read"),
+    ]);
+    const parsedItems = sortByValue(
+      rows
+        .map((row) => parseItemDocument(row.id, (row.data ?? {}) as Record<string, unknown>))
+        .filter((item): item is ValueItem => Boolean(item)),
+    ).map((item) => withCurrencyValues(item, currencySettings));
+    const items = parsedItems.length ? parsedItems : getStaticValueItems(currencySettings);
+
+    cachedSettings = { settings: currencySettings, timestamp: Date.now() };
+    cachedItems = { items, timestamp: Date.now() };
+    return { currencySettings, items };
+  } catch (error) {
+    markDatabaseCooldown(error);
+    console.warn("Using local market snapshot because Supabase market data could not be loaded.", error);
+    const currencySettings = cachedSettings?.settings ?? defaultValueCurrencySettings;
+    const items = getStaticValueItems(currencySettings);
+
+    cachedSettings = { settings: currencySettings, timestamp: Date.now() };
+    cachedItems = { items, timestamp: Date.now() };
+    return { currencySettings, items };
+  }
+}
+
+const getCachedValueMarketData = unstable_cache(getValueMarketData, ["public-value-market"], {
   revalidate: false,
   tags: [valueItemsCacheTag, valueSettingsCacheTag],
 });
 
+export async function getPublicValueMarketData() {
+  return getCachedValueMarketData();
+}
+
 export async function getPublicValueItems() {
-  return getCachedValueItems();
+  return (await getPublicValueMarketData()).items;
 }
 
 export async function getValueItem(id: string) {
@@ -199,7 +245,7 @@ export async function getValueItem(id: string) {
   return withCurrencyValues(localItem, await getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }));
 }
 
-export async function saveValueItem(input: unknown) {
+export async function saveValueItemWithPrevious(input: unknown) {
   const parsedItem = valueItemInputSchema.parse(input);
   const settings = await getValueCurrencySettings({ timeoutMs: 0 });
   const existing = await prisma.valueItem.findUnique({ select: { data: true, id: true }, where: { id: parsedItem.id } });
@@ -214,7 +260,11 @@ export async function saveValueItem(input: unknown) {
 
   cachedItems = null;
   invalidatePublicValueCache(item.id);
-  return item;
+  return { item, previous };
+}
+
+export async function saveValueItem(input: unknown) {
+  return (await saveValueItemWithPrevious(input)).item;
 }
 
 export async function deleteValueItem(id: string) {
@@ -280,13 +330,8 @@ export async function getValueCurrencySettings(options: { timeoutMs?: number } =
   }
 }
 
-const getCachedValueCurrencySettings = unstable_cache(() => getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }), ["public-value-currency-settings"], {
-  revalidate: false,
-  tags: [valueSettingsCacheTag],
-});
-
 export async function getPublicValueCurrencySettings() {
-  return getCachedValueCurrencySettings();
+  return (await getPublicValueMarketData()).currencySettings;
 }
 
 export async function saveValueCurrencySettings(input: unknown) {
