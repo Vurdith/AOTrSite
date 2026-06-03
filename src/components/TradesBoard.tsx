@@ -576,10 +576,12 @@ function TradePostBucket({
           <span>{title}</span>
           <strong>{items.length}/9 items</strong>
         </div>
-        <button type="button" className="admin-secondary-action trade-add-item" onClick={onAdd}>
-          <Plus size={15} strokeWidth={2.5} />
-          <span>Add</span>
-        </button>
+        {items.length ? (
+          <button type="button" className="admin-secondary-action trade-add-item" onClick={onAdd}>
+            <Plus size={15} strokeWidth={2.5} />
+            <span>Add</span>
+          </button>
+        ) : null}
       </div>
       <div className="trade-post-item-list">
         {items.map((item) => (
@@ -602,7 +604,6 @@ function TradeSelectedItem({ item, onQuantity, onRemove }: { item: SelectedTrade
       <TradeItemThumb item={item} />
       <div className="min-w-0">
         <strong>{item.name}</strong>
-        <span>{rarityStyles[item.rarity as keyof typeof rarityStyles]?.label ?? item.rarity}</span>
       </div>
       <div className="calculator-quantity-control trade-quantity-control">
         <button type="button" onClick={() => onQuantity(item.quantity - 1)} aria-label={`Decrease ${item.name}`}>

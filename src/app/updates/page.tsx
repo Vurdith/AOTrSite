@@ -18,7 +18,6 @@ export default async function UpdatesPage() {
       <PageHero
         title="Value changes and board notes."
         description="Track imports, item-count changes, and demand updates that affect the current AOTR value board."
-        action={{ href: "/values", label: "Open values" }}
       />
       <UpdatesList items={items} />
     </main>
