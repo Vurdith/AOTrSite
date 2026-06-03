@@ -376,123 +376,137 @@ export function TradesBoard({
   return (
     <section className="trade-board-shell px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="market-panel">
-          <div className="market-toolbar">
-            <div>
-              <h2 className="font-display gold-text text-3xl leading-none md:text-4xl">Trade Ads</h2>
-              <p className="mt-2 text-sm text-[rgb(var(--fog))]">Search live player offers or post your own Discord-linked trade.</p>
+        <div className="trade-workspace">
+          <aside className="market-panel trade-compose-panel">
+            <div className="trade-compose-head">
+              <div>
+                <h2 className="font-display gold-text text-3xl leading-none md:text-4xl">Post a trade</h2>
+                <p>Build a clean offer with item slots, quantities, and optional notes.</p>
+              </div>
+              {initialSession ? (
+                <div className="trade-board-profile">
+                  <UserAvatar avatar={initialSession.avatar} />
+                  <div>
+                    <span>Logged in</span>
+                    <strong>{initialSession.username}</strong>
+                  </div>
+                </div>
+              ) : (
+                <a className="site-auth-button" href="/api/auth/discord/login?next=/trades">
+                  <DiscordIcon className="site-auth-discord-icon" />
+                  <span>Login</span>
+                </a>
+              )}
             </div>
+
             {initialSession ? (
-              <div className="trade-board-profile">
-                <UserAvatar avatar={initialSession.avatar} />
-                <div>
-                  <span>Logged in</span>
-                  <strong>{initialSession.username}</strong>
+              <form className="trade-post-panel" onSubmit={onSubmit}>
+                <TradePostBucket items={offeringItems} onAdd={() => setPickerSide("offering")} onQuantity={(id, quantity) => updateQuantity("offering", id, quantity)} onRemove={(id) => removeItem("offering", id)} title="Offering" />
+                <TradePostBucket items={wantsItems} onAdd={() => setPickerSide("wants")} onQuantity={(id, quantity) => updateQuantity("wants", id, quantity)} onRemove={(id) => removeItem("wants", id)} title="Looking for" />
+                <label className="trade-notes-field">
+                  <span>Notes</span>
+                  <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={480} placeholder="Optional trade notes, adds, negotiable info, or contact preferences." />
+                </label>
+                <div className="trade-submit-row">
+                  {status ? <p className={`trade-board-status trade-board-status-${status.tone}`}>{status.text}</p> : <span />}
+                  <button type="submit" className="admin-save-action trade-submit-action" disabled={isSubmitting}>
+                    <MessageSquareText size={15} strokeWidth={2.5} />
+                    <span>{isSubmitting ? "Posting..." : "Post trade"}</span>
+                  </button>
                 </div>
-              </div>
+              </form>
             ) : (
-              <a className="site-auth-button" href="/api/auth/discord/login?next=/trades">
-                <DiscordIcon className="site-auth-discord-icon" />
-                <span>Login</span>
-              </a>
+              <div className="trade-login-panel">
+                <p>Login with Discord to post trade ads. Browsing and filtering is public.</p>
+              </div>
             )}
-          </div>
+          </aside>
 
-          {initialSession ? (
-            <form className="trade-post-panel" onSubmit={onSubmit}>
-              <TradePostBucket items={offeringItems} onAdd={() => setPickerSide("offering")} onQuantity={(id, quantity) => updateQuantity("offering", id, quantity)} onRemove={(id) => removeItem("offering", id)} title="Offering" />
-              <TradePostBucket items={wantsItems} onAdd={() => setPickerSide("wants")} onQuantity={(id, quantity) => updateQuantity("wants", id, quantity)} onRemove={(id) => removeItem("wants", id)} title="Looking for" />
-              <label className="trade-notes-field">
-                <span>Notes</span>
-                <textarea value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={480} placeholder="Optional trade notes, adds, negotiable info, or contact preferences." />
-              </label>
-              <div className="trade-submit-row">
-                {status ? <p className={`trade-board-status trade-board-status-${status.tone}`}>{status.text}</p> : <span />}
-                <button type="submit" className="admin-save-action trade-submit-action" disabled={isSubmitting}>
-                  <MessageSquareText size={15} strokeWidth={2.5} />
-                  <span>{isSubmitting ? "Posting..." : "Post trade"}</span>
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="trade-login-panel">
-              <p>Login with Discord to post trade ads. Browsing and filtering is public.</p>
-            </div>
-          )}
-
-          <div className="mt-5">
-            <div className="search-control">
-              <span>Search trade ads</span>
-              <label className="search-channel">
-                <Search className="ml-3 size-4 shrink-0 text-[rgb(var(--fog)/.66)]" aria-hidden="true" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search items, players, or notes"
-                  className="h-10 w-full min-w-0 bg-transparent px-3 text-sm text-white outline-none placeholder:text-[rgb(var(--fog)/.48)]"
-                />
-                {query ? (
-                  <button type="button" className="search-clear" onClick={() => setQuery("")} aria-label="Clear search">
-                    x
-                  </button>
-                ) : null}
-              </label>
-            </div>
-
-            <div className="advanced-filter-panel mt-4" aria-label="Advanced trade filters">
-              <div className="advanced-filter-head">
+          <section className="trade-feed-panel">
+            <div className="market-panel trade-browse-panel">
+              <div className="trade-browse-head">
                 <div>
-                  <button type="button" className="advanced-filter-toggle" aria-expanded={filtersExpanded} aria-controls="trade-filter-controls" onClick={() => setManualFiltersExpanded(!filtersExpanded)}>
-                    <span>Advanced filters</span>
-                    <ChevronDown size={15} strokeWidth={2.5} />
-                  </button>
-                  <strong>{filteredAds.length} ads</strong>
+                  <h2 className="font-display gold-text text-3xl leading-none md:text-4xl">Browse trades</h2>
+                  <p>Filter by item side, player, notes, or recency.</p>
                 </div>
-                <button type="button" className="advanced-filter-clear" onClick={clearTradeFilters} disabled={!activeFilterCount} aria-label="Clear trade filters">
-                  Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
-                </button>
+                <strong>{filteredAds.length} ad{filteredAds.length === 1 ? "" : "s"}</strong>
               </div>
 
-              <div id="trade-filter-controls" className={cn("advanced-filter-grid", filtersExpanded && "advanced-filter-grid-open")}>
-                <FilterSelect label="Sort" value={tradeSortOption} onChange={(value) => setTradeSortOption(value as TradeSortOption)} options={tradeSortOptions.map((option) => ({ value: option.id, label: option.label }))} />
-                <FilterSelect label="Search in" value={tradeSearchScope} onChange={(value) => setTradeSearchScope(value as TradeSearchScope)} options={tradeSearchScopeOptions.map((option) => ({ value: option.id, label: option.label }))} />
-                <FilterSelect
-                  label="Trade type"
-                  value={sideFilter}
-                  onChange={(value) => setSideFilter(value as typeof sideFilter)}
-                  options={[
-                    { value: "all", label: "Any trade" },
-                    { value: "both", label: "Offering + looking" },
-                    { value: "offering", label: "Offering only" },
-                    { value: "wants", label: "Looking only" },
-                  ]}
-                />
-                <FilterSelect label="Posted" value={postedFilter} onChange={(value) => setPostedFilter(value as TradePostedFilter)} options={postedOptions.map((option) => ({ value: option.id, label: option.label }))} />
-                <FilterSelect
-                  label="Notes"
-                  value={notesOnly}
-                  onChange={(value) => setNotesOnly(value as typeof notesOnly)}
-                  options={[
-                    { value: "all", label: "Any notes" },
-                    { value: "with-notes", label: "Has notes" },
-                  ]}
-                />
+              <div className="trade-search-row">
+                <div className="search-control">
+                  <span>Search trade ads</span>
+                  <label className="search-channel">
+                    <Search className="ml-3 size-4 shrink-0 text-[rgb(var(--fog)/.66)]" aria-hidden="true" />
+                    <input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Search items, players, or notes"
+                      className="h-10 w-full min-w-0 bg-transparent px-3 text-sm text-white outline-none placeholder:text-[rgb(var(--fog)/.48)]"
+                    />
+                    {query ? (
+                      <button type="button" className="search-clear" onClick={() => setQuery("")} aria-label="Clear search">
+                        x
+                      </button>
+                    ) : null}
+                  </label>
+                </div>
+              </div>
+
+              <div className="advanced-filter-panel trade-filter-panel" aria-label="Advanced trade filters">
+                <div className="advanced-filter-head">
+                  <div>
+                    <button type="button" className="advanced-filter-toggle" aria-expanded={filtersExpanded} aria-controls="trade-filter-controls" onClick={() => setManualFiltersExpanded(!filtersExpanded)}>
+                      <span>Advanced filters</span>
+                      <ChevronDown size={15} strokeWidth={2.5} />
+                    </button>
+                    <strong>{activeFilterCount ? `${activeFilterCount} active` : "Newest first"}</strong>
+                  </div>
+                  <button type="button" className="advanced-filter-clear" onClick={clearTradeFilters} disabled={!activeFilterCount} aria-label="Clear trade filters">
+                    Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
+                  </button>
+                </div>
+
+                <div id="trade-filter-controls" className={cn("advanced-filter-grid", filtersExpanded && "advanced-filter-grid-open")}>
+                  <FilterSelect label="Sort" value={tradeSortOption} onChange={(value) => setTradeSortOption(value as TradeSortOption)} options={tradeSortOptions.map((option) => ({ value: option.id, label: option.label }))} />
+                  <FilterSelect label="Search in" value={tradeSearchScope} onChange={(value) => setTradeSearchScope(value as TradeSearchScope)} options={tradeSearchScopeOptions.map((option) => ({ value: option.id, label: option.label }))} />
+                  <FilterSelect
+                    label="Trade type"
+                    value={sideFilter}
+                    onChange={(value) => setSideFilter(value as typeof sideFilter)}
+                    options={[
+                      { value: "all", label: "Any trade" },
+                      { value: "both", label: "Offering + looking" },
+                      { value: "offering", label: "Offering only" },
+                      { value: "wants", label: "Looking only" },
+                    ]}
+                  />
+                  <FilterSelect label="Posted" value={postedFilter} onChange={(value) => setPostedFilter(value as TradePostedFilter)} options={postedOptions.map((option) => ({ value: option.id, label: option.label }))} />
+                  <FilterSelect
+                    label="Notes"
+                    value={notesOnly}
+                    onChange={(value) => setNotesOnly(value as typeof notesOnly)}
+                    options={[
+                      { value: "all", label: "Any notes" },
+                      { value: "with-notes", label: "Has notes" },
+                    ]}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="trade-ad-grid mt-5">
-          {filteredAds.map((ad) => (
-            <TradeCard key={ad.id} ad={ad} />
-          ))}
-          {!filteredAds.length ? (
-            <div className="trade-empty-state">
-              <ArrowRightLeft size={24} strokeWidth={2.3} />
-              <strong>No trade ads found</strong>
-              <span>Try changing search or advanced filters.</span>
+            <div className="trade-ad-grid trade-feed-grid">
+              {filteredAds.map((ad) => (
+                <TradeCard key={ad.id} ad={ad} />
+              ))}
+              {!filteredAds.length ? (
+                <div className="trade-empty-state">
+                  <ArrowRightLeft size={24} strokeWidth={2.3} />
+                  <strong>No trade ads found</strong>
+                  <span>Try changing search or advanced filters.</span>
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          </section>
         </div>
       </div>
 
