@@ -78,20 +78,6 @@ export default function Home() {
                 Calculate a trade
               </a>
             </div>
-            <div className="home-hero-stats-grid" aria-label="Market desk highlights">
-              <div>
-                <span>Board</span>
-                <strong>Values</strong>
-              </div>
-              <div>
-                <span>Read</span>
-                <strong>Demand</strong>
-              </div>
-              <div>
-                <span>Before</span>
-                <strong>Trade</strong>
-              </div>
-            </div>
           </div>
 
           <div className="home-hero-logo-stage reveal-up hidden lg:grid">
