@@ -55,7 +55,7 @@ export default function Home() {
 
         <div className="relative mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-10 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,0.95fr)] lg:px-8">
           <div className="home-hero-copyblock reveal-up max-w-3xl">
-            <p className="home-hero-kicker">AoT:R trade desk</p>
+            <p className="home-hero-kicker">Item values</p>
             <h1 className="home-hero-title font-display max-w-4xl text-5xl leading-[0.95] tracking-normal md:text-7xl lg:text-8xl">
               Value Central
             </h1>
