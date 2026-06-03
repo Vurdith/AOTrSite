@@ -231,16 +231,14 @@ export function ValuesList({
           <div className="market-board-head">
             <div className="title-lockup">
               <div>
-                <div className="market-title-row">
-                  <h2 className="font-display text-3xl leading-none md:text-4xl">Market Values</h2>
-                  <span>{filtered.length} items</span>
-                </div>
+                <h2 className="font-display text-3xl leading-none md:text-4xl">Market Values</h2>
                 <p className="mt-2 text-sm text-[rgb(var(--fog)/.8)]">Search, sort, and compare current item values.</p>
               </div>
             </div>
 
             <div className="market-actions">
               <div className="search-control">
+                <span>Find item</span>
                 <label className="search-channel" title="Search applies within the selected category.">
                   <span className="sr-only">Search values</span>
                   <input
@@ -263,6 +261,7 @@ export function ValuesList({
                 </label>
               </div>
               <div className="currency-control">
+                <span>Display value as</span>
                 <div className="currency-tabs" aria-label="Display value as">
                   {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
                     <button
@@ -295,7 +294,7 @@ export function ValuesList({
                   <span>Advanced filters</span>
                   <ChevronDown size={15} strokeWidth={2.5} />
                 </button>
-                <strong>{activeFilterCount ? `${activeFilterCount} active` : "Default market view"}</strong>
+                <strong>{activeFilterCount ? `${activeFilterCount} active` : "Default value view"}</strong>
               </div>
               <button type="button" className="advanced-filter-clear" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear advanced filters">
                 Clear {activeFilterCount ? `(${activeFilterCount})` : ""}

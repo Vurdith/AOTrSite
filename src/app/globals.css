@@ -5696,32 +5696,6 @@
     letter-spacing: 0;
   }
 
-  .market-title-row {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .market-title-row span {
-    display: inline-flex;
-    min-height: 1.75rem;
-    align-items: center;
-    border: 1px solid rgb(var(--gold) / 0.18);
-    border-radius: 999px 7px 999px 7px;
-    background:
-      linear-gradient(180deg, rgb(var(--bright-gold) / 0.1), transparent 60%),
-      rgb(0 0 0 / 0.24);
-    color: rgb(var(--bright-gold));
-    padding: 0 0.72rem;
-    font-size: 0.66rem;
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    line-height: 1;
-    text-transform: uppercase;
-    white-space: nowrap;
-  }
-
   .title-lockup p {
     max-width: 27rem;
     line-height: 1.55;
