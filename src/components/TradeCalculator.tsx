@@ -420,46 +420,11 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
   return (
     <section className="px-4 py-7 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="market-vellum p-4 md:p-5">
-          <div className="market-board-head calculator-display-head">
-            <div className="title-lockup">
-              <div>
-                <h2 className="font-display text-3xl leading-none md:text-4xl">Calculator Items</h2>
-                <p className="mt-2 text-sm text-[rgb(var(--fog)/.8)]">Choose how trade values are shown.</p>
-              </div>
-            </div>
-
-            <div className="market-actions">
-              <button type="button" className="calculator-action" onClick={copyShareLink}>
-                <LinkIcon size={15} strokeWidth={2.4} />
-                Share Link
-              </button>
-              <div className="currency-control">
-                <span>Display value as</span>
-                <div className="currency-tabs" aria-label="Display value as">
-                  {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => setValueMode(mode)}
-                      aria-pressed={valueMode === mode}
-                      className={cn("currency-tab", valueMode === mode && "currency-tab-active")}
-                    >
-                      <CalcValueIcon type={valueModes[mode].icon} className={cn("value-mode-icon", `trade-icon-${valueModes[mode].icon}`)} />
-                      <span>{valueModes[mode].shortLabel}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      <div className="mt-5">
+      <div>
         <div className="market-vellum self-start p-4 md:p-5">
           <div className="calculator-board-head">
             <div>
-              <h2 className="font-display text-2xl text-[rgb(var(--ink))] md:text-3xl">Trade slots</h2>
+              <h2 className="font-display text-2xl text-[rgb(var(--ink))] md:text-3xl">Build your trade</h2>
               <p className="calculator-board-copy">Add your items and the other side&apos;s items to compare value, tax, and demand.</p>
             </div>
             <div className={cn("calculator-verdict-clean", diff >= 0 ? "calculator-verdict-good" : "calculator-verdict-bad")}>
@@ -469,6 +434,30 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
                 {diff >= 0 ? "+" : "-"}{formatModeValue(Math.abs(diff), valueMode, currencySettings)}
               </strong>
             </div>
+          </div>
+
+          <div className="calculator-toolbar">
+            <div className="currency-control calculator-toolbar-currency">
+              <span>Display value as</span>
+              <div className="currency-tabs" aria-label="Display value as">
+                {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setValueMode(mode)}
+                    aria-pressed={valueMode === mode}
+                    className={cn("currency-tab", valueMode === mode && "currency-tab-active")}
+                  >
+                    <CalcValueIcon type={valueModes[mode].icon} className={cn("value-mode-icon", `trade-icon-${valueModes[mode].icon}`)} />
+                    <span>{valueModes[mode].shortLabel}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button type="button" className="calculator-action" onClick={copyShareLink}>
+              <LinkIcon size={15} strokeWidth={2.4} />
+              Share Link
+            </button>
           </div>
 
           <div className="calculator-summary-grid mt-4">
@@ -819,10 +808,7 @@ function Offer({
         </div>
       </div>
       <div className="calculator-slot-grid mt-3">
-        {[
-          ...items.map((item, index) => ({ index, item })).filter((entry) => entry.item),
-          ...(items.some((slot) => !slot) ? [{ index: items.findIndex((slot) => !slot), item: null }] : []),
-        ].map(({ item, index }) => (
+        {items.map((item, index) => (
           <TradeCell
             active={activeSlot.side === side && activeSlot.index === index}
             item={item}
@@ -865,6 +851,7 @@ function TradeCell({
         <span className="calculator-slot-plus">
           <Plus size={18} strokeWidth={2.4} />
         </span>
+        <span className="calculator-slot-empty-label">Add item</span>
         {pulse ? <span className="calculator-slot-next-label">Next</span> : null}
         <small>Slot {slotNumber}</small>
       </button>
