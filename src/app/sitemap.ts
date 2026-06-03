@@ -6,7 +6,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://aotrvalue.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const staticRoutes = ["", "/values", "/calculator", "/compare", "/updates", "/methodology"].map((path) => ({
+  const staticRoutes = ["", "/values", "/calculator", "/updates"].map((path) => ({
     changeFrequency: "daily" as const,
     lastModified: now,
     priority: path === "" ? 1 : 0.8,

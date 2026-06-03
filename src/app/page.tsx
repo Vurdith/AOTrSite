@@ -22,18 +22,6 @@ const features = [
     text: "See board imports, item-count changes, and demand updates in one log.",
     action: "Open updates",
   },
-  {
-    href: "/compare",
-    title: "Compare",
-    text: "Put items side by side before choosing what to offer or request.",
-    action: "Compare items",
-  },
-  {
-    href: "/methodology",
-    title: "Trust",
-    text: "See how values, demand, freshness, and admin review work.",
-    action: "How values work",
-  },
 ];
 
 export default function Home() {
