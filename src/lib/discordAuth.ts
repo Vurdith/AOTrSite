@@ -4,12 +4,15 @@ import crypto from "node:crypto";
 
 import { cookies } from "next/headers";
 
+import { adminRoleCan, getAdminRole, isAdminDiscordId, type AdminRole } from "@/lib/adminRoles";
+
 const sessionCookieName = "aotr_discord_session";
 const stateCookieName = "aotr_discord_oauth_state";
 const returnToCookieName = "aotr_discord_return_to";
 const sessionMaxAgeSeconds = 60 * 60 * 24 * 30;
 
 export type DiscordSession = {
+  adminRole: AdminRole | null;
   avatar: string | null;
   discriminator: string | null;
   id: string;
@@ -90,7 +93,7 @@ export function sanitizeReturnTo(value: string | null) {
 }
 
 export function isWhitelistedDiscordUser(discordId: string) {
-  return getWhitelistedDiscordIds().has(discordId);
+  return isAdminDiscordId(discordId) || getWhitelistedDiscordIds().has(discordId);
 }
 
 export function getDiscordLoginUrl() {
@@ -114,6 +117,7 @@ export function getDiscordLoginUrl() {
 export function createDiscordSession(user: DiscordUser): DiscordSession {
   return {
     avatar: user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128` : null,
+    adminRole: getAdminRole(user.id) ?? (getWhitelistedDiscordIds().has(user.id) ? "owner" : null),
     discriminator: user.discriminator,
     id: user.id,
     isAdmin: isWhitelistedDiscordUser(user.id),
@@ -152,6 +156,7 @@ export function decodeDiscordSession(value?: string): DiscordSession | null {
 
     return {
       ...parsed,
+      adminRole: getAdminRole(parsed.id) ?? (getWhitelistedDiscordIds().has(parsed.id) ? "owner" : null),
       isAdmin: isWhitelistedDiscordUser(parsed.id),
     };
   } catch {
@@ -268,4 +273,15 @@ export async function requireAdminSessionWithUser() {
   }
 
   return { session };
+}
+
+export async function requireAdminRole(allowedRoles: AdminRole[]) {
+  const auth = await requireAdminSessionWithUser();
+  if ("response" in auth) return auth;
+
+  if (!adminRoleCan(auth.session.adminRole, allowedRoles)) {
+    return { response: Response.json({ error: "Admin role is not allowed for this action." }, { status: 403 }) };
+  }
+
+  return auth;
 }

@@ -42,7 +42,7 @@ export default async function ItemPage({ params }: ItemPageProps) {
   if (!item) notFound();
 
   return (
-    <main className="aurora-page grain min-h-screen overflow-hidden">
+    <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <MarketFreshnessWatcher />
       <ItemValuePage item={item} currencySettings={currencySettings} />
     </main>

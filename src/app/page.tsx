@@ -16,22 +16,29 @@ const features = [
     text: "Build both sides of a trade and check the value gap before you accept.",
     action: "Calculate trade",
   },
-  ...(process.env.NODE_ENV === "development"
-    ? [
-        {
-          href: "/updates",
-          title: "Updates",
-          text: "See board imports, item-count changes, and demand updates in one log.",
-          eyebrow: "Ledger",
-          action: "Open updates",
-        },
-      ]
-    : []),
+  {
+    href: "/updates",
+    title: "Updates",
+    text: "See board imports, item-count changes, and demand updates in one log.",
+    action: "Open updates",
+  },
+  {
+    href: "/compare",
+    title: "Compare",
+    text: "Put items side by side before choosing what to offer or request.",
+    action: "Compare items",
+  },
+  {
+    href: "/methodology",
+    title: "Trust",
+    text: "See how values, demand, freshness, and admin review work.",
+    action: "How values work",
+  },
 ];
 
 export default function Home() {
   return (
-    <main className="grain min-h-screen overflow-hidden">
+    <main id="main-content" className="grain min-h-screen overflow-hidden">
       <LoadingScene />
 
       <section className="home-hero relative min-h-[100dvh] overflow-hidden border-b border-[rgb(var(--gold)/.14)]">

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { getAdminLogs } from "@/lib/adminLogs";
-import { requireAdminSession } from "@/lib/discordAuth";
+import { requireAdminRole } from "@/lib/discordAuth";
 
 export async function GET() {
-  const unauthorized = await requireAdminSession();
-  if (unauthorized) return unauthorized;
+  const auth = await requireAdminRole(["owner", "editor", "auditor"]);
+  if ("response" in auth) return auth.response;
 
   try {
     const logs = await getAdminLogs();

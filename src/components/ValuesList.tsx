@@ -7,6 +7,7 @@ import { ChevronDown, Info, X } from "lucide-react";
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
+import { itemSearchText, matchesSearch } from "@/lib/search";
 import { getDisplayValue, getValueModes, type ValueCurrencySettings, type ValueMode, valueModeIcon } from "@/lib/valueCurrency";
 
 type SortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
@@ -163,7 +164,17 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function ValuesList({ currencySettings, items = valueItems }: { currencySettings?: ValueCurrencySettings; items?: ValueItem[] }) {
+export function ValuesList({
+  currencySettings,
+  isFallback = false,
+  items = valueItems,
+  lastUpdatedAt = null,
+}: {
+  currencySettings?: ValueCurrencySettings;
+  isFallback?: boolean;
+  items?: ValueItem[];
+  lastUpdatedAt?: string | null;
+}) {
   const valueModes = useMemo(() => getValueModes(currencySettings), [currencySettings]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | ItemCategory>("all");
@@ -182,11 +193,10 @@ export function ValuesList({ currencySettings, items = valueItems }: { currencyS
   const [iconOverrides] = useState<Record<string, string>>({});
 
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     const matches = items
       .filter((item) => {
         const matchesCategory = category === "all" || item.category === category;
-        const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
+        const matchesQuery = matchesSearch(itemSearchText(item), query);
         const matchesTrend = trendFilter === "all" || item.trend === trendFilter;
         const matchesSource = sourceFilter === "all" || getItemSource(item) === sourceFilter;
         return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesDemandFilter(item, demandFilter) && matchesValueFilter(item, valueFilter);
@@ -276,8 +286,9 @@ export function ValuesList({ currencySettings, items = valueItems }: { currencyS
           </div>
 
           <div className="market-info-grid" aria-label="Market data trust information">
-            <InfoPanel label="Updated" value="May 26" detail="Latest board import" />
-            <InfoPanel label="Source" value="Recent trades" detail="Checked against market activity" />
+            <InfoPanel label="Updated" value={formatMarketUpdatedAt(lastUpdatedAt)} detail={isFallback ? "Showing bundled fallback snapshot" : "Live database snapshot"} />
+            <InfoPanel label="Cache" value="5 min" detail="Refreshes after admin saves and timed cache expiry" />
+            <InfoPanel label="Review" value="Admin audited" detail="Changes are logged with Discord admin identity" />
             <InfoPanel label="Demand" value="Trade interest" detail="Higher score means easier movement" />
           </div>
 
@@ -696,6 +707,18 @@ function ValueDetailModal({
   );
 }
 
+function formatMarketUpdatedAt(value: string | null) {
+  if (!value) return "Local fallback";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function ValueDetailLine({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <div className="calculator-detail-line">
@@ -734,7 +757,7 @@ function ItemIcon({ name, iconUrl, rarity, compact = false }: { name: string; ic
     <span className={cn("item-crest", rarityStyles[rarity].crest, compact ? "size-11" : "size-[58px]")}>
       {iconUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={iconUrl} alt={name} className="h-full w-full object-contain p-1" />
+        <img src={iconUrl} alt={name} className="h-full w-full object-contain p-1" decoding="async" loading="lazy" referrerPolicy="no-referrer" />
       ) : (
         <span className="font-display text-sm text-[rgb(var(--bright-gold))]">{initials(name)}</span>
       )}
@@ -768,7 +791,7 @@ function GemIcon({ type, className }: { type: string; className?: string }) {
   return (
     <span className={cn("gem-token", className)} aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="h-full w-full object-contain" draggable={false} />
+      <img src={src} alt="" className="h-full w-full object-contain" decoding="async" draggable={false} loading="lazy" />
     </span>
   );
 }

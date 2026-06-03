@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { createAdminLog } from "@/lib/adminLogs";
-import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
+import { requireAdminRole } from "@/lib/discordAuth";
 import { readJsonRequest, rejectCrossOriginMutation, requestValidationResponse } from "@/lib/security";
 import { deleteValueItem, getValueItem, saveValueItemWithPrevious } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
@@ -55,8 +55,8 @@ function getItemChanges(previous: ValueItem | null, next: ValueItem | null) {
 }
 
 export async function GET(_request: Request, { params }: ItemRouteProps) {
-  const unauthorized = await requireAdminSession();
-  if (unauthorized) return unauthorized;
+  const auth = await requireAdminRole(["owner", "editor", "auditor"]);
+  if ("response" in auth) return auth.response;
 
   const { id } = await params;
   const item = await getValueItem(id);
@@ -72,7 +72,7 @@ export async function PUT(request: Request, { params }: ItemRouteProps) {
   const forbidden = rejectCrossOriginMutation(request);
   if (forbidden) return forbidden;
 
-  const auth = await requireAdminSessionWithUser();
+  const auth = await requireAdminRole(["owner", "editor"]);
   if ("response" in auth) return auth.response;
 
   try {
@@ -84,6 +84,7 @@ export async function PUT(request: Request, { params }: ItemRouteProps) {
       action: "item_updated",
       actor: auth.session,
       changes,
+      request,
       summary: changes.length ? `Updated ${item.name}: ${changes.map((change) => change.label).join(", ")}.` : `Saved ${item.name} with no visible field changes.`,
       targetId: item.id,
       targetName: item.name,
@@ -108,7 +109,7 @@ export async function DELETE(request: Request, { params }: ItemRouteProps) {
   const forbidden = rejectCrossOriginMutation(request);
   if (forbidden) return forbidden;
 
-  const auth = await requireAdminSessionWithUser();
+  const auth = await requireAdminRole(["owner"]);
   if ("response" in auth) return auth.response;
 
   try {
@@ -119,6 +120,7 @@ export async function DELETE(request: Request, { params }: ItemRouteProps) {
       action: "item_deleted",
       actor: auth.session,
       changes: getItemChanges(item, null),
+      request,
       summary: `Deleted ${item?.name ?? id}.`,
       targetId: id,
       targetName: item?.name ?? id,

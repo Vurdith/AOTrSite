@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createAdminLog } from "@/lib/adminLogs";
-import { requireAdminSessionWithUser } from "@/lib/discordAuth";
+import { requireAdminRole } from "@/lib/discordAuth";
 import { uploadR2Object } from "@/lib/r2Media";
 import { rejectCrossOriginMutation, rejectRequestBodyOverLimit } from "@/lib/security";
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const tooLarge = rejectRequestBodyOverLimit(request, maxMultipartRequestBytes);
   if (tooLarge) return tooLarge;
 
-  const auth = await requireAdminSessionWithUser();
+  const auth = await requireAdminRole(["owner", "editor", "media"]);
   if ("response" in auth) return auth.response;
 
   try {
@@ -88,6 +88,7 @@ export async function POST(request: Request) {
         { after: url, before: null, field: "iconUrl", label: "Uploaded Icon URL" },
         { after: fileName, before: null, field: "fileName", label: "File Name" },
       ],
+      request,
       summary: `Uploaded item icon ${fileName}.`,
       targetId: itemId || undefined,
       targetName: itemId || "Item icon",

@@ -6,17 +6,17 @@ import { getPublicValueMarketData } from "@/lib/supabaseItems";
 export const revalidate = false;
 
 export default async function ValuesPage() {
-  const { currencySettings, items } = await getPublicValueMarketData();
+  const { currencySettings, isFallback, items, lastUpdatedAt } = await getPublicValueMarketData();
 
   return (
-    <main className="aurora-page grain min-h-screen overflow-hidden">
+    <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <MarketFreshnessWatcher />
       <PageHero
         kicker="Value board"
         title="AoT:R Item Values"
         description="Check current item values, demand, tax, prestige requirements, and trend before you trade."
       />
-      <ValuesList items={items} currencySettings={currencySettings} />
+      <ValuesList items={items} currencySettings={currencySettings} isFallback={isFallback} lastUpdatedAt={lastUpdatedAt} />
     </main>
   );
 }

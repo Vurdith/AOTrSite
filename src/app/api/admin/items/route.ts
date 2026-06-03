@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { createAdminLog } from "@/lib/adminLogs";
-import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
+import { requireAdminRole } from "@/lib/discordAuth";
 import { readJsonRequest, rejectCrossOriginMutation, requestValidationResponse } from "@/lib/security";
 import { getDatabaseValueItems, saveValueItemWithPrevious, seedValueItems } from "@/lib/supabaseItems";
 import type { ValueItem } from "@/content/items";
@@ -71,8 +71,8 @@ function summarizeItemChanges(previous: ValueItem | null, next: ValueItem, chang
 }
 
 export async function GET() {
-  const unauthorized = await requireAdminSession();
-  if (unauthorized) return unauthorized;
+  const auth = await requireAdminRole(["owner", "editor", "auditor"]);
+  if ("response" in auth) return auth.response;
 
   try {
     const items = await getDatabaseValueItems();
@@ -87,18 +87,22 @@ export async function POST(request: Request) {
   const forbidden = rejectCrossOriginMutation(request);
   if (forbidden) return forbidden;
 
-  const auth = await requireAdminSessionWithUser();
+  const auth = await requireAdminRole(["owner", "editor"]);
   if ("response" in auth) return auth.response;
 
   try {
     const body = await readJsonRequest(request, adminItemRequestMaxBytes);
 
     if (typeof body === "object" && body && "action" in body && body.action === "seed") {
+      const ownerAuth = await requireAdminRole(["owner"]);
+      if ("response" in ownerAuth) return ownerAuth.response;
+
       const count = await seedValueItems();
       await createAdminLog({
         action: "items_seeded",
-        actor: auth.session,
+        actor: ownerAuth.session,
         changes: [{ after: String(count), before: null, field: "seededItems", label: "Seeded Items" }],
+        request,
         summary: `Seeded ${count} local items into Supabase.`,
         targetType: "items",
       });
@@ -112,6 +116,7 @@ export async function POST(request: Request) {
       action: previous ? "item_updated" : "item_created",
       actor: auth.session,
       changes,
+      request,
       summary: summarizeItemChanges(previous, item, changes.map((change) => change.label)),
       targetId: item.id,
       targetName: item.name,

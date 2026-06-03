@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createAdminLog } from "@/lib/adminLogs";
-import { requireAdminSession, requireAdminSessionWithUser } from "@/lib/discordAuth";
+import { requireAdminRole } from "@/lib/discordAuth";
 import { readJsonRequest, rejectCrossOriginMutation, requestValidationResponse } from "@/lib/security";
 import { getValueCurrencySettings, saveValueCurrencySettings } from "@/lib/supabaseItems";
 import type { ValueCurrencySettings } from "@/lib/valueCurrency";
@@ -25,8 +25,8 @@ function getSettingChanges(previous: ValueCurrencySettings, next: ValueCurrencyS
 }
 
 export async function GET() {
-  const unauthorized = await requireAdminSession();
-  if (unauthorized) return unauthorized;
+  const auth = await requireAdminRole(["owner", "editor", "auditor"]);
+  if ("response" in auth) return auth.response;
 
   const settings = await getValueCurrencySettings({ timeoutMs: 0 });
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   const forbidden = rejectCrossOriginMutation(request);
   if (forbidden) return forbidden;
 
-  const auth = await requireAdminSessionWithUser();
+  const auth = await requireAdminRole(["owner", "editor"]);
   if ("response" in auth) return auth.response;
 
   try {
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       action: "settings_updated",
       actor: auth.session,
       changes,
+      request,
       summary: changes.length ? `Updated conversion settings: ${changes.map((change) => change.label).join(", ")}.` : "Saved conversion settings with no visible changes.",
       targetName: "Currency rates",
       targetType: "settings",

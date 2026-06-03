@@ -9,7 +9,7 @@ export default async function CalculatorPage() {
   const { currencySettings, items } = await getPublicValueMarketData();
 
   return (
-    <main className="aurora-page grain min-h-screen overflow-hidden">
+    <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <MarketFreshnessWatcher />
       <PageHero
         kicker="Trade calculator"

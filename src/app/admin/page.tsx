@@ -45,7 +45,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   if (!session?.isAdmin) {
     return (
-      <main className="aurora-page grain min-h-screen overflow-hidden">
+      <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
         <AdminAccessScreen auth={auth} message={message} signedIn={session?.username} />
       </main>
     );
@@ -54,8 +54,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { currencySettings, items } = await getPublicValueMarketData();
 
   return (
-    <main className="aurora-page grain min-h-screen overflow-hidden">
-      <AdminPanel initialItems={items} initialCurrencySettings={currencySettings} />
+    <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
+      <AdminPanel adminRole={session.adminRole} initialItems={items} initialCurrencySettings={currencySettings} />
     </main>
   );
 }

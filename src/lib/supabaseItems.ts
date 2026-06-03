@@ -11,6 +11,7 @@ import { defaultValueCurrencySettings, getCurrencyValues, sanitizeCurrencySettin
 const marketSettingsDocumentId = "market";
 const publicReadTimeoutMs = 1800;
 const publicCacheMs = 300_000;
+const publicCacheSeconds = publicCacheMs / 1000;
 const databaseCooldownMs = 10 * 60_000;
 const valueItemsCacheTag = "value-items";
 const valueSettingsCacheTag = "value-settings";
@@ -21,7 +22,9 @@ let databaseDisabledUntil = 0;
 
 export type ValueMarketData = {
   currencySettings: ValueCurrencySettings;
+  isFallback: boolean;
   items: ValueItem[];
+  lastUpdatedAt: string | null;
 };
 
 function isFresh(timestamp: number) {
@@ -78,6 +81,17 @@ function sortByValue(items: ValueItem[]) {
   return [...items].sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 }
 
+function latestIsoDate(values: (Date | string | null | undefined)[]) {
+  const timestamp = values.reduce((latest, value) => {
+    if (!value) return latest;
+
+    const time = value instanceof Date ? value.getTime() : new Date(value).getTime();
+    return Number.isFinite(time) ? Math.max(latest, time) : latest;
+  }, 0);
+
+  return timestamp ? new Date(timestamp).toISOString() : null;
+}
+
 function toSupabaseData(item: ValueItem) {
   return Object.fromEntries(Object.entries(item).filter((entry) => entry[1] !== undefined)) as Prisma.InputJsonObject;
 }
@@ -130,6 +144,96 @@ export async function getDatabaseValueItems(options: { timeoutMs?: number } = {}
   ).map((item) => withCurrencyValues(item, settings));
 }
 
+export async function exportValueMarketBackup() {
+  const [settingsRow, itemRows] = await Promise.all([
+    prisma.valueSetting.findUnique({ select: { data: true, id: true, updatedAt: true }, where: { id: marketSettingsDocumentId } }),
+    prisma.valueItem.findMany({ orderBy: { id: "asc" }, select: { data: true, id: true, updatedAt: true } }),
+  ]);
+
+  return {
+    exportedAt: new Date().toISOString(),
+    itemCount: itemRows.length,
+    items: itemRows.map((row) => ({
+      data: row.data,
+      id: row.id,
+      updatedAt: row.updatedAt.toISOString(),
+    })),
+    lastUpdatedAt: latestIsoDate([settingsRow?.updatedAt, ...itemRows.map((row) => row.updatedAt)]),
+    schemaVersion: 1,
+    settings: settingsRow
+      ? {
+          data: settingsRow.data,
+          id: settingsRow.id,
+          updatedAt: settingsRow.updatedAt.toISOString(),
+        }
+      : null,
+  };
+}
+
+export async function importValueMarketBackup(input: unknown, options: { deleteMissing?: boolean } = {}) {
+  const backup = input as {
+    items?: { data?: unknown; id?: unknown }[];
+    settings?: { data?: unknown; id?: unknown } | null;
+  };
+
+  if (!backup || !Array.isArray(backup.items)) {
+    throw new Error("Backup JSON must include an items array.");
+  }
+
+  const settings = sanitizeCurrencySettings((backup.settings?.data ?? defaultValueCurrencySettings) as Partial<ValueCurrencySettings>);
+  const parsedItems = backup.items.map((row) => {
+    if (!row || typeof row.id !== "string" || !row.data || typeof row.data !== "object") {
+      throw new Error("Backup contains an invalid item row.");
+    }
+
+    return valueItemInputSchema.parse({ ...(row.data as Record<string, unknown>), id: row.id });
+  });
+  const rows = parsedItems.map((item) => {
+    const normalized = withCurrencyValues(item, settings);
+
+    return {
+      data: toSupabaseData(normalized),
+      id: normalized.id,
+    };
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.valueSetting.upsert({
+      create: { data: settings, id: marketSettingsDocumentId },
+      update: { data: settings },
+      where: { id: marketSettingsDocumentId },
+    });
+
+    for (const row of rows) {
+      await tx.valueItem.upsert({
+        create: row,
+        update: { data: row.data },
+        where: { id: row.id },
+      });
+    }
+
+    if (options.deleteMissing) {
+      await tx.valueItem.deleteMany({
+        where: {
+          id: {
+            notIn: rows.map((row) => row.id),
+          },
+        },
+      });
+    }
+  });
+
+  cachedSettings = { settings, timestamp: Date.now() };
+  cachedItems = null;
+  invalidatePublicValueCache();
+
+  return {
+    deletedMissing: Boolean(options.deleteMissing),
+    itemCount: rows.length,
+    settings,
+  };
+}
+
 export async function getValueItems() {
   if (cachedItems && isFresh(cachedItems.timestamp)) {
     return cachedItems.items;
@@ -171,24 +275,31 @@ async function getValueMarketData(): Promise<ValueMarketData> {
 
     cachedSettings = { settings: currencySettings, timestamp: Date.now() };
     cachedItems = { items, timestamp: Date.now() };
-    return { currencySettings, items };
+    return { currencySettings, isFallback: true, items, lastUpdatedAt: null };
   }
 
   try {
-    const [currencySettings, rows] = await Promise.all([
-      getValueCurrencySettings({ timeoutMs: publicReadTimeoutMs }),
-      withTimeout(prisma.valueItem.findMany({ select: { data: true, id: true } }), publicReadTimeoutMs, "Supabase market items read"),
+    const [settingsRow, rows] = await Promise.all([
+      withTimeout(prisma.valueSetting.findUnique({ select: { data: true, updatedAt: true }, where: { id: marketSettingsDocumentId } }), publicReadTimeoutMs, "Supabase settings read"),
+      withTimeout(prisma.valueItem.findMany({ select: { data: true, id: true, updatedAt: true } }), publicReadTimeoutMs, "Supabase market items read"),
     ]);
+    const currencySettings = sanitizeCurrencySettings((settingsRow?.data ?? defaultValueCurrencySettings) as Partial<ValueCurrencySettings>);
     const parsedItems = sortByValue(
       rows
         .map((row) => parseItemDocument(row.id, (row.data ?? {}) as Record<string, unknown>))
         .filter((item): item is ValueItem => Boolean(item)),
     ).map((item) => withCurrencyValues(item, currencySettings));
     const items = parsedItems.length ? parsedItems : getStaticValueItems(currencySettings);
+    const isFallback = !parsedItems.length;
 
     cachedSettings = { settings: currencySettings, timestamp: Date.now() };
     cachedItems = { items, timestamp: Date.now() };
-    return { currencySettings, items };
+    return {
+      currencySettings,
+      isFallback,
+      items,
+      lastUpdatedAt: isFallback ? null : latestIsoDate([settingsRow?.updatedAt, ...rows.map((row) => row.updatedAt)]),
+    };
   } catch (error) {
     markDatabaseCooldown(error);
     console.warn("Using local market snapshot because Supabase market data could not be loaded.", error);
@@ -197,12 +308,12 @@ async function getValueMarketData(): Promise<ValueMarketData> {
 
     cachedSettings = { settings: currencySettings, timestamp: Date.now() };
     cachedItems = { items, timestamp: Date.now() };
-    return { currencySettings, items };
+    return { currencySettings, isFallback: true, items, lastUpdatedAt: null };
   }
 }
 
 const getCachedValueMarketData = unstable_cache(getValueMarketData, ["public-value-market"], {
-  revalidate: false,
+  revalidate: publicCacheSeconds,
   tags: [valueItemsCacheTag, valueSettingsCacheTag],
 });
 

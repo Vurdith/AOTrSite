@@ -254,6 +254,7 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
                 </div>
               )}
             </div>
+            <ValueHistoryTimeline currencySettings={currencySettings} history={history} valueMode={valueMode} />
           </div>
 
           <aside className="item-stat-panel">
@@ -273,6 +274,30 @@ export function ItemValuePage({ currencySettings, item }: { currencySettings?: V
         </div>
       </div>
     </section>
+  );
+}
+
+function ValueHistoryTimeline({ currencySettings, history, valueMode }: { currencySettings?: ValueCurrencySettings; history: ValueHistoryPoint[]; valueMode: ValueMode }) {
+  const entries = [...history].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+
+  if (!entries.length) return null;
+
+  return (
+    <div className="item-history-timeline">
+      <span>Recent value changes</span>
+      {entries.map((point, index) => {
+        const previous = entries[index + 1];
+        const delta = previous ? point.value - previous.value : 0;
+
+        return (
+          <div key={`${point.date}-${index}`} className="item-history-timeline-row">
+            <strong>{formatChartTooltipDate(point.date)}</strong>
+            <span>{formatModeValue(point.value, valueMode, currencySettings)}</span>
+            {previous ? <small className={delta >= 0 ? "text-emerald-200" : "text-red-200"}>{delta >= 0 ? "+" : "-"}{formatModeValue(Math.abs(delta), valueMode, currencySettings)}</small> : <small>Baseline</small>}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 

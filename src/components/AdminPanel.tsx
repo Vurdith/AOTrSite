@@ -7,10 +7,12 @@ import { categories, type ItemCategory, type ItemRarity, type ItemTrend, type Va
 import { cn } from "@/lib/cn";
 import { markMarketDataChanged } from "@/lib/marketFreshness";
 import { rarityStyles } from "@/lib/rarityStyles";
+import { itemSearchText, matchesSearch } from "@/lib/search";
 import { getCurrencyValues, sanitizeCurrencySettings, type ValueCurrencySettings } from "@/lib/valueCurrency";
 
 type AdminView = "items" | "rates" | "stats" | "logs" | "controls";
-type AdminStatusTone = "success" | "danger" | "error";
+type AdminRole = "owner" | "editor" | "media" | "auditor";
+type AdminStatusTone = "success" | "danger" | "error" | "warning";
 type AdminSortOption = "value-desc" | "value-asc" | "demand-desc" | "demand-asc" | "tax-desc" | "tax-asc" | "prestige-desc" | "prestige-asc" | "name-asc";
 type AdminDemandFilter = "all" | "high" | "medium" | "low";
 type AdminValueFilter = "all" | "top" | "mid" | "low";
@@ -18,17 +20,19 @@ type AdminSourceFilter = "all" | string;
 type AdminTrendFilter = "all" | ItemTrend;
 type AdminLog = {
   id: string;
-  action: "item_created" | "item_updated" | "item_deleted" | "items_seeded" | "media_uploaded" | "settings_updated";
+  action: "backup_exported" | "backup_restored" | "item_created" | "item_updated" | "item_deleted" | "items_seeded" | "media_uploaded" | "settings_updated";
   actor: {
     avatar: string | null;
     discordId: string;
+    ipHash?: string;
+    userAgent?: string;
     username: string;
   };
   createdAt: string;
   summary: string;
   targetId?: string;
   targetName?: string;
-  targetType: "item" | "items" | "media" | "settings";
+  targetType: "backup" | "item" | "items" | "media" | "settings";
   changes: AdminLogChange[];
 };
 type AdminLogChange = {
@@ -183,6 +187,53 @@ function parseHistory(value: string) {
   }));
 }
 
+function serializeEditableItem(item: ValueItem, historyDraft: string) {
+  return JSON.stringify({
+    category: item.category,
+    demand: item.demand,
+    iconUrl: item.iconUrl ?? "",
+    id: item.id,
+    name: item.name,
+    note: item.note ?? "",
+    owners: item.owners ?? "",
+    prestige: item.prestige,
+    rarity: item.rarity,
+    source: item.source ?? "",
+    taxGems: item.taxGems,
+    trend: item.trend,
+    value: item.value,
+    valueHistory: historyDraft.trim(),
+    valueKeys: item.valueKeys ?? item.value,
+    valueMasks: item.valueMasks ?? 0,
+    valueScrolls: item.valueScrolls ?? 0,
+  });
+}
+
+function getHighImpactSaveWarnings(previous: ValueItem | undefined, next: ValueItem) {
+  if (!previous) return [];
+
+  const warnings: string[] = [];
+  const previousValue = previous.valueKeys ?? previous.value;
+  const nextValue = next.valueKeys ?? next.value;
+
+  if (previousValue > 0) {
+    const changeRatio = Math.abs(nextValue - previousValue) / previousValue;
+    if (changeRatio >= 0.5) {
+      warnings.push(`Value changes by ${Math.round(changeRatio * 100)}%.`);
+    }
+  }
+
+  if (Math.abs(next.demand - previous.demand) >= 30) {
+    warnings.push(`Demand changes by ${Math.abs(next.demand - previous.demand)} points.`);
+  }
+
+  if (next.rarity !== previous.rarity) {
+    warnings.push(`Rarity changes from ${previous.rarity} to ${next.rarity}.`);
+  }
+
+  return warnings;
+}
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: Number.isInteger(value) ? 0 : 1,
@@ -203,6 +254,8 @@ function formatLogDate(value: string) {
 function getLogActionLabel(action: AdminLog["action"]) {
   const labels: Record<AdminLog["action"], string> = {
     item_created: "Created",
+    backup_exported: "Backup",
+    backup_restored: "Restore",
     item_deleted: "Deleted",
     item_updated: "Updated",
     items_seeded: "Seeded",
@@ -276,7 +329,7 @@ function sortAdminItems(items: ValueItem[], sortOption: AdminSortOption) {
   });
 }
 
-export function AdminPanel({ initialCurrencySettings, initialItems }: { initialCurrencySettings: ValueCurrencySettings; initialItems: ValueItem[] }) {
+export function AdminPanel({ adminRole, initialCurrencySettings, initialItems }: { adminRole: AdminRole | null; initialCurrencySettings: ValueCurrencySettings; initialItems: ValueItem[] }) {
   const [activeView, setActiveView] = useState<AdminView>("items");
   const [items, setItems] = useState(initialItems);
   const [currencySettings, setCurrencySettings] = useState(sanitizeCurrencySettings(initialCurrencySettings));
@@ -294,6 +347,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   const [selectedId, setSelectedId] = useState(initialItems[0]?.id ?? "");
   const [draft, setDraft] = useState<ValueItem>(initialItems[0] ?? emptyItem);
   const [historyDraft, setHistoryDraft] = useState(formatHistory(initialItems[0]?.valueHistory));
+  const [committedDraftKey, setCommittedDraftKey] = useState(() => serializeEditableItem(initialItems[0] ?? emptyItem, formatHistory(initialItems[0]?.valueHistory)));
   const [status, setStatus] = useState("");
   const [statusTone, setStatusTone] = useState<AdminStatusTone>("success");
   const [saving, setSaving] = useState(false);
@@ -302,13 +356,24 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   const [logsLoading, setLogsLoading] = useState(false);
   const [logPage, setLogPage] = useState(1);
   const [uploadingIcon, setUploadingIcon] = useState(false);
+  const [deleteMissingOnRestore, setDeleteMissingOnRestore] = useState(false);
+  const [stagedItems, setStagedItems] = useState<ValueItem[]>([]);
+  const permissions = useMemo(
+    () => ({
+      canDelete: adminRole === "owner",
+      canEdit: adminRole === "owner" || adminRole === "editor",
+      canExportBackup: adminRole === "owner" || adminRole === "editor" || adminRole === "auditor",
+      canRestoreBackup: adminRole === "owner",
+      canSeed: adminRole === "owner",
+      canUploadMedia: adminRole === "owner" || adminRole === "editor" || adminRole === "media",
+    }),
+    [adminRole],
+  );
 
   const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-
     const matches = items.filter((item) => {
       const matchesCategory = category === "all" || item.category === category;
-      const matchesQuery = !needle || [item.name, item.id, item.category, item.rarity, item.source, item.owners].filter(Boolean).some((value) => String(value).toLowerCase().includes(needle));
+      const matchesQuery = matchesSearch(itemSearchText(item), query);
       const matchesTrend = trendFilter === "all" || item.trend === trendFilter;
       const matchesSource = sourceFilter === "all" || getAdminItemSource(item) === sourceFilter;
 
@@ -325,6 +390,8 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   const visibleCategories = categories.filter((item) => item.id === "all" || items.some((value) => value.category === item.id));
   const sourceOptions = useMemo(() => ["all", ...Array.from(new Set(items.map(getAdminItemSource))).sort()] as AdminSourceFilter[], [items]);
   const activeFilterCount = [category !== "all", sortOption !== "value-desc", trendFilter !== "all", demandFilter !== "all", sourceFilter !== "all", valueFilter !== "all"].filter(Boolean).length;
+  const draftKey = useMemo(() => serializeEditableItem(draft, historyDraft), [draft, historyDraft]);
+  const hasUnsavedItemChanges = activeView === "items" && draftKey !== committedDraftKey;
 
   const itemStats = useMemo(() => {
     const moving = items.filter((item) => item.trend !== "stable").length;
@@ -343,10 +410,22 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     return getCurrencyValues(sampleKeys, currencySettings);
   }, [currencySettings, draft.value, draft.valueKeys]);
 
-  function selectItem(item: ValueItem) {
+  const confirmDiscardUnsavedChanges = useCallback(() => {
+    if (!hasUnsavedItemChanges) return true;
+    return window.confirm("Discard unsaved item changes?");
+  }, [hasUnsavedItemChanges]);
+
+  function commitDraftSnapshot(item: ValueItem, history = formatHistory(item.valueHistory)) {
+    setCommittedDraftKey(serializeEditableItem(item, history));
+  }
+
+  function selectItem(item: ValueItem, options: { force?: boolean } = {}) {
+    if (!options.force && !confirmDiscardUnsavedChanges()) return;
     setSelectedId(item.id);
     setDraft(item);
-    setHistoryDraft(formatHistory(item.valueHistory));
+    const history = formatHistory(item.valueHistory);
+    setHistoryDraft(history);
+    commitDraftSnapshot(item, history);
     setActiveView("items");
   }
 
@@ -394,11 +473,14 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     const adminViews: AdminView[] = ["items", "rates", "stats", "logs", "controls"];
     const updateFromUrl = () => {
       const tab = new URLSearchParams(window.location.search).get("tab") as AdminView | null;
-      setActiveView(tab && adminViews.includes(tab) ? tab : "items");
+      const nextView = tab && adminViews.includes(tab) ? tab : "items";
+      setActiveView((current) => (current === "items" && nextView !== "items" && !confirmDiscardUnsavedChanges() ? current : nextView));
     };
     const updateFromEvent = (event: Event) => {
       const tab = (event as CustomEvent<string>).detail as AdminView;
-      if (adminViews.includes(tab)) setActiveView(tab);
+      if (adminViews.includes(tab)) {
+        setActiveView((current) => (current === "items" && tab !== "items" && !confirmDiscardUnsavedChanges() ? current : tab));
+      }
     };
 
     updateFromUrl();
@@ -409,7 +491,20 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       window.removeEventListener("popstate", updateFromUrl);
       window.removeEventListener("admin-tab-change", updateFromEvent);
     };
-  }, []);
+  }, [confirmDiscardUnsavedChanges, hasUnsavedItemChanges]);
+
+  useEffect(() => {
+    if (!hasUnsavedItemChanges) return;
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedItemChanges]);
 
   function updateDraft<K extends keyof ValueItem>(key: K, value: ValueItem[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -436,10 +531,13 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   }
 
   function newItem() {
+    if (!confirmDiscardUnsavedChanges()) return;
     setActiveView("items");
     setSelectedId("");
     setDraft(emptyItem);
-    setHistoryDraft(formatHistory([]));
+    const history = formatHistory([]);
+    setHistoryDraft(history);
+    commitDraftSnapshot(emptyItem, history);
     setStatusTone("success");
     setStatus("New item draft created.");
   }
@@ -454,19 +552,96 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     return data.items as ValueItem[];
   }
 
+  function buildItemPayload() {
+    const value = draft.valueKeys ?? draft.value;
+
+    return {
+      ...draft,
+      id: draft.id || slugify(draft.name),
+      value,
+      ...getCurrencyValues(value, currencySettings),
+      valueHistory: parseHistory(historyDraft),
+    };
+  }
+
+  function stageItem() {
+    if (!permissions.canEdit) {
+      setStatusTone("error");
+      setStatus("Your admin role cannot stage item records.");
+      return;
+    }
+
+    try {
+      const payload = buildItemPayload();
+      setStagedItems((current) => [payload, ...current.filter((item) => item.id !== payload.id)]);
+      setStatusTone("success");
+      setStatus(`Staged ${payload.name} for review.`);
+    } catch (error) {
+      setStatusTone("error");
+      setStatus(error instanceof Error ? error.message : "Unable to stage item.");
+    }
+  }
+
+  async function publishStagedItems() {
+    if (!permissions.canEdit) {
+      setStatusTone("error");
+      setStatus("Your admin role cannot publish staged records.");
+      return;
+    }
+
+    setSaving(true);
+    setStatusTone("success");
+    setStatus(`Publishing ${stagedItems.length} staged item${stagedItems.length === 1 ? "" : "s"}...`);
+
+    try {
+      for (const item of [...stagedItems].reverse()) {
+        const response = await fetch("/api/admin/items", {
+          body: JSON.stringify(item),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error ?? `Unable to publish ${item.name}.`);
+      }
+
+      const freshItems = await refreshItems();
+      selectItem(freshItems.find((item) => item.id === selectedId) ?? freshItems[0] ?? emptyItem, { force: true });
+      setStagedItems([]);
+      markMarketDataChanged();
+      if (logsLoaded) void refreshLogs();
+      setStatusTone("success");
+      setStatus("Published staged item changes.");
+    } catch (error) {
+      setStatusTone("error");
+      setStatus(error instanceof Error ? error.message : "Unable to publish staged items.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function saveItem() {
+    if (!permissions.canEdit) {
+      setStatusTone("error");
+      setStatus("Your admin role cannot save item records.");
+      return;
+    }
+
+    const nextValue = draft.valueKeys ?? draft.value;
+    const previous = draft.id ? items.find((item) => item.id === draft.id) : undefined;
+    const warnings = getHighImpactSaveWarnings(previous, { ...draft, value: nextValue, ...getCurrencyValues(nextValue, currencySettings) });
+
+    if (warnings.length && !window.confirm(`Review before publishing:\n\n${warnings.join("\n")}\n\nSave this market update?`)) {
+      setStatusTone("warning");
+      setStatus("Save cancelled for review.");
+      return;
+    }
+
     setSaving(true);
     setStatusTone("success");
     setStatus("Saving item...");
 
     try {
-      const payload = {
-        ...draft,
-        id: draft.id || slugify(draft.name),
-        value: draft.valueKeys ?? draft.value,
-        ...getCurrencyValues(draft.valueKeys ?? draft.value, currencySettings),
-        valueHistory: parseHistory(historyDraft),
-      };
+      const payload = buildItemPayload();
       const response = await fetch("/api/admin/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -478,7 +653,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
 
       const freshItems = await refreshItems();
       const saved = freshItems.find((item) => item.id === data.item.id) ?? data.item;
-      selectItem(saved);
+      selectItem(saved, { force: true });
       markMarketDataChanged();
       if (logsLoaded) void refreshLogs();
       setStatusTone("success");
@@ -492,6 +667,12 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   }
 
   async function saveSettings() {
+    if (!permissions.canEdit) {
+      setStatusTone("error");
+      setStatus("Your admin role cannot update conversion rates.");
+      return;
+    }
+
     setSaving(true);
     setStatusTone("success");
     setStatus("Saving conversion rates...");
@@ -510,7 +691,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       setCurrencySettings(safeSettings);
       const freshItems = await refreshItems();
       const current = freshItems.find((item) => item.id === selectedId) ?? freshItems[0] ?? emptyItem;
-      selectItem(current);
+      selectItem(current, { force: true });
       markMarketDataChanged();
       setActiveView("rates");
       if (logsLoaded) void refreshLogs();
@@ -525,6 +706,12 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   }
 
   async function deleteItem() {
+    if (!permissions.canDelete) {
+      setStatusTone("error");
+      setStatus("Only owner admins can delete item records.");
+      return;
+    }
+
     if (!draft.id) {
       setStatusTone("danger");
       setStatus("Nothing to delete yet.");
@@ -543,7 +730,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
 
       const freshItems = await refreshItems();
       const next = freshItems[0] ?? emptyItem;
-      selectItem(next);
+      selectItem(next, { force: true });
       markMarketDataChanged();
       if (logsLoaded) void refreshLogs();
       setStatusTone("danger");
@@ -557,6 +744,12 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   }
 
   async function seedDatabase() {
+    if (!permissions.canSeed) {
+      setStatusTone("error");
+      setStatus("Only owner admins can seed Supabase.");
+      return;
+    }
+
     setSaving(true);
     setStatusTone("success");
     setStatus("Seeding Supabase from local item data...");
@@ -572,7 +765,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
       if (!response.ok) throw new Error(data.error ?? "Unable to seed Supabase.");
 
       const freshItems = await refreshItems();
-      selectItem(freshItems[0] ?? emptyItem);
+      selectItem(freshItems[0] ?? emptyItem, { force: true });
       markMarketDataChanged();
       if (logsLoaded) void refreshLogs();
       setStatusTone("success");
@@ -586,6 +779,12 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
   }
 
   async function uploadItemIcon(file: File) {
+    if (!permissions.canUploadMedia) {
+      setStatusTone("error");
+      setStatus("Your admin role cannot upload media.");
+      return;
+    }
+
     setUploadingIcon(true);
     setStatusTone("success");
     setStatus(`Uploading ${file.name}...`);
@@ -615,13 +814,96 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
     }
   }
 
+  async function exportBackup() {
+    if (!permissions.canExportBackup) {
+      setStatusTone("error");
+      setStatus("Your admin role cannot export backups.");
+      return;
+    }
+
+    setSaving(true);
+    setStatusTone("success");
+    setStatus("Preparing market backup...");
+
+    try {
+      const response = await fetch("/api/admin/backups", {
+        cache: "no-store",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error ?? "Unable to export backup.");
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition") ?? "";
+      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+      const filename = filenameMatch?.[1] ?? `aotr-market-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+
+      if (logsLoaded) void refreshLogs();
+      setStatusTone("success");
+      setStatus("Exported market backup.");
+    } catch (error) {
+      setStatusTone("error");
+      setStatus(error instanceof Error ? error.message : "Backup export failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function restoreBackup(file: File) {
+    if (!permissions.canRestoreBackup) {
+      setStatusTone("error");
+      setStatus("Only owner admins can restore backups.");
+      return;
+    }
+
+    setSaving(true);
+    setStatusTone("success");
+    setStatus(`Restoring ${file.name}...`);
+
+    try {
+      const backup = JSON.parse(await file.text());
+      const response = await fetch("/api/admin/backups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ backup, deleteMissing: deleteMissingOnRestore }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.error ?? "Unable to restore backup.");
+
+      const freshItems = await refreshItems();
+      selectItem(freshItems[0] ?? emptyItem, { force: true });
+      markMarketDataChanged();
+      if (logsLoaded) void refreshLogs();
+      setStatusTone("success");
+      setStatus(`Restored ${data.itemCount} items from backup.`);
+    } catch (error) {
+      setStatusTone("error");
+      setStatus(error instanceof Error ? error.message : "Backup restore failed.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <section className="admin-shell px-4 pb-7 pt-28 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="admin-console">
-          <div className="admin-console-head">
-            <div>
-              <span>Admin system</span>
+            <div className="admin-console-head">
+              <div>
+              <span>Admin system / {adminRole ?? "restricted"}</span>
               <h2 className="font-display">Market Control</h2>
             </div>
           </div>
@@ -745,7 +1027,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
                       <span className={cn("item-crest admin-item-thumb", rarityStyles[item.rarity].crest)}>
                         {item.iconUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.iconUrl} alt="" />
+                          <img src={item.iconUrl} alt="" decoding="async" loading="lazy" referrerPolicy="no-referrer" />
                         ) : (
                           <PackageSearch size={15} strokeWidth={2.2} />
                         )}
@@ -774,10 +1056,13 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
                 currencySettings={currencySettings}
                 deleteItem={deleteItem}
                 draft={draft}
+                hasUnsavedChanges={hasUnsavedItemChanges}
                 historyDraft={historyDraft}
+                permissions={permissions}
                 newItem={newItem}
                 saveItem={saveItem}
                 saving={saving}
+                stageItem={stageItem}
                 setHistoryDraft={setHistoryDraft}
                 uploadItemIcon={uploadItemIcon}
                 uploadingIcon={uploadingIcon}
@@ -793,6 +1078,7 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
               ratePreview={ratePreview}
               saveSettings={saveSettings}
               saving={saving}
+              canEdit={permissions.canEdit}
               sampleKeys={Math.max(1, (draft.valueKeys ?? draft.value) || 340000)}
               updateCurrencySetting={updateCurrencySetting}
             />
@@ -801,7 +1087,19 @@ export function AdminPanel({ initialCurrencySettings, initialItems }: { initialC
           ) : activeView === "logs" ? (
             <LogsPanel currentPage={logPage} logs={logs} loading={logsLoading} onPageChange={setLogPage} refreshLogs={refreshLogs} />
           ) : (
-            <ControlsPanel saving={saving} seedDatabase={seedDatabase} />
+            <ControlsPanel
+              deleteMissingOnRestore={deleteMissingOnRestore}
+              exportBackup={exportBackup}
+              items={items}
+              permissions={permissions}
+              publishStagedItems={publishStagedItems}
+              restoreBackup={restoreBackup}
+              saving={saving}
+              seedDatabase={seedDatabase}
+              setDeleteMissingOnRestore={setDeleteMissingOnRestore}
+              stagedItems={stagedItems}
+              clearStagedItems={() => setStagedItems([])}
+            />
           )}
         </div>
       </div>
@@ -813,10 +1111,13 @@ function ItemEditor({
   currencySettings,
   deleteItem,
   draft,
+  hasUnsavedChanges,
   historyDraft,
   newItem,
+  permissions,
   saveItem,
   saving,
+  stageItem,
   setHistoryDraft,
   uploadItemIcon,
   uploadingIcon,
@@ -828,10 +1129,17 @@ function ItemEditor({
   currencySettings: ValueCurrencySettings;
   deleteItem: () => void;
   draft: ValueItem;
+  hasUnsavedChanges: boolean;
   historyDraft: string;
   newItem: () => void;
+  permissions: {
+    canDelete: boolean;
+    canEdit: boolean;
+    canUploadMedia: boolean;
+  };
   saveItem: () => void;
   saving: boolean;
+  stageItem: () => void;
   setHistoryDraft: (value: string) => void;
   uploadItemIcon: (file: File) => void;
   uploadingIcon: boolean;
@@ -852,16 +1160,22 @@ function ItemEditor({
             <Plus size={15} strokeWidth={2.4} />
             New
           </button>
-          <button type="button" className="admin-delete-action" onClick={deleteItem} disabled={saving || !draft.id}>
+          <button type="button" className="admin-delete-action" onClick={deleteItem} disabled={saving || !draft.id || !permissions.canDelete} title={permissions.canDelete ? "Delete item" : "Owner role required"}>
             <Trash2 size={15} strokeWidth={2.4} />
             Delete
           </button>
-          <button type="button" className="admin-save-action" onClick={saveItem} disabled={saving}>
+          <button type="button" className="admin-save-action" onClick={saveItem} disabled={saving || !permissions.canEdit} title={permissions.canEdit ? "Save item" : "Editor role required"}>
             <Save size={15} strokeWidth={2.4} />
             Save Item
           </button>
+          <button type="button" className="admin-secondary-action" onClick={stageItem} disabled={saving || !permissions.canEdit}>
+            <ListChecks size={15} strokeWidth={2.4} />
+            Stage
+          </button>
         </div>
       </div>
+
+      {hasUnsavedChanges ? <div className="admin-status admin-status-warning">Unsaved item changes. Save before switching records or leaving admin.</div> : null}
 
       <div className="admin-editor-layout">
         <div className="admin-form-stack">
@@ -901,7 +1215,7 @@ function ItemEditor({
                 <AdminInput label="Icon URL" value={draft.iconUrl ?? ""} onChange={(value) => updateDraft("iconUrl", value)} placeholder="https://pub-...r2.dev/items/example.png" />
                 <AdminTextarea label="Note" value={draft.note} onChange={(value) => updateDraft("note", value)} />
               </div>
-              <AdminIconUploader draft={draft} uploadItemIcon={uploadItemIcon} uploadingIcon={uploadingIcon} />
+              <AdminIconUploader canUpload={permissions.canUploadMedia} draft={draft} uploadItemIcon={uploadItemIcon} uploadingIcon={uploadingIcon} />
             </div>
           </AdminCard>
 
@@ -916,13 +1230,13 @@ function ItemEditor({
   );
 }
 
-function AdminIconUploader({ draft, uploadItemIcon, uploadingIcon }: { draft: ValueItem; uploadItemIcon: (file: File) => void; uploadingIcon: boolean }) {
+function AdminIconUploader({ canUpload, draft, uploadItemIcon, uploadingIcon }: { canUpload: boolean; draft: ValueItem; uploadItemIcon: (file: File) => void; uploadingIcon: boolean }) {
   return (
     <div className="admin-icon-uploader">
       <span className={cn("item-crest admin-icon-preview", rarityStyles[draft.rarity].crest)}>
         {draft.iconUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={draft.iconUrl} alt="" />
+          <img src={draft.iconUrl} alt="" decoding="async" loading="lazy" referrerPolicy="no-referrer" />
         ) : (
           <ImageIcon size={30} strokeWidth={2.1} />
         )}
@@ -930,13 +1244,13 @@ function AdminIconUploader({ draft, uploadItemIcon, uploadingIcon }: { draft: Va
       <div className="admin-icon-upload-copy">
         <strong>{draft.name || "New item"}</strong>
       </div>
-      <label className={cn("admin-secondary-action admin-icon-upload-action", uploadingIcon && "admin-icon-upload-action-disabled")}>
+      <label className={cn("admin-secondary-action admin-icon-upload-action", (uploadingIcon || !canUpload) && "admin-icon-upload-action-disabled")}>
         <ImageIcon size={15} strokeWidth={2.4} />
         {uploadingIcon ? "Uploading..." : "Upload Icon"}
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
-          disabled={uploadingIcon}
+          disabled={uploadingIcon || !canUpload}
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) uploadItemIcon(file);
@@ -949,6 +1263,7 @@ function AdminIconUploader({ draft, uploadItemIcon, uploadingIcon }: { draft: Va
 }
 
 function RatesEditor({
+  canEdit,
   currencySettings,
   ratePreview,
   sampleKeys,
@@ -956,6 +1271,7 @@ function RatesEditor({
   saving,
   updateCurrencySetting,
 }: {
+  canEdit: boolean;
   currencySettings: ValueCurrencySettings;
   ratePreview: ReturnType<typeof getCurrencyValues>;
   sampleKeys: number;
@@ -972,7 +1288,7 @@ function RatesEditor({
           <p>These settings control how keys convert into vizards and scrolls across value lists, item pages, calculator totals, and modals.</p>
         </div>
         <div className="admin-editor-actions">
-          <button type="button" className="admin-save-action" onClick={saveSettings} disabled={saving}>
+          <button type="button" className="admin-save-action" onClick={saveSettings} disabled={saving || !canEdit} title={canEdit ? "Save rates" : "Editor role required"}>
             <Save size={15} strokeWidth={2.4} />
             Save Rates
           </button>
@@ -1093,7 +1409,7 @@ function LogsPanel({
                 <span className="admin-log-avatar">
                   {log.actor.avatar ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={log.actor.avatar} alt="" />
+                    <img src={log.actor.avatar} alt="" decoding="async" loading="lazy" referrerPolicy="no-referrer" />
                   ) : (
                     log.actor.username.slice(0, 1).toUpperCase()
                   )}
@@ -1107,6 +1423,7 @@ function LogsPanel({
                 <span>{getLogActionLabel(log.action)}</span>
                 <p>{log.summary}</p>
                 {log.targetName || log.targetId ? <small>{[log.targetName, log.targetId].filter(Boolean).join(" / ")}</small> : null}
+                {log.actor.ipHash || log.actor.userAgent ? <small>{[log.actor.ipHash ? `IP ${log.actor.ipHash}` : null, log.actor.userAgent].filter(Boolean).join(" / ")}</small> : null}
               </div>
               {log.changes.length ? <AdminLogChanges changes={log.changes} /> : null}
             </article>
@@ -1155,13 +1472,128 @@ function AdminLogValue({ label, value }: { label: string; value: string | null }
   );
 }
 
-function ControlsPanel({ saving, seedDatabase }: { saving: boolean; seedDatabase: () => void }) {
+function ControlsPanel({
+  clearStagedItems,
+  deleteMissingOnRestore,
+  exportBackup,
+  items,
+  permissions,
+  publishStagedItems,
+  restoreBackup,
+  saving,
+  seedDatabase,
+  setDeleteMissingOnRestore,
+  stagedItems,
+}: {
+  clearStagedItems: () => void;
+  deleteMissingOnRestore: boolean;
+  exportBackup: () => void;
+  items: ValueItem[];
+  permissions: {
+    canEdit: boolean;
+    canExportBackup: boolean;
+    canRestoreBackup: boolean;
+    canSeed: boolean;
+  };
+  publishStagedItems: () => void;
+  restoreBackup: (file: File) => void;
+  saving: boolean;
+  seedDatabase: () => void;
+  setDeleteMissingOnRestore: (value: boolean) => void;
+  stagedItems: ValueItem[];
+}) {
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restorePreview, setRestorePreview] = useState<{ changed: number; created: number; deleted: number; swings: string[] } | null>(null);
+
+  async function previewRestoreFile(file: File) {
+    const backup = JSON.parse(await file.text()) as { items?: { data?: Partial<ValueItem>; id?: string }[] };
+    const backupItems = Array.isArray(backup.items) ? backup.items : [];
+    const liveById = new Map(items.map((item) => [item.id, item]));
+    const backupIds = new Set(backupItems.map((row) => row.id).filter(Boolean));
+    const created = backupItems.filter((row) => row.id && !liveById.has(row.id)).length;
+    const changed = backupItems.filter((row) => {
+      const live = row.id ? liveById.get(row.id) : null;
+      return Boolean(live && JSON.stringify(live) !== JSON.stringify({ ...(row.data ?? {}), id: row.id }));
+    }).length;
+    const deleted = deleteMissingOnRestore ? items.filter((item) => !backupIds.has(item.id)).length : 0;
+    const swings = backupItems
+      .flatMap((row) => {
+        const live = row.id ? liveById.get(row.id) : null;
+        const nextValue = Number(row.data?.valueKeys ?? row.data?.value ?? 0);
+        const liveValue = live ? live.valueKeys ?? live.value : 0;
+        if (!live || !liveValue || Math.abs(nextValue - liveValue) / liveValue < 0.5) return [];
+        return [`${live.name}: ${formatNumber(liveValue)} -> ${formatNumber(nextValue)}`];
+      })
+      .slice(0, 6);
+
+    setRestoreFile(file);
+    setRestorePreview({ changed, created, deleted, swings });
+  }
+
   return (
     <div className="admin-controls-page">
+      <AdminCard icon={<ListChecks size={17} strokeWidth={2.4} />} eyebrow="Review" title="Staged changes">
+        <p className="admin-card-copy">Stage item edits from the editor, review the queue here, then publish deliberately.</p>
+        <div className="admin-import-preview">
+          <strong>{stagedItems.length} staged item{stagedItems.length === 1 ? "" : "s"}</strong>
+          <small>{stagedItems.slice(0, 5).map((item) => item.name).join(", ") || "No staged changes yet."}</small>
+        </div>
+        <div className="admin-controls-actions">
+          <button type="button" className="admin-save-action" onClick={publishStagedItems} disabled={!stagedItems.length || saving || !permissions.canEdit}>
+            <Save size={15} strokeWidth={2.4} />
+            Publish Staged
+          </button>
+          <button type="button" className="admin-secondary-action" onClick={clearStagedItems} disabled={!stagedItems.length || saving}>
+            Clear Queue
+          </button>
+        </div>
+      </AdminCard>
+      <AdminCard icon={<Database size={17} strokeWidth={2.4} />} eyebrow="Backup" title="Market export">
+        <p className="admin-card-copy">Download the current Supabase market data before launch changes, imports, or incident response work.</p>
+        <div className="admin-controls-actions">
+          <button type="button" className="admin-secondary-action" onClick={exportBackup} disabled={saving || !permissions.canExportBackup}>
+            <Database size={15} strokeWidth={2.4} />
+            Export Backup
+          </button>
+        </div>
+      </AdminCard>
+      <AdminCard icon={<Database size={17} strokeWidth={2.4} />} eyebrow="Restore" title="Backup import">
+        <p className="admin-card-copy">Restore an exported market backup. Owner role is required because this overwrites live market records.</p>
+        <label className="admin-check">
+          <input checked={deleteMissingOnRestore} disabled={!permissions.canRestoreBackup || saving} onChange={(event) => setDeleteMissingOnRestore(event.target.checked)} type="checkbox" />
+          <span>Delete live items missing from backup</span>
+        </label>
+        <div className="admin-controls-actions">
+          <label className={cn("admin-secondary-action admin-icon-upload-action", (!permissions.canRestoreBackup || saving) && "admin-icon-upload-action-disabled")}>
+            <Database size={15} strokeWidth={2.4} />
+            Restore Backup
+            <input
+              type="file"
+              accept="application/json,.json"
+              disabled={!permissions.canRestoreBackup || saving}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void previewRestoreFile(file);
+                event.target.value = "";
+              }}
+            />
+          </label>
+          <button type="button" className="admin-save-action" disabled={!restoreFile || saving || !permissions.canRestoreBackup} onClick={() => restoreFile && restoreBackup(restoreFile)}>
+            <Save size={15} strokeWidth={2.4} />
+            Confirm Restore
+          </button>
+        </div>
+        {restorePreview ? (
+          <div className="admin-import-preview">
+            <strong>{restorePreview.created} new / {restorePreview.changed} changed / {restorePreview.deleted} deleted</strong>
+            {restorePreview.swings.length ? <small>Large swings: {restorePreview.swings.join("; ")}</small> : <small>No large value swings detected.</small>}
+          </div>
+        ) : null}
+      </AdminCard>
       <AdminCard icon={<Database size={17} strokeWidth={2.4} />} eyebrow="Database" title="Supabase seed">
         <p className="admin-card-copy">Populate Supabase from the bundled local item list.</p>
         <div className="admin-controls-actions">
-          <button type="button" className="admin-secondary-action admin-seed-action" onClick={seedDatabase} disabled={saving}>
+          <button type="button" className="admin-secondary-action admin-seed-action" onClick={seedDatabase} disabled={saving || !permissions.canSeed}>
             <Database size={15} strokeWidth={2.4} />
             Seed Supabase
           </button>
@@ -1211,7 +1643,7 @@ function AdminTradeIcon({ className, type }: { className?: string; type: keyof t
   return (
     <span className={cn("gem-token admin-trade-icon", tradeIconClassNames[type], className)} aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={tradeIconPaths[type]} alt="" className="h-full w-full object-contain" draggable={false} />
+      <img src={tradeIconPaths[type]} alt="" className="h-full w-full object-contain" decoding="async" draggable={false} loading="lazy" />
     </span>
   );
 }

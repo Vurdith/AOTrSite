@@ -1,11 +1,14 @@
 import "server-only";
 
+import crypto from "crypto";
+
 import type { DiscordSession } from "@/lib/discordAuth";
 import { prisma } from "@/lib/prisma";
+import { getClientIp } from "@/lib/security";
 
 const defaultLogLimit = 500;
 
-export type AdminLogAction = "item_created" | "item_updated" | "item_deleted" | "items_seeded" | "media_uploaded" | "settings_updated";
+export type AdminLogAction = "backup_exported" | "backup_restored" | "item_created" | "item_updated" | "item_deleted" | "items_seeded" | "media_uploaded" | "settings_updated";
 
 export type AdminLog = {
   id: string;
@@ -13,13 +16,15 @@ export type AdminLog = {
   actor: {
     avatar: string | null;
     discordId: string;
+    ipHash?: string;
+    userAgent?: string;
     username: string;
   };
   createdAt: string;
   summary: string;
   targetId?: string;
   targetName?: string;
-  targetType: "item" | "items" | "media" | "settings";
+  targetType: "backup" | "item" | "items" | "media" | "settings";
   changes: AdminLogChange[];
 };
 
@@ -32,7 +37,29 @@ export type AdminLogChange = {
 
 type CreateAdminLogInput = Omit<AdminLog, "actor" | "createdAt" | "id"> & {
   actor: DiscordSession;
+  request?: Request;
 };
+
+function getAuditHashSecret() {
+  return process.env.ADMIN_AUDIT_HASH_SECRET ?? process.env.DISCORD_SESSION_SECRET ?? process.env.ADMIN_SESSION_SECRET ?? null;
+}
+
+function hashIp(request?: Request) {
+  if (!request) return undefined;
+
+  const ip = getClientIp(request);
+  const secret = getAuditHashSecret();
+  if (!ip || !secret) return undefined;
+
+  return crypto.createHmac("sha256", secret).update(ip).digest("hex").slice(0, 16);
+}
+
+function getUserAgent(request?: Request) {
+  const value = request?.headers.get("user-agent")?.trim();
+  if (!value) return undefined;
+
+  return value.slice(0, 180);
+}
 
 function parseLogChanges(value: unknown): AdminLogChange[] {
   if (!Array.isArray(value)) return [];
@@ -65,6 +92,8 @@ function parseLogDocument(data: Record<string, unknown>): AdminLog | null {
     actor: {
       avatar: typeof actor.avatar === "string" ? actor.avatar : null,
       discordId: String(actor.discordId),
+      ipHash: typeof actor.ipHash === "string" ? actor.ipHash : undefined,
+      userAgent: typeof actor.userAgent === "string" ? actor.userAgent : undefined,
       username: String(actor.username),
     },
     changes: parseLogChanges(data.changes),
@@ -77,13 +106,15 @@ function parseLogDocument(data: Record<string, unknown>): AdminLog | null {
   };
 }
 
-export async function createAdminLog({ action, actor, changes, summary, targetId, targetName, targetType }: CreateAdminLogInput) {
+export async function createAdminLog({ action, actor, changes, request, summary, targetId, targetName, targetType }: CreateAdminLogInput) {
   await prisma.adminLog.create({
     data: {
       action,
       actor: {
         avatar: actor.avatar,
         discordId: actor.id,
+        ipHash: hashIp(request),
+        userAgent: getUserAgent(request),
         username: actor.username,
       },
       changes,

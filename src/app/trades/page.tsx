@@ -16,7 +16,7 @@ export default async function TradesPage() {
   const [ads, items, session] = await Promise.all([getPublicTradeAds(), getPublicValueItems(), getDiscordSession()]);
 
   return (
-    <main className="aurora-page grain min-h-screen overflow-hidden">
+    <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <PageHero
         kicker="Trade board"
         title="Player Trade Ads"

@@ -7,6 +7,7 @@ import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
+import { itemSearchText, matchesSearch, normalizeSearch } from "@/lib/search";
 import type { TradeAd, TradeAdItem } from "@/lib/tradeAds";
 
 type TradeBoardSession = {
@@ -251,10 +252,9 @@ export function TradesBoard({
   const visibleCategories = categories.filter((item) => item.id === "all" || initialItems.some((value) => value.category === item.id));
   const pickerSourceOptions = useMemo(() => ["all", ...Array.from(new Set(initialItems.map(getItemSource))).sort()] as PickerSourceFilter[], [initialItems]);
   const filteredPickerItems = useMemo(() => {
-    const needle = pickerQuery.trim().toLowerCase();
     const matches = initialItems.filter((item) => {
       const matchesCategory = pickerCategory === "all" || item.category === pickerCategory;
-      const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
+      const matchesQuery = matchesSearch(itemSearchText(item), pickerQuery);
       const matchesTrend = pickerTrendFilter === "all" || item.trend === pickerTrendFilter;
       const matchesSource = pickerSourceFilter === "all" || getItemSource(item) === pickerSourceFilter;
 
@@ -266,12 +266,12 @@ export function TradesBoard({
   const pickerActiveFilterCount = [pickerCategory !== "all", pickerSortOption !== "value-desc", pickerDemandFilter !== "all", pickerTrendFilter !== "all", pickerValueFilter !== "all", pickerSourceFilter !== "all"].filter(Boolean).length;
 
   const filteredAds = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = normalizeSearch(query);
     const matches = ads.filter((ad) => {
-      const offering = `${ad.offering} ${getAdItems(ad, "offering").map((item) => item.name).join(" ")}`.toLowerCase();
-      const wants = `${ad.wants} ${getAdItems(ad, "wants").map((item) => item.name).join(" ")}`.toLowerCase();
-      const poster = ad.poster.username.toLowerCase();
-      const note = ad.notes.toLowerCase();
+      const offering = normalizeSearch(`${ad.offering} ${getAdItems(ad, "offering").map((item) => item.name).join(" ")}`);
+      const wants = normalizeSearch(`${ad.wants} ${getAdItems(ad, "wants").map((item) => item.name).join(" ")}`);
+      const poster = normalizeSearch(ad.poster.username);
+      const note = normalizeSearch(ad.notes);
       const searchPool: Record<TradeSearchScope, string> = {
         all: `${offering} ${wants} ${poster} ${note}`,
         notes: note,
@@ -283,7 +283,7 @@ export function TradesBoard({
       const wantsCount = getAdItems(ad, "wants").length;
       const matchesSide = sideFilter === "all" || (sideFilter === "both" ? offeringCount > 0 && wantsCount > 0 : sideFilter === "offering" ? offeringCount > 0 && wantsCount === 0 : wantsCount > 0 && offeringCount === 0);
 
-      return (!needle || searchPool[tradeSearchScope].includes(needle)) && matchesSide && matchesPostedFilter(ad, postedFilter) && (notesOnly === "all" || Boolean(ad.notes.trim()));
+      return (!needle || matchesSearch(searchPool[tradeSearchScope], needle)) && matchesSide && matchesPostedFilter(ad, postedFilter) && (notesOnly === "all" || Boolean(ad.notes.trim()));
     });
 
     return sortAds(matches, tradeSortOption);
@@ -534,7 +534,7 @@ function UserAvatar({ avatar }: { avatar: string | null }) {
     <span className="trade-user-avatar">
       {avatar ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatar} alt="" draggable={false} />
+        <img src={avatar} alt="" decoding="async" draggable={false} loading="lazy" referrerPolicy="no-referrer" />
       ) : (
         <ShieldCheck size={17} strokeWidth={2.4} />
       )}
@@ -668,7 +668,7 @@ function TradeItemThumb({ item }: { item: Pick<TradeAdItem, "iconUrl" | "name" |
     <span className={cn("item-crest size-10", rarityStyles[rarity]?.crest ?? rarityStyles.common.crest)}>
       {item.iconUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.iconUrl} alt="" className="h-full w-full object-contain p-1" draggable={false} />
+        <img src={item.iconUrl} alt="" className="h-full w-full object-contain p-1" decoding="async" draggable={false} loading="lazy" referrerPolicy="no-referrer" />
       ) : (
         <span className="font-display text-xs text-[rgb(var(--bright-gold))]">{item.name.slice(0, 2).toUpperCase()}</span>
       )}

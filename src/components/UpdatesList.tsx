@@ -250,7 +250,7 @@ function ItemIcon({ name, iconUrl, rarity, compact = false }: { name: string; ic
     <span className={cn("item-crest", rarityStyles[rarity].crest, compact ? "size-11" : "size-[58px]")}>
       {iconUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={iconUrl} alt={name} className="h-full w-full object-contain p-1" />
+        <img src={iconUrl} alt={name} className="h-full w-full object-contain p-1" decoding="async" loading="lazy" referrerPolicy="no-referrer" />
       ) : (
         <span className="font-display text-sm text-[rgb(var(--bright-gold))]">{initials(name)}</span>
       )}
@@ -262,7 +262,7 @@ function GemIcon({ type, className }: { type: string; className?: string }) {
   return (
     <span className={cn("gem-token", className)} aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/icons/trade/${type}.png`} alt="" className="h-full w-full object-contain" draggable={false} />
+      <img src={`/icons/trade/${type}.png`} alt="" className="h-full w-full object-contain" decoding="async" draggable={false} loading="lazy" />
     </span>
   );
 }

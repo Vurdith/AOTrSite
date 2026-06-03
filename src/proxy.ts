@@ -127,7 +127,13 @@ function consumeRateLimit(request: NextRequest, rule: RateRule) {
 }
 
 function isSuspiciousPath(pathname: string) {
-  const decoded = decodeURIComponent(pathname);
+  let decoded = pathname;
+
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return true;
+  }
 
   return suspiciousPathPatterns.some((pattern) => pattern.test(pathname) || pattern.test(decoded));
 }

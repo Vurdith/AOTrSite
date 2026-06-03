@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, ChevronDown, Info, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Info, Link as LinkIcon, Plus, Search, X } from "lucide-react";
 
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
+import { itemSearchText, matchesSearch } from "@/lib/search";
 import { getDisplayValue, getValueModes, type ValueCurrencySettings, type ValueMode } from "@/lib/valueCurrency";
 
 type Side = "yours" | "theirs";
@@ -109,6 +110,36 @@ function initialTheirsSlots(items: ValueItem[]) {
   return Array<TradeSlot>(9).fill(null);
 }
 
+function encodeTradeSlots(slots: TradeSlot[]) {
+  return slots
+    .filter((slot): slot is FilledTradeSlot => Boolean(slot))
+    .map((slot) => `${encodeURIComponent(slot.item.id)}:${slot.quantity}`)
+    .join(",");
+}
+
+function decodeTradeSlots(value: string | null, items: ValueItem[]) {
+  const empty = Array<TradeSlot>(9).fill(null);
+  if (!value) return empty;
+
+  const entries = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .slice(0, 9);
+
+  entries.forEach((entry, index) => {
+    const [rawId, rawQuantity] = entry.split(":");
+    const id = decodeURIComponent(rawId ?? "");
+    const item = items.find((candidate) => candidate.id === id);
+    if (!item) return;
+
+    const quantity = Math.min(100, Math.max(1, Number(rawQuantity ?? 1) || 1));
+    empty[index] = { item, quantity };
+  });
+
+  return empty;
+}
+
 function getNextSlotIndex(slots: TradeSlot[], currentIndex: number) {
   const afterCurrent = slots.findIndex((slot, index) => index > currentIndex && !slot);
 
@@ -192,6 +223,7 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
   const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
   const [slotCue, setSlotCue] = useState<ActiveSlot | null>(null);
   const [query, setQuery] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
   const pickerReopenTimer = useRef<number | null>(null);
 
   const yourTotal = yours.reduce((sum, slot) => sum + (slot ? slot.item.value * slot.quantity : 0), 0);
@@ -209,10 +241,9 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
   const visibleCategories = categories.filter((item) => item.id === "all" || items.some((value) => value.category === item.id));
   const pickerSourceOptions = useMemo(() => ["all", ...Array.from(new Set(items.map(getItemSource))).sort()] as PickerSourceFilter[], [items]);
   const filteredItems = useMemo(() => {
-    const needle = query.trim().toLowerCase();
     const matches = items.filter((item) => {
       const matchesCategory = category === "all" || item.category === category;
-      const matchesQuery = !needle || item.name.toLowerCase().includes(needle);
+      const matchesQuery = matchesSearch(itemSearchText(item), query);
       const matchesTrend = pickerTrendFilter === "all" || item.trend === pickerTrendFilter;
       const matchesSource = pickerSourceFilter === "all" || getItemSource(item) === pickerSourceFilter;
       return matchesCategory && matchesQuery && matchesTrend && matchesSource && matchesPickerDemand(item, pickerDemandFilter) && matchesPickerValue(item, pickerValueFilter);
@@ -247,7 +278,20 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
   }, []);
 
   useEffect(() => {
-    const itemId = new URLSearchParams(window.location.search).get("item");
+    const params = new URLSearchParams(window.location.search);
+    const encodedYours = params.get("yours");
+    const encodedTheirs = params.get("theirs");
+
+    if (encodedYours || encodedTheirs) {
+      const timer = window.setTimeout(() => {
+        setYours(decodeTradeSlots(encodedYours, items));
+        setTheirs(decodeTradeSlots(encodedTheirs, items));
+      }, 0);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    const itemId = params.get("item");
     const item = items.find((value) => value.id === itemId);
 
     if (!item) return;
@@ -276,6 +320,22 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
 
     return () => window.clearTimeout(timer);
   }, [items]);
+
+  async function copyShareLink() {
+    const params = new URLSearchParams();
+    const encodedYours = encodeTradeSlots(yours);
+    const encodedTheirs = encodeTradeSlots(theirs);
+
+    if (encodedYours) params.set("yours", encodedYours);
+    if (encodedTheirs) params.set("theirs", encodedTheirs);
+
+    const url = `${window.location.origin}${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+
+    await navigator.clipboard.writeText(url);
+    window.history.replaceState(null, "", url);
+    setShareStatus("Copied trade link.");
+    window.setTimeout(() => setShareStatus(""), 1800);
+  }
 
   function setSlot(side: Side, index: number, item: TradeSlot) {
     const setter = side === "yours" ? setYours : setTheirs;
@@ -370,6 +430,10 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
             </div>
 
             <div className="market-actions">
+              <button type="button" className="calculator-action" onClick={copyShareLink}>
+                <LinkIcon size={15} strokeWidth={2.4} />
+                Share Link
+              </button>
               <div className="currency-control">
                 <span>Display value as</span>
                 <div className="currency-tabs" aria-label="Display value as">
@@ -413,6 +477,7 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
             <StatChip label="Your Median Demand" value={formatDemand(yourMedianDemand)} icon="demand" />
             <StatChip label="Their Median Demand" value={formatDemand(theirMedianDemand)} icon="demand" />
           </div>
+          {shareStatus ? <p className="calculator-board-copy mt-3" aria-live="polite">{shareStatus}</p> : null}
 
           <div className="calculator-offers mt-5">
             <Offer
@@ -981,7 +1046,7 @@ function CalcValueIcon({ type, className }: { type: string; className?: string }
   return (
     <span className={cn("gem-token", className)} aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/icons/trade/${type}.png`} alt="" className="h-full w-full object-contain" draggable={false} />
+      <img src={`/icons/trade/${type}.png`} alt="" className="h-full w-full object-contain" decoding="async" draggable={false} loading="lazy" />
     </span>
   );
 }
@@ -995,7 +1060,7 @@ function ItemThumb({ item, compact = false }: { item: ValueItem; compact?: boole
     <span className={cn("item-crest", rarityStyles[item.rarity].crest, compact ? "size-9" : "size-10")}>
       {item.iconUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.iconUrl} alt="" className="h-full w-full object-contain p-1" draggable={false} />
+        <img src={item.iconUrl} alt="" className="h-full w-full object-contain p-1" decoding="async" draggable={false} loading="lazy" referrerPolicy="no-referrer" />
       ) : (
         <span className="font-display text-xs text-[rgb(var(--bright-gold))]">{item.name.slice(0, 2).toUpperCase()}</span>
       )}

@@ -11,10 +11,12 @@ import { cn } from "@/lib/cn";
 const publicNav = [
   { href: "/values", label: "Values", icon: Gem },
   { href: "/calculator", label: "Calculator", icon: Calculator },
+  { href: "/compare", label: "Compare", icon: BarChart3 },
+  { href: "/updates", label: "Updates", icon: Newspaper },
+  { href: "/methodology", label: "Trust", icon: ShieldCheck },
   ...(process.env.NODE_ENV === "development"
     ? [
         { href: "/trades", label: "Trades", icon: Handshake },
-        { href: "/updates", label: "Updates", icon: Newspaper },
       ]
     : []),
 ];
@@ -440,7 +442,7 @@ function HeaderAuthControl({ loginHref, session }: { loginHref: string; session:
       <span className="site-user-avatar">
         {session.avatar ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={session.avatar} alt="" draggable={false} />
+          <img src={session.avatar} alt="" decoding="async" draggable={false} loading="lazy" referrerPolicy="no-referrer" />
         ) : (
           <ShieldCheck size={15} strokeWidth={2.4} />
         )}
