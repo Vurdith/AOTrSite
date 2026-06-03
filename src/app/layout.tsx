@@ -22,7 +22,7 @@ const sans = Rajdhani({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://aotrvalue.com";
 const title = "AOTR Value Central";
-const description = "Check Attack on Titan Revolution item values, demand, tax, trends, updates, and trade fairness before you trade.";
+const description = "Check Attack on Titan Revolution item values, demand, tax, trends, and trade fairness before you trade.";
 
 export const metadata: Metadata = {
   alternates: {

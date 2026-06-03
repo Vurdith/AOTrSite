@@ -73,7 +73,6 @@ function invalidatePublicValueCache(itemId?: string) {
   revalidatePath("/values");
   revalidatePath("/calculator");
   revalidatePath("/trades");
-  revalidatePath("/updates");
   if (itemId) revalidatePath(`/items/${itemId}`);
 }
 

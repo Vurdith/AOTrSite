@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Calculator, Gem, Hammer, Handshake, ListChecks, LogOut, Menu, Newspaper, PackageSearch, Settings2, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
+import { BarChart3, Calculator, Gem, Hammer, Handshake, ListChecks, LogOut, Menu, PackageSearch, Settings2, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { cn } from "@/lib/cn";
@@ -11,7 +11,6 @@ import { cn } from "@/lib/cn";
 const publicNav = [
   { href: "/values", label: "Values", icon: Gem },
   { href: "/calculator", label: "Calculator", icon: Calculator },
-  { href: "/updates", label: "Updates", icon: Newspaper },
   ...(process.env.NODE_ENV === "development"
     ? [
         { href: "/trades", label: "Trades", icon: Handshake },
