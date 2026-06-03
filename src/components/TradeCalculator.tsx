@@ -863,10 +863,10 @@ function TradeCell({
 
   return (
     <div className={cn("calculator-slot-wrap", item.quantity > 1 && "calculator-slot-wrap-quantity-pinned", active && "calculator-slot-wrap-active", pulse && "calculator-slot-wrap-jumped")}>
-      <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} role="button" tabIndex={0} onKeyDown={(event) => {
+      <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={() => onView(itemData)} role="button" tabIndex={0} onKeyDown={(event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        onPick();
+        onView(itemData);
       }
     }}>
       <button type="button" onClick={(event) => {

@@ -650,6 +650,50 @@
     color: rgb(var(--bright-gold));
   }
 
+  .trade-card-calculator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border-top: 1px solid rgb(var(--gold) / 0.1);
+    padding-top: 0.8rem;
+  }
+
+  .trade-card-values {
+    display: grid;
+    min-width: 0;
+    flex: 1 1 auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .trade-card-values span {
+    display: grid;
+    min-width: 0;
+    gap: 0.18rem;
+    color: rgb(var(--fog) / 0.68);
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .trade-card-values strong {
+    overflow: hidden;
+    color: rgb(var(--bright-gold));
+    font-size: 0.82rem;
+    letter-spacing: 0;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    text-transform: none;
+    white-space: nowrap;
+  }
+
+  .trade-card-calculator-link {
+    flex: 0 0 auto;
+  }
+
   .trade-empty-state {
     display: grid;
     grid-column: 1 / -1;
@@ -695,6 +739,19 @@
 
     .trade-quantity-control {
       grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .trade-card-calculator {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .trade-card-values {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .trade-card-calculator-link {
       width: 100%;
     }
   }
@@ -3229,6 +3286,26 @@
     align-self: end;
   }
 
+  @media (max-width: 640px) {
+    .calculator-board-head {
+      display: grid;
+      align-items: start;
+    }
+
+    .calculator-verdict-clean {
+      width: 100%;
+    }
+
+    .calculator-result-value {
+      align-items: flex-start;
+      line-height: 1.15;
+    }
+
+    .calculator-toolbar .calculator-action {
+      width: 100%;
+    }
+  }
+
   .calculator-quick-stats {
     display: grid;
     grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -3297,6 +3374,22 @@
     .calculator-summary-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
       max-width: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .calculator-summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .calculator-stat-chip {
+      align-content: start;
+      min-height: 4.15rem;
+      padding: 0.62rem;
+    }
+
+    .calculator-stat-chip span:not(.gem-token, .calculator-value-stat-icon) {
+      white-space: normal;
     }
   }
 
@@ -3413,6 +3506,28 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.58rem;
+  }
+
+  @media (max-width: 640px) {
+    .calculator-offer-panel {
+      padding: 0.78rem;
+    }
+
+    .calculator-offer-head {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .calculator-offer-total {
+      max-width: none;
+      justify-content: flex-start;
+      text-align: left;
+    }
+
+    .calculator-slot-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.62rem;
+    }
   }
 
   .calculator-slot {
@@ -3574,6 +3689,12 @@
     visibility: hidden;
   }
 
+  @media (max-width: 640px) {
+    .calculator-slot-hidden {
+      display: none;
+    }
+  }
+
   .calculator-slot-empty-label {
     color: rgb(var(--ink));
     font-family: var(--font-display), sans-serif;
@@ -3611,6 +3732,22 @@
   .calculator-slot-filled .item-crest {
     width: clamp(2.75rem, 4.1vw, 4.05rem);
     height: clamp(2.75rem, 4.1vw, 4.05rem);
+  }
+
+  @media (max-width: 640px) {
+    .calculator-slot-filled {
+      min-height: 9rem;
+      padding: 0.82rem 0.68rem 2.25rem;
+    }
+
+    .calculator-slot-filled .item-crest {
+      width: 3rem;
+      height: 3rem;
+    }
+
+    .calculator-slot-name {
+      font-size: 0.9rem;
+    }
   }
 
   .calculator-quantity-control {
@@ -3842,6 +3979,15 @@
   .calculator-slot-filled:focus-within .calculator-remove {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+
+  @media (max-width: 640px) {
+    .calculator-remove,
+    .calculator-slot-filled:hover .calculator-remove,
+    .calculator-slot-filled:focus-within .calculator-remove {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .calculator-remove::before {

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
-import { ArrowRightLeft, ChevronDown, Clock3, MessageSquareText, Plus, Search, ShieldCheck, Trash2, X } from "lucide-react";
+import { ArrowRightLeft, Calculator, ChevronDown, Clock3, MessageSquareText, Plus, Search, ShieldCheck, Trash2, X } from "lucide-react";
 
 import { ItemDetailModal } from "@/components/ItemDetailModal";
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
@@ -156,6 +156,38 @@ function labelsFromItems(items: SelectedTradeItem[]) {
   return items.map((item) => `${item.name}${item.quantity > 1 ? ` x${item.quantity}` : ""}`).join(", ");
 }
 
+function formatValue(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: value < 100 ? 1 : 0,
+  }).format(value);
+}
+
+function encodeCalculatorItems(items: TradeAdItem[]) {
+  return items
+    .filter((item) => !item.id.startsWith("legacy-"))
+    .slice(0, 9)
+    .map((item) => `${encodeURIComponent(item.id)}:${Math.min(100, Math.max(1, item.quantity || 1))}`)
+    .join(",");
+}
+
+function getTradeItemsValue(items: TradeAdItem[], valueLookup: Map<string, ValueItem>) {
+  return items.reduce((sum, item) => {
+    const valueItem = valueLookup.get(item.id);
+    return sum + (valueItem ? valueItem.value * Math.min(100, Math.max(1, item.quantity || 1)) : 0);
+  }, 0);
+}
+
+function getCalculatorHref(offering: TradeAdItem[], wants: TradeAdItem[]) {
+  const params = new URLSearchParams();
+  const encodedYours = encodeCalculatorItems(wants);
+  const encodedTheirs = encodeCalculatorItems(offering);
+
+  if (encodedYours) params.set("yours", encodedYours);
+  if (encodedTheirs) params.set("theirs", encodedTheirs);
+
+  return `/calculator${params.toString() ? `?${params.toString()}` : ""}`;
+}
+
 function legacyItems(value: string): SelectedTradeItem[] {
   return value
     .split(/\n|,|\+/)
@@ -257,6 +289,7 @@ export function TradesBoard({
 
   const visibleCategories = categories.filter((item) => item.id === "all" || initialItems.some((value) => value.category === item.id));
   const pickerSourceOptions = useMemo(() => ["all", ...Array.from(new Set(initialItems.map(getItemSource))).sort()] as PickerSourceFilter[], [initialItems]);
+  const valueLookup = useMemo(() => new Map(initialItems.map((item) => [item.id, item])), [initialItems]);
   const filteredPickerItems = useMemo(() => {
     const matches = initialItems.filter((item) => {
       const matchesCategory = pickerCategory === "all" || item.category === pickerCategory;
@@ -505,6 +538,7 @@ export function TradesBoard({
                 <TradeCard
                   key={ad.id}
                   ad={ad}
+                  valueLookup={valueLookup}
                   onViewItem={(itemId) => {
                     const item = initialItems.find((candidate) => candidate.id === itemId);
                     if (item) setDetailItem(item);
@@ -636,9 +670,12 @@ function TradeSelectedItem({ item, onQuantity, onRemove }: { item: SelectedTrade
   );
 }
 
-function TradeCard({ ad, onViewItem }: { ad: TradeAd; onViewItem: (itemId: string) => void }) {
+function TradeCard({ ad, onViewItem, valueLookup }: { ad: TradeAd; onViewItem: (itemId: string) => void; valueLookup: Map<string, ValueItem> }) {
   const offering = getAdItems(ad, "offering");
   const wants = getAdItems(ad, "wants");
+  const offeringValue = getTradeItemsValue(offering, valueLookup);
+  const wantsValue = getTradeItemsValue(wants, valueLookup);
+  const hasCalculatorItems = offering.some((item) => valueLookup.has(item.id)) || wants.some((item) => valueLookup.has(item.id));
 
   return (
     <article className="trade-card">
@@ -657,6 +694,24 @@ function TradeCard({ ad, onViewItem }: { ad: TradeAd; onViewItem: (itemId: strin
       <div className="trade-card-sides">
         <TradeCardSide emptyLabel="No offering listed" items={offering} onViewItem={onViewItem} title="Offering" />
         <TradeCardSide emptyLabel="Open to offers" items={wants} onViewItem={onViewItem} title="Looking for" />
+      </div>
+      <div className="trade-card-calculator">
+        <div className="trade-card-values" aria-label="Trade value totals">
+          <span>
+            Offering
+            <strong>{offeringValue ? `${formatValue(offeringValue)} keys` : "No known value"}</strong>
+          </span>
+          <span>
+            Looking for
+            <strong>{wantsValue ? `${formatValue(wantsValue)} keys` : "No known value"}</strong>
+          </span>
+        </div>
+        {hasCalculatorItems ? (
+          <a className="calculator-action trade-card-calculator-link" href={getCalculatorHref(offering, wants)}>
+            <Calculator size={15} strokeWidth={2.4} />
+            <span>Check in calculator</span>
+          </a>
+        ) : null}
       </div>
       {ad.notes ? (
         <p className="trade-card-notes">
