@@ -653,41 +653,9 @@
   .trade-card-calculator {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.8rem;
+    justify-content: flex-end;
     border-top: 1px solid rgb(var(--gold) / 0.1);
     padding-top: 0.8rem;
-  }
-
-  .trade-card-values {
-    display: grid;
-    min-width: 0;
-    flex: 1 1 auto;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-
-  .trade-card-values span {
-    display: grid;
-    min-width: 0;
-    gap: 0.18rem;
-    color: rgb(var(--fog) / 0.68);
-    font-size: 0.62rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    line-height: 1;
-    text-transform: uppercase;
-  }
-
-  .trade-card-values strong {
-    overflow: hidden;
-    color: rgb(var(--bright-gold));
-    font-size: 0.82rem;
-    letter-spacing: 0;
-    line-height: 1.2;
-    text-overflow: ellipsis;
-    text-transform: none;
-    white-space: nowrap;
   }
 
   .trade-card-calculator-link {
@@ -744,11 +712,6 @@
 
     .trade-card-calculator {
       align-items: stretch;
-      flex-direction: column;
-    }
-
-    .trade-card-values {
-      grid-template-columns: minmax(0, 1fr);
     }
 
     .trade-card-calculator-link {
