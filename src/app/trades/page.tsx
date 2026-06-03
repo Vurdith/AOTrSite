@@ -18,7 +18,6 @@ export default async function TradesPage() {
   return (
     <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <PageHero
-        kicker="Trade board"
         title="Player Trade Ads"
         description="Post offers with your Discord identity, search current ads, and filter for the items players are offering or looking for."
       />

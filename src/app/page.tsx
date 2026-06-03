@@ -6,14 +6,12 @@ import { LoadingScene } from "@/components/LoadingScene";
 const features = [
   {
     href: "/values",
-    kicker: "Live board",
     title: "Values",
     text: "Current item value, demand, tax, trend, and prestige in one place.",
     action: "Open values",
   },
   {
     href: "/calculator",
-    kicker: "Trade check",
     title: "Calculator",
     text: "Build both sides of a trade and check the value gap before you accept.",
     action: "Calculate trade",
@@ -22,7 +20,6 @@ const features = [
     ? [
         {
           href: "/updates",
-          kicker: "Patch log",
           title: "Updates",
           text: "See board imports, item-count changes, and demand updates in one log.",
           action: "Open updates",
@@ -55,7 +52,6 @@ export default function Home() {
 
         <div className="relative mx-auto grid min-h-[100dvh] max-w-7xl items-center gap-10 px-4 pb-10 pt-28 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,0.95fr)] lg:px-8">
           <div className="home-hero-copyblock reveal-up max-w-3xl">
-            <p className="home-hero-kicker">Item values</p>
             <h1 className="home-hero-title font-display max-w-4xl text-5xl leading-[0.95] tracking-normal md:text-7xl lg:text-8xl">
               Value Central
             </h1>
@@ -99,7 +95,6 @@ export default function Home() {
         <div className="mx-auto max-w-7xl">
           <div className="tools-section-head">
             <div>
-              <p>Market console</p>
               <h2 className="font-display">Trading tools</h2>
               <span>Move through the value board, calculator, and update log without losing the raid-room feel.</span>
             </div>
@@ -112,10 +107,6 @@ export default function Home() {
                 className={`tool-card group ${index === 0 ? "tool-card-primary" : ""}`}
               >
                 <div>
-                  <div className="tool-card-topline">
-                    <span>{feature.kicker}</span>
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                  </div>
                   <div>
                     <h3 className="font-display">{feature.title}</h3>
                     <p>{feature.text}</p>

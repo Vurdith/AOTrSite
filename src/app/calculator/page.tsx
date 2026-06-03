@@ -12,7 +12,6 @@ export default async function CalculatorPage() {
     <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <MarketFreshnessWatcher />
       <PageHero
-        kicker="Trade calculator"
         title="Calculate Your Trade"
         description="Pick items, compare values, and check demand before you accept."
       />

@@ -12,7 +12,6 @@ export default async function ValuesPage() {
     <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <MarketFreshnessWatcher />
       <PageHero
-        kicker="Value board"
         title="AoT:R Item Values"
         description="Check current item values, demand, tax, prestige requirements, and trend before you trade."
       />

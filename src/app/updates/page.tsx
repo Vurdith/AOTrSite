@@ -16,7 +16,6 @@ export default async function UpdatesPage() {
   return (
     <main id="main-content" className="aurora-page grain min-h-screen overflow-hidden">
       <PageHero
-        kicker="Market updates"
         title="Value changes and board notes."
         description="Track imports, item-count changes, and demand updates that affect the current AOTR value board."
         action={{ href: "/values", label: "Open values" }}
