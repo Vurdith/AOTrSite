@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState, useSyncExternalStore } from "react";
 import { ArrowRightLeft, ChevronDown, Clock3, MessageSquareText, Plus, Search, ShieldCheck, Trash2, X } from "lucide-react";
 
+import { ItemDetailModal } from "@/components/ItemDetailModal";
 import { DiscordIcon } from "@/components/icons/DiscordIcon";
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
@@ -522,7 +523,7 @@ export function TradesBoard({
         </div>
       </div>
 
-      {detailItem ? <TradeItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} /> : null}
+      {detailItem ? <ItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} /> : null}
 
       {pickerSide ? (
         <ItemPickerModal
@@ -691,49 +692,6 @@ function TradeCardItem({ item, onViewItem }: { item: TradeAdItem; onViewItem: (i
         </button>
         <span>x{item.quantity}</span>
       </div>
-    </div>
-  );
-}
-
-function TradeItemDetailModal({ item, onClose }: { item: ValueItem; onClose: () => void }) {
-  return (
-    <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <div className="calculator-modal" role="dialog" aria-modal="true" aria-label={`${item.name} item data`} onMouseDown={(event) => event.stopPropagation()}>
-        <button type="button" className="calculator-modal-close" onClick={onClose} aria-label="Close item data">
-          <X size={16} strokeWidth={2.4} />
-        </button>
-        <div className="calculator-modal-head">
-          <TradeItemThumb item={item} />
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Item data</p>
-            <h2 className="font-display mt-1 text-3xl leading-8">{item.name}</h2>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.7)]">
-              <span className={rarityStyles[item.rarity].text}>{rarityStyles[item.rarity].label}</span> / {item.category}
-            </p>
-          </div>
-        </div>
-        <div className="calculator-modal-lines">
-          <TradeDetailLine label="Value" value={`${item.value.toLocaleString()} keys`} />
-          <TradeDetailLine label="Gem Tax" value={`${item.taxGems.toLocaleString()} gems`} />
-          <TradeDetailLine label="Demand" value={`${item.demand}/100`} />
-          <TradeDetailLine label="Prestige" value={`P${item.prestige}`} />
-          <TradeDetailLine label="Source" value={getItemSource(item)} />
-        </div>
-        <div className="calculator-modal-note">
-          <span>Trade read</span>
-          <p>{item.note}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TradeDetailLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="calculator-detail-line">
-      <span className="calculator-detail-icon-slot" aria-hidden="true" />
-      <span>{label}</span>
-      <strong>{value}</strong>
     </div>
   );
 }

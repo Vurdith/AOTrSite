@@ -1,9 +1,9 @@
 ﻿"use client";
 
 import { useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import Link from "next/link";
 import { ChevronDown, Info, X } from "lucide-react";
 
+import { ItemDetailModal } from "@/components/ItemDetailModal";
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
@@ -101,14 +101,6 @@ function formatCurrencyValue(value: number, mode: ValueMode, settings?: ValueCur
         ? formatNumber(Math.round(amount))
         : amount.toFixed(1);
   return `${formatted} ${valueModes[mode].unit}`;
-}
-
-function getTradeGuidance(item: ValueItem) {
-  if (item.trend === "falling") return "Wait for confirmation before overpaying.";
-  if (item.taxGems >= 10000) return "Check tax cost before accepting small upgrades.";
-  if (item.demand >= 75) return "Strong demand; fair overpay is more defensible.";
-  if (item.demand <= 25) return "Low demand; ask for adds or easier-to-move items.";
-  return "Stable market; use recent comparable trades.";
 }
 
 function getValueRank(item: ValueItem, items: ValueItem[]) {
@@ -425,7 +417,7 @@ export function ValuesList({
 
         </div>
         {detailItem ? (
-          <ValueDetailModal
+          <ItemDetailModal
             iconUrl={iconOverrides[detailItem.id] ?? detailItem.iconUrl ?? ""}
             item={detailItem}
             onClose={() => setDetailItem(null)}
@@ -601,97 +593,6 @@ function ValueRow({
         </button>
       </div>
     </article>
-  );
-}
-
-function ValueDetailModal({
-  iconUrl,
-  item,
-  onClose,
-  currencySettings,
-  valueRank,
-  valueMode,
-}: {
-  iconUrl: string;
-  item: ValueItem;
-  onClose: () => void;
-  currencySettings?: ValueCurrencySettings;
-  valueRank: number;
-  valueMode: ValueMode;
-}) {
-  const valueModes = getValueModes(currencySettings);
-
-  return (
-    <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <div
-        className="calculator-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${item.name} value data`}
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <button type="button" className="calculator-modal-close" onClick={onClose} aria-label="Close value data">
-          <X size={16} strokeWidth={2.4} />
-        </button>
-        <div className="calculator-modal-head">
-          <ItemIcon name={item.name} iconUrl={iconUrl} rarity={item.rarity} />
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Value data</p>
-            <h2 className="font-display mt-1 text-3xl leading-8">{item.name}</h2>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.7)]">
-              <span className={rarityStyles[item.rarity].text}>{rarityStyles[item.rarity].label}</span> / {item.category}
-            </p>
-          </div>
-        </div>
-
-        <div className="calculator-modal-values">
-          {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
-            <div key={mode} className={cn("calculator-modal-value", valueMode === mode && "calculator-modal-value-active")}>
-              <GemIcon type={valueModeIcon[mode]} className={cn("calculator-modal-value-icon", `trade-icon-${valueModeIcon[mode]}`)} />
-              <span>{valueModes[mode].label}</span>
-              <strong>{formatCurrencyValue(item.value, mode, currencySettings)}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="calculator-modal-lines">
-          <ValueDetailLine icon="rank" label="Value Rank" value={`#${valueRank} by value`} />
-          <ValueDetailLine icon="gem" label="Gem Tax" value={`${formatNumber(item.taxGems)} gems`} />
-          <ValueDetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
-          <ValueDetailLine icon="prestige" label="Prestige" value={`P${item.prestige}`} />
-          <ValueDetailLine icon={trendMeta[item.trend].icon} label="Trend" value={trendMeta[item.trend].label} />
-          <ValueDetailLine icon="source" label="Source" value={getItemSource(item)} />
-        </div>
-
-        <div className="calculator-modal-note">
-          <span>Trade read</span>
-          <p>{getTradeGuidance(item)}</p>
-        </div>
-
-        <Link
-          href={`/calculator?item=${item.id}`}
-          className="royal-button primary-market-cta mt-4 inline-flex h-12 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em] text-white"
-        >
-          <span>Add to calculator</span>
-        </Link>
-        <Link
-          href={`/items/${item.id}`}
-          className="item-modal-page-link mt-3 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
-        >
-          View trade graph
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function ValueDetailLine({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <div className="calculator-detail-line">
-      <GemIcon type={icon} className={cn("calculator-detail-image-icon", `trade-icon-${icon}`)} />
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
   );
 }
 

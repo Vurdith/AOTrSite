@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import Link from "next/link";
 import { ArrowLeftRight, ChevronDown, Link as LinkIcon, Plus, Search, X } from "lucide-react";
 
+import { ItemDetailModal } from "@/components/ItemDetailModal";
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
 import { rarityStyles } from "@/lib/rarityStyles";
@@ -36,18 +36,6 @@ function getFilterBreakpointSnapshot() {
 function getFilterBreakpointServerSnapshot() {
   return false;
 }
-
-const trendLabels: Record<ItemTrend, string> = {
-  rising: "Rising",
-  stable: "Stable",
-  falling: "Falling",
-};
-
-const trendIcon: Record<ItemTrend, string> = {
-  rising: "trend-rising",
-  stable: "trend-stable",
-  falling: "trend-falling",
-};
 
 const pickerSortOptions: { id: PickerSortOption; label: string }[] = [
   { id: "value-desc", label: "Value high-low" },
@@ -851,13 +839,21 @@ function TradeCell({
   slotNumber: number;
 }) {
   if (!item) {
+    const hidden = !nextEmpty && !active && !pulse;
+
     return (
-      <button className={cn("calculator-slot calculator-slot-empty", !nextEmpty && !active && !pulse && "calculator-slot-hidden", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} type="button">
+      <button
+        className={cn("calculator-slot calculator-slot-empty", hidden && "calculator-slot-hidden", active && "calculator-slot-active", pulse && "calculator-slot-jumped")}
+        onClick={onPick}
+        type="button"
+        disabled={hidden}
+        tabIndex={hidden ? -1 : undefined}
+        aria-hidden={hidden || undefined}
+      >
         <span className="calculator-slot-plus">
           <Plus size={18} strokeWidth={2.4} />
         </span>
         <span className="calculator-slot-empty-label">Add item</span>
-        {pulse ? <span className="calculator-slot-next-label">Next</span> : null}
         <small>Slot {slotNumber}</small>
       </button>
     );
@@ -946,90 +942,6 @@ function TradeCell({
       </div>
     </div>
   );
-}
-
-function ItemDetailModal({
-  item,
-  onClose,
-  currencySettings,
-  valueMode,
-}: {
-  item: ValueItem;
-  onClose: () => void;
-  currencySettings?: ValueCurrencySettings;
-  valueMode: ValueMode;
-}) {
-  const valueModes = getValueModes(currencySettings);
-
-  return (
-    <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
-      <div
-        className="calculator-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${item.name} item data`}
-        onMouseDown={(event) => event.stopPropagation()}
-      >
-        <button type="button" className="calculator-modal-close" onClick={onClose} aria-label="Close item data">
-          <X size={16} strokeWidth={2.4} />
-        </button>
-        <div className="calculator-modal-head">
-          <ItemThumb item={item} />
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Item data</p>
-            <h2 className="font-display mt-1 text-3xl leading-8">{item.name}</h2>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.7)]">
-              <span className={rarityStyles[item.rarity].text}>{rarityStyles[item.rarity].label}</span> / {item.category}
-            </p>
-          </div>
-        </div>
-
-        <div className="calculator-modal-values">
-          {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
-            <div key={mode} className={cn("calculator-modal-value", valueMode === mode && "calculator-modal-value-active")}>
-              <CalcValueIcon type={valueModes[mode].icon} className={cn("calculator-modal-value-icon", `trade-icon-${valueModes[mode].icon}`)} />
-              <span>{valueModes[mode].label}</span>
-              <strong>{formatModeValue(item.value, mode, currencySettings)}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="calculator-modal-lines">
-          <DetailLine icon="gem" label="Gem Tax" value={`${item.taxGems.toLocaleString()} gems`} />
-          <DetailLine icon="demand" label="Demand" value={`${item.demand}/100`} />
-          <DetailLine icon="prestige" label="Prestige" value={`P${item.prestige}`} />
-          <DetailLine icon={trendIcon[item.trend]} label="Trend" value={trendLabels[item.trend]} />
-          <DetailLine icon="source" label="Source" value={getItemSource(item)} />
-        </div>
-
-        <div className="calculator-modal-note">
-          <span>Trade read</span>
-          <p>{item.note}</p>
-        </div>
-
-        <Link
-          href={`/items/${item.id}`}
-          className="item-modal-page-link mt-4 inline-flex h-11 w-full items-center justify-center rounded-full text-xs font-bold uppercase tracking-[0.14em]"
-        >
-          View trade graph
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function DetailLine({ icon, label, value }: { icon: string; label: string; value: string }) {
-  return (
-    <div className="calculator-detail-line">
-      <DetailIcon type={icon} />
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function DetailIcon({ type }: { type: string }) {
-  return <CalcValueIcon type={type} className={cn("calculator-detail-image-icon", `trade-icon-${type}`)} />;
 }
 
 function CalcValueIcon({ type, className }: { type: string; className?: string }) {
