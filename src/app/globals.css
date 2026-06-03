@@ -651,15 +651,17 @@
   }
 
   .trade-card-calculator {
-    display: flex;
+    display: grid;
+    min-height: 2.7rem;
     align-items: center;
-    justify-content: flex-end;
+    justify-items: end;
     border-top: 1px solid rgb(var(--gold) / 0.1);
-    padding-top: 0.8rem;
   }
 
   .trade-card-calculator-link {
     flex: 0 0 auto;
+    min-height: 2rem;
+    line-height: 1;
   }
 
   .trade-empty-state {
