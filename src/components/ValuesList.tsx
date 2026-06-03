@@ -166,14 +166,10 @@ function initials(name: string) {
 
 export function ValuesList({
   currencySettings,
-  isFallback = false,
   items = valueItems,
-  lastUpdatedAt = null,
 }: {
   currencySettings?: ValueCurrencySettings;
-  isFallback?: boolean;
   items?: ValueItem[];
-  lastUpdatedAt?: string | null;
 }) {
   const valueModes = useMemo(() => getValueModes(currencySettings), [currencySettings]);
   const [query, setQuery] = useState("");
@@ -283,13 +279,6 @@ export function ValuesList({
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="market-info-grid" aria-label="Market data trust information">
-            <InfoPanel label="Updated" value={formatMarketUpdatedAt(lastUpdatedAt)} detail={isFallback ? "Showing bundled fallback snapshot" : "Live database snapshot"} />
-            <InfoPanel label="Cache" value="5 min" detail="Refreshes after admin saves and timed cache expiry" />
-            <InfoPanel label="Review" value="Admin audited" detail="Changes are logged with Discord admin identity" />
-            <InfoPanel label="Demand" value="Trade interest" detail="Higher score means easier movement" />
           </div>
 
           <div className="advanced-filter-panel" aria-label="Advanced value filters">
@@ -515,16 +504,6 @@ function Pagination({
   );
 }
 
-function InfoPanel({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return (
-    <div className="market-info-panel">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </div>
-  );
-}
-
 function ValueRow({
   item,
   iconUrl,
@@ -705,18 +684,6 @@ function ValueDetailModal({
       </div>
     </div>
   );
-}
-
-function formatMarketUpdatedAt(value: string | null) {
-  if (!value) return "Local fallback";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
-
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
 }
 
 function ValueDetailLine({ icon, label, value }: { icon: string; label: string; value: string }) {

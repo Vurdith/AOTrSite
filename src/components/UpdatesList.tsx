@@ -89,15 +89,6 @@ export function UpdatesList({ items = valueItems }: { items?: ValueItem[] }) {
             </div>
           </div>
 
-          <div className="market-info-grid" aria-label="Update source information">
-            {updateLog.map((entry) => (
-              <div key={`${entry.date}-${entry.item}`} className="market-info-panel">
-                <span>{entry.date}</span>
-                <strong>{entry.item}</strong>
-                <small>{entry.reason}</small>
-              </div>
-            ))}
-          </div>
         </div>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
