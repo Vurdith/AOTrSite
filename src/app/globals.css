@@ -3620,8 +3620,8 @@
   }
 
   .calculator-slot-filled .item-crest {
-    width: clamp(3.1rem, 5vw, 5.1rem);
-    height: clamp(3.1rem, 5vw, 5.1rem);
+    width: clamp(2.75rem, 4.1vw, 4.05rem);
+    height: clamp(2.75rem, 4.1vw, 4.05rem);
   }
 
   .calculator-quantity-control {
@@ -3734,7 +3734,7 @@
     overflow: hidden;
     color: white;
     font-family: var(--font-display), sans-serif;
-    font-size: clamp(0.95rem, 1.08vw, 1.16rem);
+    font-size: clamp(0.78rem, 0.92vw, 0.96rem);
     line-height: 1.14;
     overflow-wrap: normal;
     text-overflow: ellipsis;
@@ -3762,6 +3762,7 @@
 
   .calculator-slot-wrap:hover .calculator-quantity-control,
   .calculator-slot-wrap:focus-within .calculator-quantity-control,
+  .calculator-slot-wrap-quantity-pinned .calculator-quantity-control,
   .calculator-slot-wrap-active .calculator-quantity-control {
     opacity: 1;
     transform: translateY(0);

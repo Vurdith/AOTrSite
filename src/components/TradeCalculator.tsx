@@ -795,6 +795,8 @@ function Offer({
   total: string;
   valueIcon: string;
 }) {
+  const nextEmptyIndex = items.findIndex((slot) => !slot);
+
   return (
     <div className="calculator-offer-panel">
       <div className="calculator-offer-head">
@@ -812,6 +814,7 @@ function Offer({
           <TradeCell
             active={activeSlot.side === side && activeSlot.index === index}
             item={item}
+            nextEmpty={index === nextEmptyIndex}
             key={`${side}-${index}`}
             onPick={() => onPickSlot(side, index)}
             onQuantity={(quantity) => onQuantity(index, quantity)}
@@ -829,6 +832,7 @@ function Offer({
 function TradeCell({
   active,
   item,
+  nextEmpty,
   onPick,
   onQuantity,
   onRemove,
@@ -838,6 +842,7 @@ function TradeCell({
 }: {
   active: boolean;
   item: TradeSlot;
+  nextEmpty: boolean;
   onPick: () => void;
   onQuantity: (quantity: number) => void;
   onRemove: () => void;
@@ -847,7 +852,7 @@ function TradeCell({
 }) {
   if (!item) {
     return (
-      <button className={cn("calculator-slot calculator-slot-empty", !active && !pulse && "calculator-slot-hidden", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} type="button">
+      <button className={cn("calculator-slot calculator-slot-empty", !nextEmpty && !active && !pulse && "calculator-slot-hidden", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} type="button">
         <span className="calculator-slot-plus">
           <Plus size={18} strokeWidth={2.4} />
         </span>
@@ -861,7 +866,7 @@ function TradeCell({
   const itemData = item.item;
 
   return (
-    <div className={cn("calculator-slot-wrap", active && "calculator-slot-wrap-active", pulse && "calculator-slot-wrap-jumped")}>
+    <div className={cn("calculator-slot-wrap", item.quantity > 1 && "calculator-slot-wrap-quantity-pinned", active && "calculator-slot-wrap-active", pulse && "calculator-slot-wrap-jumped")}>
       <div className={cn("calculator-slot calculator-slot-filled", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} role="button" tabIndex={0} onKeyDown={(event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
