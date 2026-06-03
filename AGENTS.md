@@ -1,5 +1,14 @@
 # Agent Notes
 
+## UI Work
+
+- For any UI, UX, frontend layout, visual design, redesign, or styling work, use both the `gpt-taste` and `redesign-existing-projects` skills before making changes.
+- Preserve the current product style unless the user explicitly asks for a new direction. Improve hierarchy, spacing, alignment, states, and clarity without adding unnecessary decoration.
+- Remove redundant controls, decorative labels, cramped components, and non-actionable UI before adding new elements.
+- After meaningful UI changes, use Playwright to inspect the rendered page for yourself. Do not rely on code review alone.
+- Use Playwright screenshots and DOM measurements to verify exact alignments, text fit, clipped images/logos, responsive behavior, and horizontal overflow. Prefer `getBoundingClientRect()` checks for paired elements such as avatars and profile text, card columns, headers, controls, and item rows.
+- Test at least one desktop viewport and one mobile viewport for substantial UI work. Report any browser automation limitation if Playwright cannot run.
+
 ## Git Workflow
 
 - After making any repository change, run the relevant checks for the change.
