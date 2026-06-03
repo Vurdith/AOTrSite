@@ -231,14 +231,16 @@ export function ValuesList({
           <div className="market-board-head">
             <div className="title-lockup">
               <div>
-                <h2 className="font-display text-3xl leading-none md:text-4xl">Market Values</h2>
+                <div className="market-title-row">
+                  <h2 className="font-display text-3xl leading-none md:text-4xl">Market Values</h2>
+                  <span>{filtered.length} items</span>
+                </div>
                 <p className="mt-2 text-sm text-[rgb(var(--fog)/.8)]">Search, sort, and compare current item values.</p>
               </div>
             </div>
 
             <div className="market-actions">
               <div className="search-control">
-                <span>Find item</span>
                 <label className="search-channel" title="Search applies within the selected category.">
                   <span className="sr-only">Search values</span>
                   <input
@@ -255,13 +257,12 @@ export function ValuesList({
                       setQuery("");
                       setPage(1);
                     }} aria-label="Clear search">
-                      x
+                      <X size={13} strokeWidth={2.6} />
                     </button>
                   ) : null}
                 </label>
               </div>
               <div className="currency-control">
-                <span>Display value as</span>
                 <div className="currency-tabs" aria-label="Display value as">
                   {(Object.keys(valueModes) as ValueMode[]).map((mode) => (
                     <button
@@ -294,7 +295,7 @@ export function ValuesList({
                   <span>Advanced filters</span>
                   <ChevronDown size={15} strokeWidth={2.5} />
                 </button>
-                <strong>{filtered.length} items</strong>
+                <strong>{activeFilterCount ? `${activeFilterCount} active` : "Default market view"}</strong>
               </div>
               <button type="button" className="advanced-filter-clear" onClick={clearFilters} disabled={!activeFilterCount} aria-label="Clear advanced filters">
                 Clear {activeFilterCount ? `(${activeFilterCount})` : ""}
@@ -561,18 +562,21 @@ function ValueRow({
           <div className="hidden lg:block">
             <ItemIcon name={item.name} iconUrl={iconUrl} rarity={item.rarity} compact />
           </div>
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
-              {selected ? <span className="row-selected-mark" aria-hidden="true" /> : null}
-              <h3 className="truncate font-display text-lg leading-6 text-white">{item.name}</h3>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                {selected ? <span className="row-selected-mark" aria-hidden="true" /> : null}
+                <h3 className="truncate font-display text-lg leading-6 text-white">{item.name}</h3>
+              </div>
+              <p className="row-item-note">
+                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]", rarityStyles[item.rarity].badge)}>
+                  {rarityStyles[item.rarity].label}
+                </span>
+                <span className="row-inline-trend">
+                  <TrendBadge trend={item.trend} />
+                </span>
+              </p>
             </div>
-            <p className="row-item-note">
-              <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]", rarityStyles[item.rarity].badge)}>
-                {rarityStyles[item.rarity].label}
-              </span>
-            </p>
           </div>
-        </div>
       </div>
 
       <RowMetric label="Value" value={formatCurrencyValue(item.value, valueMode, currencySettings)} icon={valueModeIcon[valueMode]} />
@@ -583,10 +587,6 @@ function ValueRow({
       <RowMetric label="Tax" value={<GemValue value={item.taxGems} />} />
       <RowMetric label="Demand Score" value={<DemandScore value={item.demand} />} icon="demand" />
       <RowMetric label="Prestige" value={`P${item.prestige}`} icon="prestige" title={prestigeLabels[item.prestige]} />
-      <div className="row-mobile-trend lg:hidden">
-        <span>Trend</span>
-        <TrendBadge trend={item.trend} />
-      </div>
       <div className="value-row-action">
         <button
           type="button"
