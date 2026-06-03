@@ -847,7 +847,7 @@ function TradeCell({
 }) {
   if (!item) {
     return (
-      <button className={cn("calculator-slot calculator-slot-empty", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} type="button">
+      <button className={cn("calculator-slot calculator-slot-empty", !active && !pulse && "calculator-slot-hidden", active && "calculator-slot-active", pulse && "calculator-slot-jumped")} onClick={onPick} type="button">
         <span className="calculator-slot-plus">
           <Plus size={18} strokeWidth={2.4} />
         </span>
@@ -876,7 +876,7 @@ function TradeCell({
         <span className="calculator-remove-mark" aria-hidden="true" />
       </button>
       <div className="calculator-slot-top">
-        <ItemThumb item={itemData} compact />
+        <ItemThumb item={itemData} />
       </div>
       <div className="min-w-0">
         <div className="calculator-slot-name">{itemData.name}</div>

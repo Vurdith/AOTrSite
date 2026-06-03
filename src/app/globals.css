@@ -3284,13 +3284,13 @@
   .calculator-offers {
     display: grid;
     gap: 1rem;
-    align-items: start;
+    align-items: stretch;
   }
 
   @media (min-width: 900px) {
     .calculator-offers {
       grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-      align-items: start;
+      align-items: stretch;
     }
   }
 
@@ -3303,6 +3303,7 @@
       display: grid;
       width: 3.15rem;
       height: 3.15rem;
+      align-self: center;
       place-items: center;
       border: 1px solid rgb(var(--bright-gold) / 0.28);
       border-radius: 999px;
@@ -3317,6 +3318,8 @@
   }
 
   .calculator-offer-panel {
+    display: grid;
+    align-content: start;
     min-width: 0;
     border: 1px solid rgb(var(--gold) / 0.1);
     border-radius: 16px 5px 16px 5px;
@@ -3407,26 +3410,12 @@
     align-content: center;
     justify-items: center;
     grid-template-rows: auto auto;
-    padding: 0.62rem;
+    padding: 0.72rem;
     text-align: center;
   }
 
   .calculator-slot-filled::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(120px 140px at 100% 50%, rgb(220 38 38 / 0.34), transparent 68%),
-      linear-gradient(90deg, transparent 58%, rgb(220 38 18 / 0.13));
-    opacity: 0;
-    transition: opacity 180ms ease;
-  }
-
-  .calculator-slot-filled:has(.calculator-remove:hover)::after,
-  .calculator-slot-filled:has(.calculator-remove:focus-visible)::after {
-    opacity: 1;
+    content: none;
   }
 
   .calculator-slot-filled > * {
@@ -3575,6 +3564,27 @@
     text-align: center;
   }
 
+  .calculator-slot-hidden {
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .calculator-slot-hidden > * {
+    opacity: 0;
+  }
+
+  .calculator-slot-hidden:hover,
+  .calculator-slot-hidden:focus-visible {
+    border-color: rgb(var(--gold) / 0.16);
+    background: rgb(var(--bright-gold) / 0.035);
+  }
+
+  .calculator-slot-hidden:hover > *,
+  .calculator-slot-hidden:focus-visible > * {
+    opacity: 1;
+  }
+
   .calculator-slot-empty-label {
     color: rgb(var(--ink));
     font-family: var(--font-display), sans-serif;
@@ -3606,7 +3616,12 @@
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .calculator-slot-filled .item-crest {
+    width: clamp(3.1rem, 5vw, 5.1rem);
+    height: clamp(3.1rem, 5vw, 5.1rem);
   }
 
   .calculator-quantity-control {
@@ -3712,15 +3727,15 @@
   .calculator-slot-name {
     display: -webkit-box;
     min-height: 0;
-    max-height: 2rem;
+    max-height: 2.5rem;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
     color: white;
     font-family: var(--font-display), sans-serif;
-    font-size: clamp(0.64rem, 0.74vw, 0.72rem);
-    line-height: 1.12;
+    font-size: clamp(0.95rem, 1.08vw, 1.16rem);
+    line-height: 1.14;
     overflow-wrap: normal;
     text-overflow: ellipsis;
   }
@@ -3804,10 +3819,10 @@
     width: 1.62rem;
     height: 1.62rem;
     place-items: center;
-    border: 1px solid rgb(248 113 113 / 0.18);
+    border: 1px solid rgb(var(--gold) / 0.2);
     border-radius: 999px;
-    background: rgb(34 4 5 / 0.52);
-    color: rgb(255 228 230);
+    background: rgb(0 0 0 / 0.52);
+    color: rgb(var(--fog));
     cursor: pointer;
     opacity: 0;
     transform: translateY(-2px) scale(0.96);
@@ -3827,14 +3842,7 @@
   }
 
   .calculator-remove::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(90deg, transparent, rgb(var(--ruby) / 0.24)),
-      radial-gradient(38px 90px at 100% 50%, rgb(248 113 113 / 0.32), transparent 76%);
-    opacity: 0;
-    transition: opacity 160ms ease;
+    content: none;
   }
 
   .calculator-remove-curve {
@@ -3849,8 +3857,7 @@
     height: 0.66rem;
     transform: translate(-50%, -50%);
     filter:
-      drop-shadow(0 1px 2px rgb(0 0 0 / 0.9))
-      drop-shadow(0 0 7px rgb(248 113 113 / 0.5));
+      drop-shadow(0 1px 2px rgb(0 0 0 / 0.9));
   }
 
   .calculator-remove-mark::before,
@@ -3877,10 +3884,10 @@
 
   .calculator-remove:hover,
   .calculator-remove:focus-visible {
-    border-color: rgb(248 113 113 / 0.45);
-    background: rgb(127 29 29 / 0.72);
-    color: rgb(254 226 226);
-    filter: drop-shadow(0 0 12px rgb(220 38 38 / 0.62));
+    border-color: rgb(248 113 113 / 0.44);
+    background: rgb(40 10 8 / 0.86);
+    color: white;
+    filter: none;
   }
 
   .calculator-remove:hover::before,
