@@ -6,9 +6,9 @@
 - Use the full `gpt-taste` and `redesign-existing-projects` skills only for substantial redesigns, new visual directions, broad UX audits, ambiguous design work that needs deeper guidance, or when the user explicitly asks to use those skills.
 - Preserve the current product style unless the user explicitly asks for a new direction. Improve hierarchy, spacing, alignment, states, and clarity without adding unnecessary decoration.
 - Remove redundant controls, decorative labels, cramped components, and non-actionable UI before adding new elements.
-- After meaningful UI changes, use Playwright to inspect the rendered page for yourself. Do not rely on code review alone.
-- Use Playwright screenshots and DOM measurements to verify exact alignments, text fit, clipped images/logos, responsive behavior, and horizontal overflow. Prefer `getBoundingClientRect()` checks for paired elements such as avatars and profile text, card columns, headers, controls, and item rows.
-- Test at least one desktop viewport and one mobile viewport for substantial UI work. Report any browser automation limitation if Playwright cannot run.
+- Use browser or Playwright QA only when the situation calls for it: substantial UI work, responsive layout changes, new or reorganized components, visual regressions, animations, image/logo fit, overflow risk, or user-reported browser issues.
+- For low-risk UI follow-ups such as copy changes, removing/restoring a label, color/token tweaks, or narrow spacing adjustments, prefer code review plus the relevant lint/build/type checks. Do not spend extra usage on screenshots or DOM measurements unless there is a concrete visual risk.
+- When browser QA is warranted, keep it targeted: test the affected route and the smallest useful set of desktop/mobile viewports, and measure only the elements whose alignment, text fit, clipping, or overflow could plausibly break. Report any browser automation limitation if Playwright cannot run.
 
 ## Git Workflow
 
