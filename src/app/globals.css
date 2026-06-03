@@ -496,7 +496,8 @@
     gap: 0.18rem;
   }
 
-  .trade-card-head strong {
+  .trade-card-head strong,
+  .trade-user-link {
     display: block;
     overflow: hidden;
     color: rgb(var(--ink));
@@ -504,6 +505,19 @@
     line-height: 1.1;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .trade-user-link {
+    width: fit-content;
+    max-width: 100%;
+    transition: color 160ms ease, text-shadow 160ms ease;
+  }
+
+  .trade-user-link:hover,
+  .trade-user-link:focus-visible {
+    color: white;
+    text-shadow: 0 0 12px rgb(var(--gold) / 0.28);
+    outline: none;
   }
 
   .trade-card-head span:not(.trade-user-avatar) {
@@ -567,14 +581,30 @@
     gap: 0.6rem;
   }
 
-  .trade-card-item strong {
+  .trade-card-item strong,
+  .trade-item-name-link {
     display: block;
+    width: fit-content;
+    max-width: 100%;
     overflow: hidden;
+    border: 0;
+    background: transparent;
     color: white;
+    cursor: pointer;
     font-weight: 900;
     line-height: 1.1;
+    padding: 0;
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: color 160ms ease, text-shadow 160ms ease;
+  }
+
+  .trade-item-name-link:hover,
+  .trade-item-name-link:focus-visible {
+    color: rgb(var(--bright-gold));
+    text-shadow: 0 0 10px rgb(var(--gold) / 0.24);
+    outline: none;
   }
 
   .trade-card-item span:not(.item-crest) {
@@ -3728,16 +3758,29 @@
     display: -webkit-box;
     min-height: 0;
     max-height: 2.5rem;
+    border: 0;
+    background: transparent;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     overflow: hidden;
     color: white;
+    cursor: pointer;
     font-family: var(--font-display), sans-serif;
     font-size: clamp(0.78rem, 0.92vw, 0.96rem);
     line-height: 1.14;
     overflow-wrap: normal;
+    padding: 0;
+    text-align: center;
     text-overflow: ellipsis;
+    transition: color 160ms ease, text-shadow 160ms ease;
+  }
+
+  .calculator-slot-name:hover,
+  .calculator-slot-name:focus-visible {
+    color: rgb(var(--bright-gold));
+    text-shadow: 0 0 10px rgb(var(--gold) / 0.24);
+    outline: none;
   }
 
   .calculator-slot-view {

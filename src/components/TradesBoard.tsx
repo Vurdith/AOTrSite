@@ -113,6 +113,10 @@ function formatPostedAt(value: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+function discordProfileHref(discordId: string) {
+  return `https://discord.com/users/${encodeURIComponent(discordId)}`;
+}
+
 function sortAds(ads: TradeAd[], sortOption: TradeSortOption) {
   return [...ads].sort((a, b) => {
     if (sortOption === "poster") return a.poster.username.localeCompare(b.poster.username) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -248,6 +252,7 @@ export function TradesBoard({
   const [pickerSourceFilter, setPickerSourceFilter] = useState<PickerSourceFilter>("all");
   const [manualPickerFiltersExpanded, setManualPickerFiltersExpanded] = useState<boolean | null>(null);
   const pickerFiltersExpanded = manualPickerFiltersExpanded ?? !isCompactFilterLayout;
+  const [detailItem, setDetailItem] = useState<ValueItem | null>(null);
 
   const visibleCategories = categories.filter((item) => item.id === "all" || initialItems.some((value) => value.category === item.id));
   const pickerSourceOptions = useMemo(() => ["all", ...Array.from(new Set(initialItems.map(getItemSource))).sort()] as PickerSourceFilter[], [initialItems]);
@@ -387,7 +392,7 @@ export function TradesBoard({
                 <div className="trade-board-profile">
                   <UserAvatar avatar={initialSession.avatar} />
                   <div>
-                    <span>Logged in</span>
+                    <span>Logged in as</span>
                     <strong>{initialSession.username}</strong>
                   </div>
                 </div>
@@ -496,7 +501,14 @@ export function TradesBoard({
 
             <div className="trade-ad-grid trade-feed-grid">
               {filteredAds.map((ad) => (
-                <TradeCard key={ad.id} ad={ad} />
+                <TradeCard
+                  key={ad.id}
+                  ad={ad}
+                  onViewItem={(itemId) => {
+                    const item = initialItems.find((candidate) => candidate.id === itemId);
+                    if (item) setDetailItem(item);
+                  }}
+                />
               ))}
               {!filteredAds.length ? (
                 <div className="trade-empty-state">
@@ -509,6 +521,8 @@ export function TradesBoard({
           </section>
         </div>
       </div>
+
+      {detailItem ? <TradeItemDetailModal item={detailItem} onClose={() => setDetailItem(null)} /> : null}
 
       {pickerSide ? (
         <ItemPickerModal
@@ -621,7 +635,7 @@ function TradeSelectedItem({ item, onQuantity, onRemove }: { item: SelectedTrade
   );
 }
 
-function TradeCard({ ad }: { ad: TradeAd }) {
+function TradeCard({ ad, onViewItem }: { ad: TradeAd; onViewItem: (itemId: string) => void }) {
   const offering = getAdItems(ad, "offering");
   const wants = getAdItems(ad, "wants");
 
@@ -630,7 +644,9 @@ function TradeCard({ ad }: { ad: TradeAd }) {
       <div className="trade-card-head">
         <UserAvatar avatar={ad.poster.avatar} />
         <div className="min-w-0">
-          <strong>{ad.poster.username}</strong>
+          <a className="trade-user-link" href={discordProfileHref(ad.poster.discordId)} target="_blank" rel="noreferrer">
+            {ad.poster.username}
+          </a>
           <span>
             <Clock3 size={13} strokeWidth={2.4} />
             {formatPostedAt(ad.createdAt)}
@@ -638,8 +654,8 @@ function TradeCard({ ad }: { ad: TradeAd }) {
         </div>
       </div>
       <div className="trade-card-sides">
-        <TradeCardSide emptyLabel="No offering listed" items={offering} title="Offering" />
-        <TradeCardSide emptyLabel="Open to offers" items={wants} title="Looking for" />
+        <TradeCardSide emptyLabel="No offering listed" items={offering} onViewItem={onViewItem} title="Offering" />
+        <TradeCardSide emptyLabel="Open to offers" items={wants} onViewItem={onViewItem} title="Looking for" />
       </div>
       {ad.notes ? (
         <p className="trade-card-notes">
@@ -651,7 +667,7 @@ function TradeCard({ ad }: { ad: TradeAd }) {
   );
 }
 
-function TradeCardSide({ emptyLabel, items, title }: { emptyLabel: string; items: TradeAdItem[]; title: string }) {
+function TradeCardSide({ emptyLabel, items, onViewItem, title }: { emptyLabel: string; items: TradeAdItem[]; onViewItem: (itemId: string) => void; title: string }) {
   return (
     <section className="trade-card-side">
       <div className="trade-card-side-head">
@@ -659,20 +675,65 @@ function TradeCardSide({ emptyLabel, items, title }: { emptyLabel: string; items
         <small>{items.length ? `${items.length} item${items.length === 1 ? "" : "s"}` : "Any"}</small>
       </div>
       <div className="trade-card-items">
-        {items.length ? items.map((item) => <TradeCardItem key={item.id} item={item} />) : <p className="trade-card-empty-copy">{emptyLabel}</p>}
+        {items.length ? items.map((item) => <TradeCardItem key={item.id} item={item} onViewItem={onViewItem} />) : <p className="trade-card-empty-copy">{emptyLabel}</p>}
       </div>
     </section>
   );
 }
 
-function TradeCardItem({ item }: { item: TradeAdItem }) {
+function TradeCardItem({ item, onViewItem }: { item: TradeAdItem; onViewItem: (itemId: string) => void }) {
   return (
     <div className="trade-card-item">
       <TradeItemThumb item={item} />
       <div className="min-w-0">
-        <strong>{item.name}</strong>
+        <button type="button" className="trade-item-name-link" onClick={() => onViewItem(item.id)}>
+          {item.name}
+        </button>
         <span>x{item.quantity}</span>
       </div>
+    </div>
+  );
+}
+
+function TradeItemDetailModal({ item, onClose }: { item: ValueItem; onClose: () => void }) {
+  return (
+    <div className="calculator-modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <div className="calculator-modal" role="dialog" aria-modal="true" aria-label={`${item.name} item data`} onMouseDown={(event) => event.stopPropagation()}>
+        <button type="button" className="calculator-modal-close" onClick={onClose} aria-label="Close item data">
+          <X size={16} strokeWidth={2.4} />
+        </button>
+        <div className="calculator-modal-head">
+          <TradeItemThumb item={item} />
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[rgb(var(--bright-gold))]">Item data</p>
+            <h2 className="font-display mt-1 text-3xl leading-8">{item.name}</h2>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--fog)/.7)]">
+              <span className={rarityStyles[item.rarity].text}>{rarityStyles[item.rarity].label}</span> / {item.category}
+            </p>
+          </div>
+        </div>
+        <div className="calculator-modal-lines">
+          <TradeDetailLine label="Value" value={`${item.value.toLocaleString()} keys`} />
+          <TradeDetailLine label="Gem Tax" value={`${item.taxGems.toLocaleString()} gems`} />
+          <TradeDetailLine label="Demand" value={`${item.demand}/100`} />
+          <TradeDetailLine label="Prestige" value={`P${item.prestige}`} />
+          <TradeDetailLine label="Source" value={getItemSource(item)} />
+        </div>
+        <div className="calculator-modal-note">
+          <span>Trade read</span>
+          <p>{item.note}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TradeDetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="calculator-detail-line">
+      <span className="calculator-detail-icon-slot" aria-hidden="true" />
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   );
 }

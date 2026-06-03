@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, ChevronDown, Info, Link as LinkIcon, Plus, Search, X } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Link as LinkIcon, Plus, Search, X } from "lucide-react";
 
 import { categories, getItemSource, type ItemCategory, type ItemTrend, valueItems, type ValueItem } from "@/content/items";
 import { cn } from "@/lib/cn";
@@ -884,17 +884,15 @@ function TradeCell({
         <ItemThumb item={itemData} />
       </div>
       <div className="min-w-0">
-        <div className="calculator-slot-name">{itemData.name}</div>
         <button
           type="button"
-          className="calculator-slot-view"
+          className="calculator-slot-name"
           onClick={(event) => {
             event.stopPropagation();
             onView(itemData);
           }}
         >
-          <Info size={12} strokeWidth={2.4} />
-          View
+          {itemData.name}
         </button>
       </div>
       </div>
