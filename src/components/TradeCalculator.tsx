@@ -128,6 +128,11 @@ function decodeTradeSlots(value: string | null, items: ValueItem[]) {
   return empty;
 }
 
+function compactTradeSlots(slots: TradeSlot[]) {
+  const filled = slots.filter((slot): slot is FilledTradeSlot => Boolean(slot));
+  return [...filled, ...Array<TradeSlot>(Math.max(0, 9 - filled.length)).fill(null)].slice(0, 9);
+}
+
 function getNextSlotIndex(slots: TradeSlot[], currentIndex: number) {
   const afterCurrent = slots.findIndex((slot, index) => index > currentIndex && !slot);
 
@@ -325,9 +330,22 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
     window.setTimeout(() => setShareStatus(""), 1800);
   }
 
-  function setSlot(side: Side, index: number, item: TradeSlot) {
+  function removeSlot(side: Side, index: number) {
+    if (pickerReopenTimer.current) {
+      window.clearTimeout(pickerReopenTimer.current);
+      pickerReopenTimer.current = null;
+    }
+
     const setter = side === "yours" ? setYours : setTheirs;
-    setter((current) => current.map((slot, slotIndex) => (slotIndex === index ? item : slot)));
+
+    setter((current) => {
+      const compacted = compactTradeSlots(current.map((slot, slotIndex) => (slotIndex === index ? null : slot)));
+      const nextEmpty = compacted.findIndex((slot) => !slot);
+      setActiveSlot({ side, index: nextEmpty === -1 ? 8 : nextEmpty });
+      return compacted;
+    });
+    setSlotCue(null);
+    setPickerOpen(false);
   }
 
   function pickSlot(side: Side, index: number) {
@@ -348,17 +366,17 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
     const existingIndex = slots.findIndex((slot, slotIndex) => slotIndex !== activeSlot.index && slot?.item.id === item.id);
 
     if (existingIndex !== -1) {
-      const existingSlot = { side: activeSlot.side, index: existingIndex };
-
-      setter((current) =>
-        current.map((slot, slotIndex) => {
+      setter((current) => {
+        const compacted = compactTradeSlots(current.map((slot, slotIndex) => {
           if (slot && slotIndex === existingIndex) return { ...slot, quantity: Math.min(100, slot.quantity + 1) };
           if (slotIndex === activeSlot.index) return null;
           return slot;
-        }),
-      );
+        }));
+        const cueIndex = compacted.findIndex((slot) => slot?.item.id === item.id);
+        setSlotCue({ side: activeSlot.side, index: cueIndex === -1 ? existingIndex : cueIndex });
+        return compacted;
+      });
       setQuery("");
-      setSlotCue(existingSlot);
       setPickerOpen(false);
 
       if (pickerReopenTimer.current) {
@@ -406,10 +424,10 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
   }
 
   return (
-    <section className="px-4 py-7 sm:px-6 lg:px-8">
+    <section className="px-3 py-4 sm:px-6 sm:py-7 lg:px-8">
       <div className="mx-auto max-w-7xl">
       <div>
-        <div className="market-vellum self-start p-4 md:p-5">
+        <div className="market-vellum self-start p-3 md:p-5">
           <div className="calculator-board-head">
             <div>
               <h2 className="font-display text-2xl text-[rgb(var(--ink))] md:text-3xl">Build your trade</h2>
@@ -463,7 +481,7 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
               items={yours}
               onPickSlot={pickSlot}
               onQuantity={(index, quantity) => setQuantity("yours", index, quantity)}
-              onRemove={(index) => setSlot("yours", index, null)}
+              onRemove={(index) => removeSlot("yours", index)}
               onView={setDetailItem}
               slotCue={slotCue}
               side="yours"
@@ -480,7 +498,7 @@ export function TradeCalculator({ currencySettings, items = valueItems }: { curr
               items={theirs}
               onPickSlot={pickSlot}
               onQuantity={(index, quantity) => setQuantity("theirs", index, quantity)}
-              onRemove={(index) => setSlot("theirs", index, null)}
+              onRemove={(index) => removeSlot("theirs", index)}
               onView={setDetailItem}
               slotCue={slotCue}
               side="theirs"

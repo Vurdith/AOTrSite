@@ -3290,6 +3290,8 @@
     .calculator-board-head {
       display: grid;
       align-items: start;
+      gap: 0.65rem;
+      padding-bottom: 0.75rem;
     }
 
     .calculator-verdict-clean {
@@ -3380,12 +3382,13 @@
   @media (max-width: 640px) {
     .calculator-summary-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.42rem;
     }
 
     .calculator-stat-chip {
       align-content: start;
-      min-height: 4.15rem;
-      padding: 0.62rem;
+      min-height: 3.55rem;
+      padding: 0.5rem;
     }
 
     .calculator-stat-chip span:not(.gem-token, .calculator-value-stat-icon) {
@@ -3419,6 +3422,12 @@
     display: grid;
     gap: 1rem;
     align-items: stretch;
+  }
+
+  @media (max-width: 640px) {
+    .calculator-offers {
+      gap: 0.75rem;
+    }
   }
 
   @media (min-width: 900px) {
@@ -3510,12 +3519,13 @@
 
   @media (max-width: 640px) {
     .calculator-offer-panel {
-      padding: 0.78rem;
+      padding: 0.68rem;
     }
 
     .calculator-offer-head {
       display: grid;
-      gap: 0.55rem;
+      gap: 0.42rem;
+      padding-bottom: 0.62rem;
     }
 
     .calculator-offer-total {
@@ -3526,7 +3536,7 @@
 
     .calculator-slot-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.62rem;
+      gap: 0.5rem;
     }
   }
 
@@ -3736,17 +3746,17 @@
 
   @media (max-width: 640px) {
     .calculator-slot-filled {
-      min-height: 9rem;
-      padding: 0.82rem 0.68rem 2.25rem;
+      min-height: 7.75rem;
+      padding: 0.62rem 0.52rem 2rem;
     }
 
     .calculator-slot-filled .item-crest {
-      width: 3rem;
-      height: 3rem;
+      width: 2.65rem;
+      height: 2.65rem;
     }
 
     .calculator-slot-name {
-      font-size: 0.9rem;
+      font-size: 0.82rem;
     }
   }
 
@@ -4462,21 +4472,74 @@
   @media (max-width: 640px) {
     .calculator-modal-backdrop {
       align-items: start;
-      padding: 0.7rem;
+      padding: 0.55rem;
     }
 
     .calculator-modal {
-      max-height: calc(100dvh - 1.4rem);
-      padding: 1rem;
+      max-height: calc(100dvh - 1.1rem);
+      padding: 0.82rem;
     }
 
     .calculator-picker-modal {
-      max-height: calc(100dvh - 1.4rem);
+      max-height: calc(100dvh - 1.1rem);
     }
 
     .calculator-modal-head,
     .calculator-picker-modal-head {
       padding-right: 2.25rem;
+    }
+
+    .calculator-picker-modal-head h2 {
+      font-size: 1.55rem;
+    }
+
+    .calculator-picker-modal-toolbar {
+      gap: 0.55rem;
+      margin-top: 0.7rem;
+    }
+
+    .calculator-picker-modal .search-control {
+      gap: 0.22rem;
+    }
+
+    .calculator-picker-modal .search-channel {
+      min-height: 2.35rem;
+      border-radius: 13px 4px 13px 4px;
+    }
+
+    .calculator-picker-modal .search-channel input {
+      height: 2.2rem;
+      padding-right: 0.55rem;
+      padding-left: 0.55rem;
+    }
+
+    .calculator-picker-filter-panel {
+      gap: 0.45rem;
+      padding: 0.55rem;
+    }
+
+    .calculator-picker-filter-panel .advanced-filter-head {
+      gap: 0.45rem;
+      padding-bottom: 0.45rem;
+    }
+
+    .calculator-picker-filter-grid {
+      gap: 0.42rem;
+    }
+
+    .calculator-picker-filter-grid .advanced-filter-field {
+      gap: 0.22rem;
+    }
+
+    .calculator-picker-filter-grid .advanced-filter-field select {
+      height: 2.12rem;
+      padding-left: 0.62rem;
+      font-size: 0.64rem;
+    }
+
+    .calculator-picker-modal-list {
+      gap: 0.42rem;
+      margin-top: 0.65rem;
     }
   }
 
