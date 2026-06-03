@@ -16,6 +16,16 @@ const features = [
     text: "Build both sides of a trade and check the value gap before you accept.",
     action: "Calculate trade",
   },
+  ...(process.env.NODE_ENV === "development"
+    ? [
+        {
+          href: "/updates",
+          title: "Updates",
+          text: "See board imports, item-count changes, and demand updates in one log.",
+          action: "Open updates",
+        },
+      ]
+    : []),
 ];
 
 export default function Home() {
