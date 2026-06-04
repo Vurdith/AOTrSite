@@ -662,6 +662,7 @@
     flex: 0 0 auto;
     min-height: 2rem;
     line-height: 1;
+    transform: translateY(0.22rem);
   }
 
   .trade-empty-state {
