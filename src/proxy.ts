@@ -16,6 +16,7 @@ const suspiciousPathPatterns = [
 ];
 
 const allowedMethods = new Set(["GET", "HEAD", "OPTIONS", "POST", "PUT", "DELETE"]);
+const deploymentPaused = true;
 
 type RateRule = {
   key: string;
@@ -141,6 +142,74 @@ function isSuspiciousPath(pathname: string) {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (deploymentPaused) {
+    if (request.method === "HEAD") {
+      return new NextResponse(null, {
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": "86400",
+          "X-Robots-Tag": "noindex, nofollow",
+        },
+        status: 503,
+      });
+    }
+
+    return new NextResponse(
+      `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Deployment Paused</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #08090d;
+        color: #f4f7fb;
+        font-family: Arial, sans-serif;
+      }
+      main {
+        max-width: 560px;
+        padding: 32px;
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 32px;
+        line-height: 1.15;
+      }
+      p {
+        margin: 0;
+        color: #aab3c2;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Deployment Paused</h1>
+      <p>This website is currently unavailable.</p>
+    </main>
+  </body>
+</html>`,
+      {
+        headers: {
+          "Cache-Control": "no-store",
+          "Content-Type": "text/html; charset=utf-8",
+          "Retry-After": "86400",
+          "X-Robots-Tag": "noindex, nofollow",
+        },
+        status: 503,
+      },
+    );
+  }
+
   if (!allowedMethods.has(request.method)) {
     return new NextResponse(null, {
       headers: {
@@ -170,5 +239,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|hero|icons|sounds|noise.svg|intro-loader.mp4|aotevo-logo.png).*)"],
+  matcher: ["/((?!_next/static|_next/image).*)"],
 };
